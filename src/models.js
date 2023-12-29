@@ -108,6 +108,13 @@ const MODEL_TYPE_MAPPING = new Map();
 const MODEL_NAME_TO_CLASS_MAPPING = new Map();
 const MODEL_CLASS_TO_NAME_MAPPING = new Map();
 
+const logLevelToNumber = {
+    'verbose': 0,
+    'info': 1,
+    'warning': 2,
+    'error': 3,
+    'fatal': 4
+} ;
 
 /**
  * Constructs an InferenceSession using a model file located at the specified path.
@@ -125,6 +132,8 @@ async function constructSession(pretrained_model_name_or_path, fileName, options
     try {
         return await InferenceSession.create(buffer, {
             executionProviders,
+            // @ts-ignore
+            logSeverityLevel: logLevelToNumber[env.logLevel],
         });
     } catch (err) {
         // If the execution provided was only wasm, throw the error
@@ -138,7 +147,9 @@ async function constructSession(pretrained_model_name_or_path, fileName, options
             'Using `wasm` as a fallback. '
         )
         return await InferenceSession.create(buffer, {
-            executionProviders: ['wasm']
+            executionProviders: ['wasm'],
+            // @ts-ignore
+            logSeverityLevel: logLevelToNumber[env.logLevel],
         });
     }
 }

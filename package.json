@@ -1,5 +1,5 @@
 {
-  "name": "@xenova/transformers",
+  "name": "@sroussey/transformers",
   "version": "2.16.0",
   "description": "State-of-the-art Machine Learning for the web. Run 🤗 Transformers directly in your browser, with no need for a server!",
   "main": "./src/transformers.js",
@@ -14,11 +14,11 @@
     "readme": "python ./docs/scripts/build_readme.py",
     "docs-api": "node ./docs/scripts/generate.js",
     "docs-preview": "doc-builder preview transformers.js ./docs/source/ --not_python_module",
-    "docs-build": "doc-builder build transformers.js ./docs/source/ --not_python_module --build_dir ./docs/build/ --repo_owner xenova"
+    "docs-build": "doc-builder build transformers.js ./docs/source/ --not_python_module --build_dir ./docs/build/ --repo_owner sroussey"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/xenova/transformers.js.git"
+    "url": "git+https://github.com/sroussey/transformers.js.git"
   },
   "keywords": [
     "transformers",
@@ -38,12 +38,12 @@
   },
   "homepage": "https://github.com/xenova/transformers.js#readme",
   "dependencies": {
-    "onnxruntime-web": "1.14.0",
-    "sharp": "^0.32.0",
+    "onnxruntime-web": "=1.16.0",
+    "sharp": "^0.33.2",
     "@huggingface/jinja": "^0.2.1"
   },
   "optionalDependencies": {
-    "onnxruntime-node": "1.14.0"
+    "onnxruntime-node": "=1.16.0"
   },
   "devDependencies": {
     "@types/jest": "^29.5.1",
