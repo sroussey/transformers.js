@@ -37,6 +37,7 @@ if (typeof process !== 'undefined' && process?.release?.name === 'node') {
     if(ONNX.env.wasm) ONNX.env.wasm.numThreads = 1;
 
     // Add `cpu` execution provider, with higher precedence that `wasm`.
+    executionProviders.pop(); // no wasm in node
     executionProviders.unshift('cpu');
 
 } else {
