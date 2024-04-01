@@ -1,6 +1,6 @@
 {
-  "name": "@xenova/transformers",
-  "version": "3.0.0-alpha.0",
+  "name": "@sroussey/transformers",
+  "version": "3.0.0-alpha.2",
   "description": "State-of-the-art Machine Learning for the web. Run 🤗 Transformers directly in your browser, with no need for a server!",
   "main": "./src/transformers.js",
   "types": "./types/transformers.d.ts",
@@ -18,7 +18,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/xenova/transformers.js.git"
+    "url": "git+https://github.com/sroussey/transformers.js.git"
   },
   "keywords": [
     "transformers",
@@ -34,9 +34,9 @@
   "author": "Xenova",
   "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/xenova/transformers.js/issues"
+    "url": "https://github.com/sroussey/transformers.js/issues"
   },
-  "homepage": "https://github.com/xenova/transformers.js#readme",
+  "homepage": "https://github.com/sroussey/transformers.js#readme",
   "dependencies": {
     "@huggingface/jinja": "^0.2.2",
     "onnxruntime-web": "1.17.1",
