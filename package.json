@@ -1,5 +1,5 @@
 {
-  "name": "@huggingface/transformers",
+  "name": "@sroussey/transformers",
   "version": "3.3.3",
   "description": "State-of-the-art Machine Learning for the web. Run 🤗 Transformers directly in your browser, with no need for a server!",
   "main": "./src/transformers.js",
@@ -35,7 +35,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/huggingface/transformers.js.git"
+    "url": "git+https://github.com/sroussey/transformers.js.git"
   },
   "keywords": [
     "transformers",
@@ -51,9 +51,9 @@
   "author": "Hugging Face",
   "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/huggingface/transformers.js/issues"
+    "url": "https://github.com/sroussey/transformers.js/issues"
   },
-  "homepage": "https://github.com/huggingface/transformers.js#readme",
+  "homepage": "https://github.com/sroussey/transformers.js#readme",
   "dependencies": {
     "@huggingface/jinja": "^0.3.3",
     "onnxruntime-node": "1.20.1",
