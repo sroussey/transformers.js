@@ -423,17 +423,14 @@ self.addEventListener('message', async (event) => {
       self.postMessage(x);
   });
 
-  let allText = "";
-
   // Capture partial output as it streams from the pipeline
   const streamer = new TextStreamer(pipeline.tokenizer, {
       skip_prompt: true,
       skip_special_tokens: true,
-      callback_function: function (newText) {
-          allText += newText;
+      callback_function: function (text) {
           self.postMessage({
               status: 'update',
-              output: allText
+              output: text
           });
       }
   });
@@ -492,7 +489,7 @@ const onMessageReceived = (e) => {
 
     case 'update':
       // Generation update: update the output text.
-      setOutput(e.data.output);
+      setOutput((o => o + e.data.output);
       break;
 
     case 'complete':
