@@ -55,7 +55,7 @@ export class TextStreamer extends BaseStreamer {
         this.skip_prompt = skip_prompt;
         this.callback_function = callback_function ?? stdout_write;
         this.token_callback_function = token_callback_function;
-        this.decode_kwargs = { ...decode_kwargs, ...kwargs , skip_special_tokens };
+        this.decode_kwargs = { skip_special_tokens, ...decode_kwargs, ...kwargs };
 
         // variables used in the streaming process
         this.token_cache = [];
