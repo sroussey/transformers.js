@@ -2,9 +2,8 @@
 import json
 import os
 import shutil
-from dataclasses import dataclass, field
-from typing import Optional, Set
-from tqdm import tqdm
+from dataclasses import dataclass, field, asdict
+from typing import Optional
 from enum import Enum
 
 from transformers import (
@@ -13,18 +12,12 @@ from transformers import (
     HfArgumentParser
 )
 
-import onnx
+import onnxslim
 from optimum.exporters.onnx import main_export, export_models
 from optimum.onnx.graph_transformations import check_and_save_model
 from optimum.exporters.tasks import TasksManager
-from onnxruntime.quantization import (
-    quantize_dynamic,
-    QuantType
-)
-from onnxruntime.quantization.matmul_4bits_quantizer import MatMul4BitsQuantizer
-from onnxruntime.quantization.matmul_bnb4_quantizer import MatMulBnb4Quantizer
-from onnxconverter_common import float16
 
+from .quantize import QuantizationArguments, quantize
 
 NO_PER_CHANNEL_REDUCE_RANGE_MODELS = {
     # Decoder-only models
@@ -37,13 +30,18 @@ NO_PER_CHANNEL_REDUCE_RANGE_MODELS = {
     'mpt',
     'bloom',
     'llama',
+    'gemma',
     'opt',
     'mistral',
     'falcon',
     'phi',
+    'phi3',
     'qwen2',
     'stablelm',
     'starcoder2',
+    'openelm',
+    'mobilellm',
+    'olmo',
 
     # Encoder-decoder models
     'whisper',
@@ -100,12 +98,6 @@ class ConversionArguments:
             "help": "Whether to quantize the model."
         }
     )
-    quantize_mode: QuantMode = field(
-        default=None,
-        metadata={
-            "help": f"Quantization mode to use. Options are: {', '.join([x.value for x in QuantMode])}"
-        }
-    )
     output_parent_dir: str = field(
         default='./models/',
         metadata={
@@ -122,7 +114,22 @@ class ConversionArguments:
             )
         }
     )
+    library_name: Optional[str] = field(
+        default=None,
+        metadata={
+            "help": (
+                "The library name to use for the export. If not specified, the library name will be auto-inferred based on the model."
+            )
+        }
+    )
 
+
+    variant: Optional[str] = field(
+        default='default',
+        metadata={
+            "help": "The variant of the ONNX export to use."
+        }
+    )
     opset: int = field(
         default=None,
         metadata={
@@ -142,46 +149,6 @@ class ConversionArguments:
         default=False,
         metadata={
             "help": "Whether to skip validation of the converted model"
-        }
-    )
-
-    per_channel: bool = field(
-        default=None,
-        metadata={
-            "help": "Whether to quantize weights per channel"
-        }
-    )
-    reduce_range: bool = field(
-        default=None,
-        metadata={
-            "help": "Whether to quantize weights with 7-bits. It may improve the accuracy for some models running on non-VNNI machine, especially for per-channel mode"
-        }
-    )
-    block_size: int = field(
-        default=None,
-        metadata={
-            "help": "Block size for blockwise quantization. Note: bnb.nn.Linear4bit only uses block_size=64"
-        }
-    )
-    quant_type: int = field(
-        default=MatMulBnb4Quantizer.NF4,
-        metadata={
-            "help": "Quantization data type. 0: FP4, 1: NF4",
-            "choices": [MatMulBnb4Quantizer.FP4, MatMulBnb4Quantizer.NF4],
-        }
-    )
-    symmetric: bool = field(
-        default=True,
-        metadata={
-            "help": "Indicate whether to quantize the model symmetrically"
-        }
-    )
-    accuracy_level: int = field(
-        default=None,
-        metadata={
-            "help": "Accuracy level of the 4-bit quantized MatMul computation. "
-            "Refer to the MatMulNBits contrib op's 'accuracy_level' attribute for details "
-            "(https://github.com/microsoft/onnxruntime/blob/main/docs/ContribOperators.md#commicrosoftmatmulnbits)."
         }
     )
 
@@ -214,170 +181,19 @@ class ConversionArguments:
             "that desire a finer-grained control on the export."
         }
     )
-
-
-def get_operators(model: onnx.ModelProto) -> Set[str]:
-    operators = set()
-
-    def traverse_graph(graph):
-        for node in graph.node:
-            operators.add(node.op_type)
-            for attr in node.attribute:
-                if attr.type == onnx.AttributeProto.GRAPH:
-                    subgraph = attr.g
-                    traverse_graph(subgraph)
-
-    traverse_graph(model.graph)
-    return operators
-
-
-def quantize(
-    mode, model_names_or_paths, *,
-
-        # 8-bit quantization
-        per_channel: bool = True,
-        reduce_range: bool = True,
-
-        # 4-bit quantization
-        block_size: int | None = None,
-
-        # MatMul4BitsQuantizer
-        is_symmetric: bool = True,
-        accuracy_level: int | None = None,
-
-        # MatMulBnb4Quantizer
-        quant_type: int | None = None,
-):
-    """
-    Quantize the weights of the model (e.g., from float32 to int8) to allow for more efficient inference.
-    """
-
-    quantize_config = {}
-
-    directory_path = os.path.dirname(model_names_or_paths[0])
-
-    outputs = []
-    for model in tqdm(model_names_or_paths, desc='Quantizing'):
-        file_name_without_extension = os.path.splitext(
-            os.path.basename(model)
-        )[0]
-
-        loaded_model = onnx.load_model(model)
-        suffix = 'quantized' if mode == QuantMode.Q8 else mode.value
-        save_path = os.path.join(
-            directory_path,
-            f'{file_name_without_extension}_{suffix}.onnx',
-        )
-
-        quantize_kwargs = {}
-
-        if mode in (QuantMode.Q8, QuantMode.QI8, QuantMode.QU8):
-            quantize_kwargs.update(
-                per_channel=per_channel,
-                reduce_range=reduce_range,
-            )
-
-            op_types = get_operators(loaded_model)
-            if mode == QuantMode.Q8:
-                # NOTE:
-                # As of 2024/03/18, the current latest version of onnxruntime-web is 1.17.1, and does not support INT8 weights for Conv layers.
-                # If you attempt to run a model with INT8 weights for Conv layers, you will get an error like:
-                # `Can't create a session. ERROR_CODE: 9, ERROR_MESSAGE: Could not find an implementation for ConvInteger(10) node with name '/.../Conv_quant'`
-                #
-                # For this reason, we choose model weight types to ensure compatibility with onnxruntime-web.
-                #
-                # As per docs, signed weight type (QInt8) is faster on most CPUs, so, we use that unless the model contains a Conv layer.
-                # For more information, see:
-                #  - https://github.com/microsoft/onnxruntime/issues/3130#issuecomment-1105200621
-                #  - https://github.com/microsoft/onnxruntime/issues/2339
-                weight_type = QuantType.QUInt8 if 'Conv' in op_types else QuantType.QInt8
-
-            elif mode == QuantMode.QI8:
-                weight_type = QuantType.QInt8
-
-            else:  # mode == QuantMode.QU8:
-                weight_type = QuantType.QUInt8
-
-            del loaded_model
-
-            # Uses unsigned ints for activation values, signed ints for weights, per
-            # https://onnxruntime.ai/docs/performance/quantization.html#data-type-selection
-            # it is faster on most CPU architectures
-            quantize_dynamic(
-                model_input=model,
-                model_output=save_path,
-                weight_type=weight_type,
-
-                # TODO allow user to specify these
-                # op_types_to_quantize=['MatMul', 'Add', 'Conv'],
-                extra_options=dict(
-                    EnableSubgraph=True
-                ),
-
-                **quantize_kwargs,
-            )
-
-            if 'per_model_config' not in quantize_config:
-                quantize_config['per_model_config'] = {}
-
-            quantize_config['per_model_config'][file_name_without_extension] = dict(
-                op_types=sorted(list(op_types)),
-                weight_type=str(weight_type),
-            )
-
-        elif mode == QuantMode.Q4:
-            block_size = block_size if block_size is not None else 32
-            quantize_kwargs.update(
-                block_size=block_size,
-                is_symmetric=is_symmetric,
-                accuracy_level=accuracy_level,
-            )
-            quantizer = MatMul4BitsQuantizer(
-                model=loaded_model,
-                **quantize_kwargs,
-            )
-            quantizer.process()
-            check_and_save_model(quantizer.model.model, save_path)
-            del quantizer
-
-        elif mode == QuantMode.BNB4:
-            block_size = block_size if block_size is not None else 64
-            quant_type = quant_type if quant_type is not None else MatMulBnb4Quantizer.NF4
-            quantize_kwargs.update(
-                block_size=block_size,
-                quant_type=quant_type,
-            )
-
-            quantizer = MatMulBnb4Quantizer(
-                model=loaded_model,
-                **quantize_kwargs,
-            )
-            quantizer.process()
-            check_and_save_model(quantizer.model.model, save_path)
-            del quantizer
-
-        elif mode == QuantMode.FP16:
-            model_fp16 = float16.convert_float_to_float16(
-                loaded_model,
-                keep_io_types=True,
-            )
-            onnx.save(model_fp16, save_path)
-
-        else:
-            raise ValueError(f'Invalid quantization mode: {mode}')
-
-        quantize_config.update(quantize_kwargs)
-        outputs.append(save_path)
-
-    return quantize_config, outputs
-
+    skip_onnxslim: bool = field(
+        default=False,
+        metadata={
+            "help": "Whether or not to skip onnxslim."
+        }
+    )
 
 def main():
 
     parser = HfArgumentParser(
-        (ConversionArguments, )
+        (ConversionArguments, QuantizationArguments)
     )
-    conv_args, = parser.parse_args_into_dataclasses()
+    conv_args, quantization_args = parser.parse_args_into_dataclasses()
 
     model_id = conv_args.model_id
     tokenizer_id = conv_args.tokenizer_id or model_id
@@ -404,23 +220,19 @@ def main():
         for key in custom_onnx_configs:
             onnx_configs = TasksManager._SUPPORTED_MODEL_TYPE[custom_onnx_configs[key]]['onnx']
             mapping = onnx_configs[conv_args.task]
-            custom_onnx_configs[key] = mapping.func(config, **mapping.keywords)
+            new_kwargs = {}
+            if conv_args.task.startswith('text-generation'):
+                new_kwargs['use_past_in_inputs'] = True
+
+            custom_onnx_configs[key] = mapping.func(
+                config, **mapping.keywords, **new_kwargs)
 
         custom_kwargs['custom_onnx_configs'] = custom_onnx_configs
 
     tokenizer = None
     try:
         # Load tokenizer
-        tokenizer = AutoTokenizer.from_pretrained(
-            tokenizer_id, **from_pretrained_kwargs)
-
-        # To avoid inserting all chat templates into tokenizers.js, we save the chat template
-        # to the tokenizer_config.json file, and load it when the tokenizer is loaded.
-        if getattr(tokenizer, 'chat_template', None) is None and \
-                getattr(tokenizer, 'use_default_system_prompt', False):
-            # No chat template specified, and we use the default
-            setattr(tokenizer, 'chat_template',
-                    tokenizer.default_chat_template)
+        tokenizer = AutoTokenizer.from_pretrained(tokenizer_id, **from_pretrained_kwargs)
 
     except KeyError:
         pass  # No Tokenizer
@@ -433,7 +245,6 @@ def main():
         opset=conv_args.opset,
         device=conv_args.device,
         trust_remote_code=conv_args.trust_remote_code,
-        legacy=True,  # TODO: remove this when transformers.js config is updated
         **custom_kwargs,
     )
 
@@ -442,7 +253,8 @@ def main():
         output=output_model_folder,
         task=conv_args.task,
         do_validation=not conv_args.skip_validation,
-        library_name='transformers',
+        _variant=conv_args.variant,
+        library_name=conv_args.library_name,
         **core_export_kwargs,
     )
 
@@ -500,6 +312,26 @@ def main():
         # Override default batch size to 1, needed because non-maximum suppression is performed for exporting.
         # For more information, see https://github.com/huggingface/optimum/blob/e3b7efb1257c011db907ef40ab340e795cc5684c/optimum/exporters/onnx/model_configs.py#L1028-L1032
         export_kwargs['batch_size'] = 1
+
+    elif config.model_type == 'openelm':
+        from .extra.openelm import OpenElmOnnxConfig
+
+        config = AutoConfig.from_pretrained(
+            model_id, trust_remote_code=conv_args.trust_remote_code)
+
+        onnx_config = OpenElmOnnxConfig(
+            config=config,
+            task="text-generation",
+            use_past=True,
+            use_past_in_inputs=True,
+        )
+
+        custom_onnx_configs = {
+            "model": onnx_config,
+        }
+
+        export_kwargs['task'] = "text-generation-with-past"
+        export_kwargs['custom_onnx_configs'] = custom_onnx_configs
 
     else:
         pass  # TODO
@@ -565,60 +397,41 @@ def main():
         #         },
         #         **custom_export_kwargs,
         #     )
-
         else:
             raise Exception(
                 f'Unable to export {config.model_type} model with `--split_modalities`.')
 
     os.makedirs(os.path.join(output_model_folder, 'onnx'), exist_ok=True)
 
+    if not conv_args.skip_onnxslim:
+        onnx_models = [os.path.join(output_model_folder, x)
+                    for x in os.listdir(output_model_folder) if x.endswith('.onnx')]
+
+        for model in onnx_models:
+            try:
+                slimmed_model = onnxslim.slim(model)
+                check_and_save_model(slimmed_model, model)
+            except Exception as e:
+                print(f"Failed to slim {model}: {e}")
+
     # Step 2. (optional, recommended) quantize the converted model for fast inference and to reduce model size.
     if conv_args.quantize:
-        # Update quantize config with model specific defaults
-        use_per_channel_reduce_range = config.model_type in NO_PER_CHANNEL_REDUCE_RANGE_MODELS
 
-        quantize_config = {}
+        # Possibly update quantize config with model specific defaults
+        use_per_channel_reduce_range = config.model_type not in NO_PER_CHANNEL_REDUCE_RANGE_MODELS
 
-        # Update with user-specified values
-        if conv_args.per_channel is not None:
-            quantize_config['per_channel'] = conv_args.per_channel
-        elif use_per_channel_reduce_range:
-            quantize_config['per_channel'] = False
+        if quantization_args.per_channel is None:
+            quantization_args.per_channel = use_per_channel_reduce_range
+        if quantization_args.reduce_range is None:
+            quantization_args.reduce_range = use_per_channel_reduce_range
 
-        if conv_args.reduce_range is not None:
-            quantize_config['reduce_range'] = conv_args.reduce_range
-        elif use_per_channel_reduce_range:
-            quantize_config['reduce_range'] = False
-
-        quantize_config['block_size'] = conv_args.block_size
-        quantize_config['quant_type'] = conv_args.quant_type
-        quantize_config['is_symmetric'] = conv_args.symmetric
-        quantize_config['accuracy_level'] = conv_args.accuracy_level
-
-        final_quantize_configs = {}
-        quantize_modes = [x.value for x in QuantMode] \
-            if conv_args.quantize_mode is None else [conv_args.quantize_mode]
-        for quantize_mode in quantize_modes:
-            try:
-                final_quantize_config, quantized_paths = quantize(QuantMode(quantize_mode), [
-                    os.path.join(output_model_folder, x)
-                    for x in os.listdir(output_model_folder)
-                    if x.endswith('.onnx')
-                ], **quantize_config)
-
-                final_quantize_configs[quantize_mode] = final_quantize_config
-
-                for path in quantized_paths:
-                    file_name = os.path.basename(path)
-                    shutil.move(path,
-                                os.path.join(output_model_folder, 'onnx', file_name))
-            except Exception as e:
-                print(
-                    f'Failed to quantize model with mode {quantize_mode}: {e}')
-
-        # Save quantization config
+        quantize(
+            output_model_folder,
+            os.path.join(output_model_folder, 'onnx'),
+            quantization_args,
+        )
         with open(os.path.join(output_model_folder, 'quantize_config.json'), 'w') as fp:
-            json.dump(final_quantize_configs, fp, indent=4)
+            json.dump(asdict(quantization_args), fp, indent=4)
 
     # Step 3. Move .onnx files to the 'onnx' subfolder
     for file in os.listdir(output_model_folder):

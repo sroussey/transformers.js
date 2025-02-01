@@ -7,7 +7,7 @@ In this tutorial, we'll be building a simple React application that performs mul
 
 Useful links:
 - [Demo site](https://huggingface.co/spaces/Xenova/react-translator)
-- [Source code](https://github.com/xenova/transformers.js/tree/main/examples/react-translator)
+- [Source code](https://github.com/huggingface/transformers.js-examples/tree/main/react-translator)
 
 
 ## Prerequisites
@@ -44,10 +44,10 @@ You can stop the development server by pressing <kbd>Ctrl</kbd> + <kbd>C</kbd> i
 
 ## Step 2: Install and configure Transformers.js
 
-Now we get to the fun part: adding machine learning to our application! First, install Transformers.js from [NPM](https://www.npmjs.com/package/@xenova/transformers) with the following command:
+Now we get to the fun part: adding machine learning to our application! First, install Transformers.js from [NPM](https://www.npmjs.com/package/@huggingface/transformers) with the following command:
 
 ```bash
-npm install @xenova/transformers
+npm install @huggingface/transformers
 ```
 
 For this application, we will use the [Xenova/nllb-200-distilled-600M](https://huggingface.co/Xenova/nllb-200-distilled-600M) model, which can perform multilingual translation among 200 languages. Before we start, there are 2 things we need to take note of:
@@ -58,7 +58,7 @@ We can achieve both of these goals by using a [Web Worker](https://developer.moz
 
 1. Create a file called `worker.js` in the `src` directory. This script will do all the heavy-lifing for us, including loading and running of the translation pipeline. To ensure the model is only loaded once, we will create the `MyTranslationPipeline` class which use the [singleton pattern](https://en.wikipedia.org/wiki/Singleton_pattern) to lazily create a single instance of the pipeline when `getInstance` is first called, and use this pipeline for all subsequent calls:
     ```javascript
-    import { pipeline } from '@xenova/transformers';
+    import { pipeline, TextStreamer } from '@huggingface/transformers';
 
     class MyTranslationPipeline {
       static task = 'translation';
@@ -66,10 +66,7 @@ We can achieve both of these goals by using a [Web Worker](https://developer.moz
       static instance = null;
 
       static async getInstance(progress_callback = null) {
-        if (this.instance === null) {
-          this.instance = pipeline(this.task, this.model, { progress_callback });
-        }
-
+        this.instance ??= pipeline(this.task, this.model, { progress_callback });
         return this.instance;
       }
     }
@@ -79,6 +76,7 @@ We can achieve both of these goals by using a [Web Worker](https://developer.moz
     ```jsx
     // Remember to import the relevant hooks
     import { useEffect, useRef, useState } from 'react'
+    import './App.css'
 
     function App() {
       // Create a reference to the worker object.
@@ -86,12 +84,10 @@ We can achieve both of these goals by using a [Web Worker](https://developer.moz
 
       // We use the `useEffect` hook to setup the worker as soon as the `App` component is mounted.
       useEffect(() => {
-        if (!worker.current) {
-          // Create the worker if it does not yet exist.
-          worker.current = new Worker(new URL('./worker.js', import.meta.url), {
-              type: 'module'
-          });
-        }
+        // Create the worker if it does not yet exist.
+        worker.current ??= new Worker(new URL('./worker.js', import.meta.url), {
+            type: 'module'
+        });
 
         // Create a callback function for messages from the worker thread.
         const onMessageReceived = (e) => {
@@ -127,7 +123,7 @@ We recommend starting the development server again with `npm run dev`
 
 
 First, let's define our components. Create a folder called `components` in the `src` directory, and create the following files:
-1. `LanguageSelector.jsx`: This component will allow the user to select the input and output languages. Check out the full list of languages [here](https://github.com/xenova/transformers.js/blob/main/examples/react-translator/src/components/LanguageSelector.jsx).
+1. `LanguageSelector.jsx`: This component will allow the user to select the input and output languages. Check out the full list of languages [here](https://github.com/huggingface/transformers.js-examples/tree/main/react-translator/src/components/LanguageSelector.jsx).
     ```jsx
     const LANGUAGES = {
       "Acehnese (Arabic script)": "ace_Arab",
@@ -363,7 +359,6 @@ Finally, we can add some CSS to make our app look a little nicer. Modify the fol
       z-index: 0;
       top: 0;
       width: 1%;
-      height: 100%;
       overflow: hidden;
       background-color: #007bff;
       white-space: nowrap;
@@ -402,6 +397,7 @@ First, let's define the `translate` function, which will be called when the user
 ```jsx
 const translate = () => {
   setDisabled(true);
+  setOutput('');
   worker.current.postMessage({
     text: input,
     src_lang: sourceLanguage,
@@ -417,35 +413,42 @@ Now, let's add an event listener in `src/worker.js` to listen for messages from 
 self.addEventListener('message', async (event) => {
   // Retrieve the translation pipeline. When called for the first time,
   // this will load the pipeline and save it for future use.
-  let translator = await MyTranslationPipeline.getInstance(x => {
+  const translator = await MyTranslationPipeline.getInstance(x => {
       // We also add a progress callback to the pipeline so that we can
       // track model loading.
       self.postMessage(x);
   });
 
+  // Capture partial output as it streams from the pipeline
+  const streamer = new TextStreamer(translator.tokenizer, {
+      skip_prompt: true,
+      skip_special_tokens: true,
+      callback_function: function (text) {
+          self.postMessage({
+              status: 'update',
+              output: text
+          });
+      }
+  });
+
   // Actually perform the translation
-  let output = await translator(event.data.text, {
+  const output = await translator(event.data.text, {
       tgt_lang: event.data.tgt_lang,
       src_lang: event.data.src_lang,
 
-      // Allows for partial output
-      callback_function: x => {
-          self.postMessage({
-              status: 'update',
-              output: translator.tokenizer.decode(x[0].output_token_ids, { skip_special_tokens: true })
-          });
-      }
+      // Allows for partial output to be captured
+      streamer,
   });
 
   // Send the output back to the main thread
   self.postMessage({
       status: 'complete',
-      output: output,
+      output,
   });
 });
 ```
 
-Finally, let's fill in our `onMessageReceived` function, which will update the application state in response to messages from the worker thread. Add the following code inside the `useEffect` hook we defined earlier:
+Finally, let's fill in our `onMessageReceived` function in `src/App.jsx`, which will update the application state in response to messages from the worker thread. Add the following code inside the `useEffect` hook we defined earlier:
 
 ```jsx
 const onMessageReceived = (e) => {
@@ -482,7 +485,7 @@ const onMessageReceived = (e) => {
 
     case 'update':
       // Generation update: update the output text.
-      setOutput(e.data.output);
+      setOutput(o => o + e.data.output);
       break;
 
     case 'complete':

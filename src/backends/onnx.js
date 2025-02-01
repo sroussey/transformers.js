@@ -9,15 +9,14 @@
  * 
  * This module is not directly exported, but can be accessed through the environment variables:
  * ```javascript
- * import { env } from '@xenova/transformers';
+ * import { env } from '@huggingface/transformers';
  * console.log(env.backends.onnx);
  * ```
  * 
  * @module backends/onnx
  */
 
-import path from 'path';
-import { env, RUNNING_LOCALLY } from '../env.js';
+import { env, apis } from '../env.js';
 
 // NOTE: Import order matters here. We need to import `onnxruntime-node` before `onnxruntime-web`.
 // In either case, we select the default export if it exists, otherwise we use the named export.
@@ -26,26 +25,80 @@ import * as ONNX_WEB from 'onnxruntime-web';
 
 export { Tensor } from 'onnxruntime-common';
 
-const WEBGPU_AVAILABLE = typeof navigator !== 'undefined' && 'gpu' in navigator;
-const USE_ONNXRUNTIME_NODE = typeof process !== 'undefined' && process?.release?.name === 'node';
+/**
+ * @typedef {import('onnxruntime-common').InferenceSession.ExecutionProviderConfig} ONNXExecutionProviders
+ */
 
-/** @type {import('../utils/devices.js').DeviceType[]} */
-const supportedExecutionProviders = [];
+/** @type {Record<import("../utils/devices.js").DeviceType, ONNXExecutionProviders>} */
+const DEVICE_TO_EXECUTION_PROVIDER_MAPPING = Object.freeze({
+    auto: null, // Auto-detect based on device and environment
+    gpu: null, // Auto-detect GPU
+    cpu: 'cpu', // CPU
+    wasm: 'wasm', // WebAssembly
+    webgpu: 'webgpu', // WebGPU
+    cuda: 'cuda', // CUDA
+    dml: 'dml', // DirectML
 
-/** @type {import('../utils/devices.js').DeviceType[]} */
-let defaultExecutionProviders;
+    webnn: { name: 'webnn', deviceType: 'cpu' }, // WebNN (default)
+    'webnn-npu': { name: 'webnn', deviceType: 'npu' }, // WebNN NPU
+    'webnn-gpu': { name: 'webnn', deviceType: 'gpu' }, // WebNN GPU
+    'webnn-cpu': { name: 'webnn', deviceType: 'cpu' }, // WebNN CPU
+});
+
+/** 
+ * The list of supported devices, sorted by priority/performance.
+ * @type {import("../utils/devices.js").DeviceType[]}
+ */
+const supportedDevices = [];
+
+/** @type {ONNXExecutionProviders[]} */
+let defaultDevices;
 let ONNX;
-if (USE_ONNXRUNTIME_NODE) {
+const ORT_SYMBOL = Symbol.for('onnxruntime');
+
+if (ORT_SYMBOL in globalThis) {
+  // If the JS runtime exposes their own ONNX runtime, use it
+  ONNX = globalThis[ORT_SYMBOL];
+
+} else if (apis.IS_NODE_ENV) {
     ONNX = ONNX_NODE.default ?? ONNX_NODE;
-    supportedExecutionProviders.push('cpu');
-    defaultExecutionProviders = ['cpu'];
+
+    // Updated as of ONNX Runtime 1.20.1
+    // The following table lists the supported versions of ONNX Runtime Node.js binding provided with pre-built binaries.
+    // | EPs/Platforms | Windows x64 | Windows arm64 | Linux x64         | Linux arm64 | MacOS x64 | MacOS arm64 |
+    // | ------------- | ----------- | ------------- | ----------------- | ----------- | --------- | ----------- |
+    // | CPU           | ✔️          | ✔️            | ✔️                | ✔️          | ✔️        | ✔️          |
+    // | DirectML      | ✔️          | ✔️            | ❌                | ❌          | ❌        | ❌          |
+    // | CUDA          | ❌          | ❌            | ✔️ (CUDA v11.8)   | ❌          | ❌        | ❌          |
+    switch (process.platform) {
+        case 'win32': // Windows x64 and Windows arm64
+            supportedDevices.push('dml');
+            break;
+        case 'linux': // Linux x64 and Linux arm64
+            if (process.arch === 'x64') {
+                supportedDevices.push('cuda');
+            }
+            break;
+        case 'darwin': // MacOS x64 and MacOS arm64
+            break;
+    }
+
+    supportedDevices.push('cpu');
+    defaultDevices = ['cpu'];
 } else {
     ONNX = ONNX_WEB;
-    if (WEBGPU_AVAILABLE) {
-        supportedExecutionProviders.push('webgpu');
+
+    if (apis.IS_WEBNN_AVAILABLE) {
+        // TODO: Only push supported providers (depending on available hardware)
+        supportedDevices.push('webnn-npu', 'webnn-gpu', 'webnn-cpu', 'webnn');
     }
-    supportedExecutionProviders.push('wasm');
-    defaultExecutionProviders = ['wasm'];
+
+    if (apis.IS_WEBGPU_AVAILABLE) {
+        supportedDevices.push('webgpu');
+    }
+
+    supportedDevices.push('wasm');
+    defaultDevices = ['wasm'];
 }
 
 // @ts-ignore
@@ -53,35 +106,58 @@ const InferenceSession = ONNX.InferenceSession;
 
 /**
  * Map a device to the execution providers to use for the given device.
- * @param {import("../utils/devices.js").DeviceType} [device=null] (Optional) The device to run the inference on.
- * @returns {import("../utils/devices.js").DeviceType[]} The execution providers to use for the given device.
+ * @param {import("../utils/devices.js").DeviceType|"auto"|null} [device=null] (Optional) The device to run the inference on.
+ * @returns {ONNXExecutionProviders[]} The execution providers to use for the given device.
  */
-export function deviceToExecutionProviders(device) {
-    // TODO: Use mapping from device to execution providers for overloaded devices (e.g., 'gpu' or 'cpu').
-    let executionProviders = defaultExecutionProviders;
-    if (device) { // User has specified a device
-        if (!supportedExecutionProviders.includes(device)) {
-            throw new Error(`Unsupported device: "${device}". Should be one of: ${supportedExecutionProviders.join(', ')}.`)
-        }
-        executionProviders = [device];
+export function deviceToExecutionProviders(device = null) {
+    // Use the default execution providers if the user hasn't specified anything
+    if (!device) return defaultDevices;
+
+    // Handle overloaded cases
+    switch (device) {
+        case "auto":
+            return supportedDevices;
+        case "gpu":
+            return supportedDevices.filter(x =>
+                ["webgpu", "cuda", "dml", "webnn-gpu"].includes(x),
+            );
     }
-    return executionProviders;
+
+    if (supportedDevices.includes(device)) {
+        return [DEVICE_TO_EXECUTION_PROVIDER_MAPPING[device] ?? device];
+    }
+
+    throw new Error(`Unsupported device: "${device}". Should be one of: ${supportedDevices.join(', ')}.`)
 }
+
+
+/**
+ * To prevent multiple calls to `initWasm()`, we store the first call in a Promise
+ * that is resolved when the first InferenceSession is created. Subsequent calls
+ * will wait for this Promise to resolve before creating their own InferenceSession.
+ * @type {Promise<any>|null}
+ */
+let wasmInitPromise = null;
 
 /**
  * Create an ONNX inference session.
  * @param {Uint8Array} buffer The ONNX model buffer.
- * @param {Object} session_options ONNX inference session options.
- * @returns {Promise<Object>} The ONNX inference session.
+ * @param {import('onnxruntime-common').InferenceSession.SessionOptions} session_options ONNX inference session options.
+ * @param {Object} session_config ONNX inference session configuration.
+ * @returns {Promise<import('onnxruntime-common').InferenceSession & { config: Object}>} The ONNX inference session.
  */
-export async function createInferenceSession(buffer, session_options) {
-
-    // NOTE: Important to create a clone, since ORT modifies the object.
-    const options = {
-        ...session_options
+export async function createInferenceSession(buffer, session_options, session_config) {
+    if (wasmInitPromise) {
+        // A previous session has already initialized the WASM runtime
+        // so we wait for it to resolve before creating this new session.
+        await wasmInitPromise;
     }
 
-    return await InferenceSession.create(buffer, options);
+    const sessionPromise = InferenceSession.create(buffer, session_options);
+    wasmInitPromise ??= sessionPromise;
+    const session = await sessionPromise;
+    session.config = session_config;
+    return session;
 }
 
 /**
@@ -93,36 +169,33 @@ export function isONNXTensor(x) {
     return x instanceof ONNX.Tensor;
 }
 
+/** @type {import('onnxruntime-common').Env} */
 // @ts-ignore
 const ONNX_ENV = ONNX?.env;
 if (ONNX_ENV?.wasm) {
     // Initialize wasm backend with suitable default settings.
 
-    // Set path to wasm files. This is needed when running in a web worker.
+    // (Optional) Set path to wasm files. This is needed when running in a web worker.
     // https://onnxruntime.ai/docs/api/js/interfaces/Env.WebAssemblyFlags.html#wasmPaths
     // We use remote wasm files by default to make it easier for newer users.
     // In practice, users should probably self-host the necessary .wasm files.
-    ONNX_ENV.wasm.wasmPaths = RUNNING_LOCALLY
-        ? path.join(env.__dirname, '/dist/')
-        : `https://cdn.jsdelivr.net/npm/@sroussey/transformers@${env.version}/dist/`;
+    ONNX_ENV.wasm.wasmPaths = `https://cdn.jsdelivr.net/npm/@huggingface/transformers@${env.version}/dist/`;
 
-    // Proxy the WASM backend to prevent the UI from freezing
-    ONNX_ENV.wasm.proxy = true;
+    // TODO: Add support for loading WASM files from cached buffer when we upgrade to onnxruntime-web@1.19.0
+    // https://github.com/microsoft/onnxruntime/pull/21534
+
+    // Users may wish to proxy the WASM backend to prevent the UI from freezing,
+    // However, this is not necessary when using WebGPU, so we default to false.
+    ONNX_ENV.wasm.proxy = false;
 
     // https://developer.mozilla.org/en-US/docs/Web/API/crossOriginIsolated
     if (typeof crossOriginIsolated === 'undefined' || !crossOriginIsolated) {
         ONNX_ENV.wasm.numThreads = 1;
     }
+}
 
-    // Running in a browser-environment
-    // TODO: Check if 1.17.1 fixes this issue.
-    // SIMD for WebAssembly does not operate correctly in some recent versions of iOS (16.4.x).
-    // As a temporary fix, we disable it for now.
-    // For more information, see: https://github.com/microsoft/onnxruntime/issues/15644
-    const isIOS = typeof navigator !== 'undefined' && /iP(hone|od|ad).+16_4.+AppleWebKit/.test(navigator.userAgent);
-    if (isIOS) {
-        ONNX_ENV.wasm.simd = false;
-    }
+if (ONNX_ENV?.webgpu) {
+    ONNX_ENV.webgpu.powerPreference = 'high-performance';
 }
 
 /**

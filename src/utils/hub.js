@@ -13,8 +13,8 @@ import { dispatchCallback } from './core.js';
 
 /**
  * @typedef {Object} PretrainedOptions Options for loading a pretrained model.     
- * @property {function} [progress_callback=null] If specified, this function will be called during model construction, to provide the user with progress updates.
- * @property {Object} [config=null] Configuration for the model to use instead of an automatically loaded configuration. Configuration can be automatically loaded when:
+ * @property {import('./core.js').ProgressCallback} [progress_callback=null] If specified, this function will be called during model construction, to provide the user with progress updates.
+ * @property {import('../configs.js').PretrainedConfig} [config=null] Configuration for the model to use instead of an automatically loaded configuration. Configuration can be automatically loaded when:
  * - The model is a model provided by the library (loaded with the *model id* string of a pretrained model).
  * - The model is loaded by supplying a local directory as `pretrained_model_name_or_path` and a configuration JSON file named *config.json* is found in the directory.
  * @property {string} [cache_dir=null] Path to a directory in which a downloaded pretrained model configuration should be cached if the standard cache should not be used.
@@ -26,31 +26,35 @@ import { dispatchCallback } from './core.js';
 
 /**
  * @typedef {Object} ModelSpecificPretrainedOptions Options for loading a pretrained model.
+ * @property {string} [subfolder='onnx'] In case the relevant files are located inside a subfolder of the model repo on huggingface.co,
+ * you can specify the folder name here.
  * @property {string} [model_file_name=null] If specified, load the model with this name (excluding the .onnx suffix). Currently only valid for encoder- or decoder-only models.
- * @property {import("./devices.js").DeviceType} [device=null] The device to run the model on. If not specified, the device will be chosen from the environment settings.
- * @property {import("./dtypes.js").DataType} [dtype=null] The data type to use for the model. If not specified, the data type will be chosen from the environment settings.
- * @property {Object} [session_options] (Optional) User-specified session options passed to the runtime. If not provided, suitable defaults will be chosen.
+ * @property {import("./devices.js").DeviceType|Record<string, import("./devices.js").DeviceType>} [device=null] The device to run the model on. If not specified, the device will be chosen from the environment settings.
+ * @property {import("./dtypes.js").DataType|Record<string, import("./dtypes.js").DataType>} [dtype=null] The data type to use for the model. If not specified, the data type will be chosen from the environment settings.
+ * @property {boolean|Record<string, boolean>} [use_external_data_format=false] Whether to load the model using the external data format (used for models >= 2GB in size).
+ * @property {import('onnxruntime-common').InferenceSession.SessionOptions} [session_options] (Optional) User-specified session options passed to the runtime. If not provided, suitable defaults will be chosen.
  */
 
 /**
  * @typedef {PretrainedOptions & ModelSpecificPretrainedOptions} PretrainedModelOptions Options for loading a pretrained model.
  */
 
+/**
+ * Mapping from file extensions to MIME types.
+ */
+const CONTENT_TYPE_MAP = {
+    'txt': 'text/plain',
+    'html': 'text/html',
+    'css': 'text/css',
+    'js': 'text/javascript',
+    'json': 'application/json',
+    'png': 'image/png',
+    'jpg': 'image/jpeg',
+    'jpeg': 'image/jpeg',
+    'gif': 'image/gif',
+}
 class FileResponse {
-    /**
-     * Mapping from file extensions to MIME types.
-     */
-    _CONTENT_TYPE_MAP = {
-        'txt': 'text/plain',
-        'html': 'text/html',
-        'css': 'text/css',
-        'js': 'text/javascript',
-        'json': 'application/json',
-        'png': 'image/png',
-        'jpg': 'image/jpeg',
-        'jpeg': 'image/jpeg',
-        'gif': 'image/gif',
-    }
+
     /**
      * Creates a new `FileResponse` object.
      * @param {string|URL} filePath
@@ -93,7 +97,7 @@ class FileResponse {
     updateContentType() {
         // Set content-type header based on file extension
         const extension = this.filePath.toString().split('.').pop().toLowerCase();
-        this.headers.set('content-type', this._CONTENT_TYPE_MAP[extension] ?? 'application/octet-stream');
+        this.headers.set('content-type', CONTENT_TYPE_MAP[extension] ?? 'application/octet-stream');
     }
 
     /**
@@ -117,7 +121,7 @@ class FileResponse {
      */
     async arrayBuffer() {
         const data = await fs.promises.readFile(this.filePath);
-        return data.buffer;
+        return /** @type {ArrayBuffer} */ (data.buffer);
     }
 
     /**
@@ -155,23 +159,26 @@ class FileResponse {
 }
 
 /**
- * Determines whether the given string is a valid HTTP or HTTPS URL.
- * @param {string|URL} string The string to test for validity as an HTTP or HTTPS URL.
+ * Determines whether the given string is a valid URL.
+ * @param {string|URL} string The string to test for validity as an URL.
+ * @param {string[]} [protocols=null] A list of valid protocols. If specified, the protocol must be in this list.
  * @param {string[]} [validHosts=null] A list of valid hostnames. If specified, the URL's hostname must be in this list.
- * @returns {boolean} True if the string is a valid HTTP or HTTPS URL, false otherwise.
+ * @returns {boolean} True if the string is a valid URL, false otherwise.
  */
-function isValidHttpUrl(string, validHosts = null) {
-    // https://stackoverflow.com/a/43467144
+function isValidUrl(string, protocols = null, validHosts = null) {
     let url;
     try {
         url = new URL(string);
     } catch (_) {
         return false;
     }
+    if (protocols && !protocols.includes(url.protocol)) {
+        return false;
+    }
     if (validHosts && !validHosts.includes(url.hostname)) {
         return false;
     }
-    return url.protocol === "http:" || url.protocol === "https:";
+    return true;
 }
 
 /**
@@ -182,7 +189,7 @@ function isValidHttpUrl(string, validHosts = null) {
  */
 export async function getFile(urlOrPath) {
 
-    if (env.useFS && !isValidHttpUrl(urlOrPath)) {
+    if (env.useFS && !isValidUrl(urlOrPath, ['http:', 'https:', 'blob:'])) {
         return new FileResponse(urlOrPath);
 
     } else if (typeof process !== 'undefined' && process?.release?.name === 'node') {
@@ -193,7 +200,7 @@ export async function getFile(urlOrPath) {
         headers.set('User-Agent', `transformers.js/${version}; is_ci/${IS_CI};`);
 
         // Check whether we are making a request to the Hugging Face Hub.
-        const isHFURL = isValidHttpUrl(urlOrPath, ['huggingface.co', 'hf.co']);
+        const isHFURL = isValidUrl(urlOrPath, ['http:', 'https:'], ['huggingface.co', 'hf.co']);
         if (isHFURL) {
             // If an access token is present in the environment variables,
             // we add it to the request headers.
@@ -330,7 +337,7 @@ async function tryCache(cache, ...names) {
  * @param {PretrainedOptions} [options] An object containing optional parameters.
  * 
  * @throws Will throw an error if the file is not found and `fatal` is true.
- * @returns {Promise} A Promise that resolves with the file content as a buffer.
+ * @returns {Promise<Uint8Array>} A Promise that resolves with the file content as a buffer.
  */
 export async function getModelFile(path_or_repo_id, filename, fatal = true, options = {}) {
 
@@ -437,7 +444,7 @@ export async function getModelFile(path_or_repo_id, filename, fatal = true, opti
         if (env.allowLocalModels) {
             // Accessing local models is enabled, so we try to get the file locally.
             // If request is a valid HTTP URL, we skip the local file check. Otherwise, we try to get the file locally.
-            const isURL = isValidHttpUrl(requestURL);
+            const isURL = isValidUrl(requestURL, ['http:', 'https:']);
             if (!isURL) {
                 try {
                     response = await getFile(localPath);
@@ -497,12 +504,6 @@ export async function getModelFile(path_or_repo_id, filename, fatal = true, opti
         file: filename
     })
 
-    const progressInfo = {
-        status: 'progress',
-        name: path_or_repo_id,
-        file: filename
-    }
-
     /** @type {Uint8Array} */
     let buffer;
 
@@ -522,7 +523,9 @@ export async function getModelFile(path_or_repo_id, filename, fatal = true, opti
 
         // For completeness, we still fire the final progress callback
         dispatchCallback(options.progress_callback, {
-            ...progressInfo,
+            status: 'progress',
+            name: path_or_repo_id,
+            file: filename,
             progress: 100,
             loaded: buffer.length,
             total: buffer.length,
@@ -530,7 +533,9 @@ export async function getModelFile(path_or_repo_id, filename, fatal = true, opti
     } else {
         buffer = await readResponse(response, data => {
             dispatchCallback(options.progress_callback, {
-                ...progressInfo,
+                status: 'progress',
+                name: path_or_repo_id,
+                file: filename,
                 ...data,
             })
         })
@@ -587,12 +592,11 @@ export async function getModelJSON(modelPath, fileName, fatal = true, options = 
 
     return JSON.parse(jsonData);
 }
-
 /**
  * Read and track progress when reading a Response object
  *
- * @param {any} response The Response object to read
- * @param {function} progress_callback The function to call with progress updates
+ * @param {Response|FileResponse} response The Response object to read
+ * @param {(data: {progress: number, loaded: number, total: number}) => void} progress_callback The function to call with progress updates
  * @returns {Promise<Uint8Array>} A Promise that resolves with the Uint8Array buffer
  */
 async function readResponse(response, progress_callback) {
