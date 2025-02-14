@@ -85,16 +85,17 @@ import { RawImage } from './utils/image.js';
 /**
  * Prepare images for further tasks.
  * @param {ImagePipelineInputs} images images to prepare.
+ * @param {AbortSignal} abort_signal An optional AbortSignal to cancel the request.
  * @returns {Promise<RawImage[]>} returns processed images.
  * @private
  */
-async function prepareImages(images) {
+async function prepareImages(images, abort_signal) {
     if (!Array.isArray(images)) {
         images = [images];
     }
 
     // Possibly convert any non-images to images
-    return await Promise.all(images.map(x => RawImage.read(x)));
+    return await Promise.all(images.map(x => RawImage.read(x, abort_signal)));
 }
 
 /**
@@ -106,17 +107,18 @@ async function prepareImages(images) {
  * Prepare audios for further tasks.
  * @param {AudioPipelineInputs} audios audios to prepare.
  * @param {number} sampling_rate sampling rate of the audios.
+ * @param {AbortSignal} abort_signal An optional AbortSignal to cancel the request.
  * @returns {Promise<Float32Array[]>} The preprocessed audio data.
  * @private
  */
-async function prepareAudios(audios, sampling_rate) {
+async function prepareAudios(audios, sampling_rate, abort_signal) {
     if (!Array.isArray(audios)) {
         audios = [audios];
     }
 
     return await Promise.all(audios.map(x => {
         if (typeof x === 'string' || x instanceof URL) {
-            return read_audio(x, sampling_rate);
+            return read_audio(x, sampling_rate, abort_signal);
         } else if (x instanceof Float64Array) {
             return new Float32Array(x);
         }
@@ -200,6 +202,7 @@ export class Pipeline extends Callable {
  * @property {string} task The task of the pipeline. Useful for specifying subtasks.
  * @property {PreTrainedModel} model The model used by the pipeline.
  * @property {Processor} processor The processor used by the pipeline.
+ * @property {AbortSignal} [abort_signal=undefined] An optional AbortSignal to cancel the request.
  * 
  * @typedef {ModelProcessorConstructorArgs} AudioPipelineConstructorArgs An object used to instantiate an audio-based pipeline.
  * @typedef {ModelProcessorConstructorArgs} ImagePipelineConstructorArgs An object used to instantiate an image-based pipeline.
@@ -1404,7 +1407,7 @@ export class ImageFeatureExtractionPipeline extends (/** @type {new (options: Im
         pool = null,
     } = {}) {
 
-        const preparedImages = await prepareImages(images);
+        const preparedImages = await prepareImages(images, this.abort_signal);
         const { pixel_values } = await this.processor(preparedImages);
         const outputs = await this.model({ pixel_values });
 
@@ -1494,7 +1497,7 @@ export class AudioClassificationPipeline extends (/** @type {new (options: Audio
     } = {}) {
 
         const sampling_rate = this.processor.feature_extractor.config.sampling_rate;
-        const preparedAudios = await prepareAudios(audio, sampling_rate);
+        const preparedAudios = await prepareAudios(audio, sampling_rate, this.abort_signal);
 
         // @ts-expect-error TS2339
         const id2label = this.model.config.id2label;
@@ -1596,7 +1599,7 @@ export class ZeroShotAudioClassificationPipeline extends (/** @type {new (option
         });
 
         const sampling_rate = this.processor.feature_extractor.config.sampling_rate;
-        const preparedAudios = await prepareAudios(audio, sampling_rate);
+        const preparedAudios = await prepareAudios(audio, sampling_rate, this.abort_signal);
 
         const toReturn = [];
         for (const aud of preparedAudios) {
@@ -1767,7 +1770,7 @@ export class AutomaticSpeechRecognitionPipeline extends (/** @type {new (options
         }
 
         const sampling_rate = this.processor.feature_extractor.config.sampling_rate;
-        const preparedAudios = await prepareAudios(audio, sampling_rate);
+        const preparedAudios = await prepareAudios(audio, sampling_rate, this.abort_signal);
 
         const toReturn = [];
         for (const aud of preparedAudios) {
@@ -1812,7 +1815,7 @@ export class AutomaticSpeechRecognitionPipeline extends (/** @type {new (options
         const hop_length = this.processor.feature_extractor.config.hop_length;
 
         const sampling_rate = this.processor.feature_extractor.config.sampling_rate;
-        const preparedAudios = await prepareAudios(audio, sampling_rate);
+        const preparedAudios = await prepareAudios(audio, sampling_rate, this.abort_signal);
 
         const toReturn = [];
         for (const aud of preparedAudios) {
@@ -1909,7 +1912,7 @@ export class AutomaticSpeechRecognitionPipeline extends (/** @type {new (options
             audio = [/** @type {AudioInput} */ (audio)];
         }
         const sampling_rate = this.processor.feature_extractor.config.sampling_rate;
-        const preparedAudios = await prepareAudios(audio, sampling_rate);
+        const preparedAudios = await prepareAudios(audio, sampling_rate, this.abort_signal);
         const toReturn = [];
         for (const aud of preparedAudios) {
             const inputs = await this.processor(aud);
@@ -1974,7 +1977,7 @@ export class ImageToTextPipeline extends (/** @type {new (options: TextImagePipe
     async _call(images, generate_kwargs = {}) {
 
         const isBatched = Array.isArray(images);
-        const preparedImages = await prepareImages(images);
+        const preparedImages = await prepareImages(images, this.abort_signal);
 
         const { pixel_values } = await this.processor(preparedImages);
 
@@ -2064,7 +2067,7 @@ export class ImageClassificationPipeline extends (/** @type {new (options: Image
         top_k = 5
     } = {}) {
 
-        const preparedImages = await prepareImages(images);
+        const preparedImages = await prepareImages(images, this.abort_signal);
 
         const { pixel_values } = await this.processor(preparedImages);
         const output = await this.model({ pixel_values });
@@ -2165,7 +2168,7 @@ export class ImageSegmentationPipeline extends (/** @type {new (options: ImagePi
             throw Error("Image segmentation pipeline currently only supports a batch size of 1.");
         }
 
-        const preparedImages = await prepareImages(images);
+        const preparedImages = await prepareImages(images, this.abort_signal);
         const imageSizes = preparedImages.map(x => [x.height, x.width]);
 
         const { pixel_values, pixel_mask } = await this.processor(preparedImages);
@@ -2295,7 +2298,7 @@ export class ZeroShotImageClassificationPipeline extends (/** @type {new (option
     } = {}) {
 
         const isBatched = Array.isArray(images);
-        const preparedImages = await prepareImages(images);
+        const preparedImages = await prepareImages(images, this.abort_signal);
 
         // Insert label into hypothesis template 
         const texts = candidate_labels.map(
@@ -2400,7 +2403,7 @@ export class ObjectDetectionPipeline extends (/** @type {new (options: ImagePipe
         if (isBatched && images.length !== 1) {
             throw Error("Object detection pipeline currently only supports a batch size of 1.");
         }
-        const preparedImages = await prepareImages(images);
+        const preparedImages = await prepareImages(images, this.abort_signal);
 
         const imageSizes = percentage ? null : preparedImages.map(x => [x.height, x.width]);
 
@@ -2533,7 +2536,7 @@ export class ZeroShotObjectDetectionPipeline extends (/** @type {new (options: T
     } = {}) {
 
         const isBatched = Array.isArray(images);
-        const preparedImages = await prepareImages(images);
+        const preparedImages = await prepareImages(images, this.abort_signal);
 
         // Run tokenization
         const text_inputs = this.tokenizer(candidate_labels, {
@@ -2639,7 +2642,7 @@ export class DocumentQuestionAnsweringPipeline extends (/** @type {new (options:
         // NOTE: For now, we only support a batch size of 1
 
         // Preprocess image
-        const preparedImage = (await prepareImages(image))[0];
+        const preparedImage = (await prepareImages(image, this.abort_signal ))[0];
         const { pixel_values } = await this.processor(preparedImage);
 
         // Run tokenization
@@ -2858,7 +2861,7 @@ export class ImageToImagePipeline extends (/** @type {new (options: ImagePipelin
     /** @type {ImageToImagePipelineCallback} */
     async _call(images) {
 
-        const preparedImages = await prepareImages(images);
+        const preparedImages = await prepareImages(images, this.abort_signal);
         const inputs = await this.processor(preparedImages);
         const outputs = await this.model(inputs);
 
@@ -2921,7 +2924,7 @@ export class DepthEstimationPipeline extends (/** @type {new (options: ImagePipe
     /** @type {DepthEstimationPipelineCallback} */
     async _call(images) {
 
-        const preparedImages = await prepareImages(images);
+        const preparedImages = await prepareImages(images, this.abort_signal);
 
         const inputs = await this.processor(preparedImages);
         const { predicted_depth } = await this.model(inputs);
