@@ -169,13 +169,15 @@ export class Pipeline extends Callable {
      * @param {PreTrainedModel} [options.model] The model used by the pipeline.
      * @param {PreTrainedTokenizer} [options.tokenizer=null] The tokenizer used by the pipeline (if any).
      * @param {Processor} [options.processor=null] The processor used by the pipeline (if any).
+     * @param {AbortSignal} [options.abort_signal=undefined] An optional AbortSignal to cancel the request.
      */
-    constructor({ task, model, tokenizer = null, processor = null }) {
+    constructor({ task, model, tokenizer = null, processor = null, abort_signal = undefined }) {
         super();
         this.task = task;
         this.model = model;
         this.tokenizer = tokenizer;
         this.processor = processor;
+        this.abort_signal = abort_signal;
     }
 
     /** @type {DisposeType} */
@@ -210,6 +212,7 @@ export class Pipeline extends Callable {
  * @property {PreTrainedModel} model The model used by the pipeline.
  * @property {PreTrainedTokenizer} tokenizer The tokenizer used by the pipeline.
  * @property {Processor} processor The processor used by the pipeline.
+ * @property {AbortSignal} [abort_signal=undefined] An optional AbortSignal to cancel the request.
  * 
  * @typedef {ModelTokenizerProcessorConstructorArgs} TextAudioPipelineConstructorArgs An object used to instantiate a text- and audio-based pipeline.
  * @typedef {ModelTokenizerProcessorConstructorArgs} TextImagePipelineConstructorArgs An object used to instantiate a text- and image-based pipeline.
@@ -2776,17 +2779,18 @@ export class TextToAudioPipeline extends (/** @type {new (options: TextToAudioPi
 
     async _call_text_to_spectrogram(text_inputs, { speaker_embeddings }) {
 
+        
         // Load vocoder, if not provided
         if (!this.vocoder) {
             console.log('No vocoder specified, using default HifiGan vocoder.');
-            this.vocoder = await AutoModel.from_pretrained(this.DEFAULT_VOCODER_ID, { dtype: 'fp32' });
+            this.vocoder = await AutoModel.from_pretrained(this.DEFAULT_VOCODER_ID, { dtype: 'fp32' , abort_signal : this.abort_signal });
         }
 
         // Load speaker embeddings as Float32Array from path/URL
         if (typeof speaker_embeddings === 'string' || speaker_embeddings instanceof URL) {
             // Load from URL with fetch
             speaker_embeddings = new Float32Array(
-                await (await fetch(speaker_embeddings)).arrayBuffer()
+                await (await fetch(speaker_embeddings, { signal: this.abort_signal })).arrayBuffer()
             );
         }
 
@@ -3301,6 +3305,7 @@ export async function pipeline(
         dtype = null,
         model_file_name = null,
         session_options = {},
+        abort_signal = undefined,
     } = {}
 ) {
     // Helper method to construct pipeline
@@ -3331,6 +3336,7 @@ export async function pipeline(
         dtype,
         model_file_name,
         session_options,
+        abort_signal,
     }
 
     const classes = new Map([
