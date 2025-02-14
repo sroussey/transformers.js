@@ -17,6 +17,5 @@ export const DEVICE_TYPES = Object.freeze({
     'webnn-cpu': 'webnn-cpu', // WebNN CPU
 });
 
-/**
- * @typedef {keyof typeof DEVICE_TYPES} DeviceType
- */
+export type DeviceType = keyof typeof DEVICE_TYPES;
+
