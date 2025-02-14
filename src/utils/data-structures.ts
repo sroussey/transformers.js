@@ -1,4 +1,3 @@
-
 /**
  * @file Custom data structures.
  * 
@@ -7,7 +6,6 @@
  * 
  * @module utils/data-structures
  */
-
 
 /**
  * Efficient Heap-based Implementation of a Priority Queue.
@@ -18,13 +16,16 @@
  * - https://stackoverflow.com/a/42919752/13989043 (original)
  * - https://github.com/belladoreai/llama-tokenizer-js (minor improvements)
  */
-export class PriorityQueue {
+export class PriorityQueue<T> {
+    private _heap: T[];
+    private _comparator: (a: T, b: T) => boolean;
+    private _maxSize: number;
 
     /**
      * Create a new PriorityQueue.
-     * @param {function(any, any): boolean} comparator Comparator function to determine priority. Defaults to a MaxHeap.
+     * @param {function(T, T): boolean} comparator Comparator function to determine priority. Defaults to a MaxHeap.
      */
-    constructor(comparator = (a, b) => a > b, maxSize = Infinity) {
+    constructor(comparator: (a: T, b: T) => boolean = (a, b) => a > b, maxSize: number = Infinity) {
         this._heap = [];
         this._comparator = comparator;
         this._maxSize = maxSize;
@@ -33,41 +34,35 @@ export class PriorityQueue {
     /**
      * The size of the queue
      */
-    get size() {
+    get size(): number {
         return this._heap.length;
     }
 
     /**
      * Check if the queue is empty.
-     * @returns {boolean} `true` if the queue is empty, `false` otherwise.
      */
-    isEmpty() {
+    isEmpty(): boolean {
         return this.size === 0;
     }
 
     /**
      * Return the element with the highest priority in the queue.
-     * @returns {any} The highest priority element in the queue.
      */
-    peek() {
+    peek(): T | undefined {
         return this._heap[0];
     }
 
     /**
      * Add one or more elements to the queue.
-     * @param  {...any} values The values to push into the queue.
-     * @returns {number} The new size of the queue.
      */
-    push(...values) {
+    push(...values: T[]): number {
         return this.extend(values);
     }
 
     /**
      * Add multiple elements to the queue.
-     * @param {any[]} values The values to push into the queue.
-     * @returns {number} The new size of the queue.
      */
-    extend(values) {
+    extend(values: T[]): number {
         for (const value of values) {
             if (this.size < this._maxSize) {
                 this._heap.push(value);
@@ -89,9 +84,8 @@ export class PriorityQueue {
 
     /**
      * Remove and return the element with the highest priority in the queue.
-     * @returns {any} The element with the highest priority in the queue.
      */
-    pop() {
+    pop(): T | undefined {
         const poppedValue = this.peek();
         const bottom = this.size - 1;
         if (bottom > 0) {
@@ -104,10 +98,8 @@ export class PriorityQueue {
 
     /**
      * Replace the element with the highest priority in the queue with a new value.
-     * @param {*} value The new value.
-     * @returns {*} The replaced value.
      */
-    replace(value) {
+    replace(value: T): T | undefined {
         const replacedValue = this.peek();
         this._heap[0] = value;
         this._siftDown();
@@ -115,72 +107,53 @@ export class PriorityQueue {
     }
 
     /**
-     * Compute the index for the parent of the node at index `i`.
-     * @param {number} i The index of the node to get the parent of.
-     * @returns {number} The index of the parent node.
-     * @private
+     * Get the index of the parent of the node at index `i`.
      */
-    _parent(i) {
+    private _parent(i: number): number {
         return ((i + 1) >>> 1) - 1;
     }
 
     /**
-     * Compute the index for the left child of the node at index `i`.
-     * @param {number} i The index of the node to get the left child of.
-     * @returns {number} The index of the left child.
-     * @private
+     * Get the index of the left child of the node at index `i`.
      */
-    _left(i) {
+    private _left(i: number): number {
         return (i << 1) + 1;
     }
 
     /**
-     * Compute the index for the right child of the node at index `i`.
-     * @param {number} i The index of the node to get the right child of.
-     * @returns {number} The index of the right child.
-     * @private
+     * Get the index of the right child of the node at index `i`.
      */
-    _right(i) {
+    private _right(i: number): number {
         return (i + 1) << 1;
     }
 
     /**
-     * Check if the element at index `i` is greater than the element at index `j`.
-     * @param {number} i The index of the first element to compare.
-     * @param {number} j The index of the second element to compare.
-     * @returns {boolean} `true` if the element at index `i` is greater than the element at index `j`, `false` otherwise.
+     * Check if the element at index `i` is greater than the element at index `j`.`true` if the element at index `i` is greater than the element at index `j`, `false` otherwise.
      * @private
      */
-    _greater(i, j) {
+    private _greater(i: number, j: number): boolean {
         return this._comparator(this._heap[i], this._heap[j]);
     }
 
     /**
      * Swap the elements at indices `i` and `j`.
-     * @param {number} i The index of the first element to swap.
-     * @param {number} j The index of the second element to swap.
-     * @private
      */
-    _swap(i, j) {
-        const temp = this._heap[i];
-        this._heap[i] = this._heap[j];
-        this._heap[j] = temp;
+    private _swap(i: number, j: number): void {
+        [this._heap[i], this._heap[j]] = [this._heap[j], this._heap[i]];
     }
 
     /**
      * Maintain the heap property by updating positions in the heap,
      * starting at the last element and moving up the heap.
-     * @private
      */
-    _siftUp() {
+    private _siftUp(): void {
         this._siftUpFrom(this.size - 1);
     }
 
-    /**
+   /**
      * Helper function to sift up from a given node.
-     * @param {number} node The index of the node to start sifting up from.
      */
-    _siftUpFrom(node) {
+   private _siftUpFrom(node: number): void {
         while (node > 0 && this._greater(node, this._parent(node))) {
             this._swap(node, this._parent(node));
             node = this._parent(node);
@@ -190,9 +163,8 @@ export class PriorityQueue {
     /**
      * Maintain the heap property by updating positions in the heap,
      * starting at the first element and moving down the heap.
-     * @private
      */
-    _siftDown() {
+    private _siftDown(): void {
         let node = 0;
         while (
             (this._left(node) < this.size && this._greater(this._left(node), node)) ||
@@ -205,13 +177,11 @@ export class PriorityQueue {
             node = maxChild;
         }
     }
-
     /**
      * Get the index of the smallest element in the heap. Since we use an array-based heap,
      * the index can be computed without needing to traverse the heap.
-     * @private
      */
-    _smallest() {
+    private _smallest(): number {
         return (2 ** (Math.floor(Math.log2(this.size))) - 1);
     }
 }
@@ -220,15 +190,16 @@ export class PriorityQueue {
  * A trie structure to efficiently store and search for strings.
  */
 export class CharTrie {
+    root: CharTrieNode;
+
     constructor() {
         this.root = CharTrieNode.default();
     }
 
     /**
      * Adds one or more `texts` to the trie.
-     * @param {string[]} texts The strings to add to the trie.
      */
-    extend(texts) {
+    extend(texts: string[]): void {
         for (const text of texts) {
             this.push(text);
         }
@@ -236,9 +207,8 @@ export class CharTrie {
 
     /**
      * Adds text to the trie.
-     * @param {string} text The string to add to the trie.
      */
-    push(text) {
+    push(text: string): void {
         let node = this.root;
         for (const ch of text) {
             let child = node.children.get(ch);
@@ -253,10 +223,9 @@ export class CharTrie {
 
     /**
      * Searches the trie for all strings with a common prefix of `text`.
-     * @param {string} text The common prefix to search for.
-     * @yields {string} Each string in the trie that has `text` as a prefix.
+     * Yields each string in the trie that has `text` as a prefix.
      */
-    *commonPrefixSearch(text) {
+    *commonPrefixSearch(text: string): Generator<string> {
         let node = this.root;
         if (node === undefined) return;
 
@@ -276,21 +245,21 @@ export class CharTrie {
  * Represents a node in a character trie.
  */
 class CharTrieNode {
+    isLeaf: boolean;
+    children: Map<string, CharTrieNode>;
+
     /**
      * Create a new CharTrieNode.
-     * @param {boolean} isLeaf Whether the node is a leaf node or not.
-     * @param {Map<string, CharTrieNode>} children A map containing the node's children, where the key is a character and the value is a `CharTrieNode`.
      */
-    constructor(isLeaf, children) {
+    constructor(isLeaf: boolean, children: Map<string, CharTrieNode>) {
         this.isLeaf = isLeaf;
         this.children = children;
     }
 
     /**
      * Returns a new `CharTrieNode` instance with default values.
-     * @returns {CharTrieNode} A new `CharTrieNode` instance with `isLeaf` set to `false` and an empty `children` map.
      */
-    static default() {
+    static default(): CharTrieNode {
         return new CharTrieNode(false, new Map());
     }
 }
@@ -299,14 +268,18 @@ class CharTrieNode {
  * A lattice data structure to be used for tokenization.
  */
 export class TokenLattice {
+    private chars: string[];
+    private len: number;
+    private bosTokenId: number;
+    private eosTokenId: number;
+    private nodes: TokenLatticeNode[];
+    private beginNodes: TokenLatticeNode[][];
+    private endNodes: TokenLatticeNode[][];
+
     /**
      * Creates a new TokenLattice instance.
-     *
-     * @param {string} sentence The input sentence to be tokenized.
-     * @param {number} bosTokenId The beginning-of-sequence token ID.
-     * @param {number} eosTokenId The end-of-sequence token ID.
      */
-    constructor(sentence, bosTokenId, eosTokenId) {
+    constructor(sentence: string, bosTokenId: number, eosTokenId: number) {
         this.chars = Array.from(sentence);
         this.len = this.chars.length;
         this.bosTokenId = bosTokenId;
@@ -325,13 +298,8 @@ export class TokenLattice {
 
     /**
      * Inserts a new token node into the token lattice.
-     *
-     * @param {number} pos The starting position of the token.
-     * @param {number} length The length of the token.
-     * @param {number} score The score of the token.
-     * @param {number} tokenId The token ID of the token.
      */
-    insert(pos, length, score, tokenId) {
+    insert(pos: number, length: number, score: number, tokenId: number): void {
         const nodeId = this.nodes.length;
         const node = new TokenLatticeNode(tokenId, nodeId, pos, length, score);
         this.beginNodes[pos].push(node);
@@ -341,10 +309,8 @@ export class TokenLattice {
 
     /**
      * Implements the Viterbi algorithm to compute the most likely sequence of tokens.
-     *
-     * @returns {TokenLatticeNode[]} The most likely sequence of tokens.
      */
-    viterbi() {
+    viterbi(): TokenLatticeNode[] {
         const len = this.len;
         let pos = 0;
         while (pos <= len) {
@@ -354,7 +320,7 @@ export class TokenLattice {
             for (let rnode of this.beginNodes[pos]) {
                 rnode.prev = null;
                 let bestScore = 0.0;
-                let bestNode = null;
+                let bestNode: TokenLatticeNode | null = null;
                 for (let lnode of this.endNodes[pos]) {
                     const score = lnode.backtraceScore + rnode.score;
                     if (bestNode === null || score > bestScore) {
@@ -373,7 +339,7 @@ export class TokenLattice {
             ++pos;
         }
 
-        const results = [];
+        const results: TokenLatticeNode[] = [];
         const root = this.beginNodes[len][0];
         const prev = root.prev;
         if (prev === null) {
@@ -392,30 +358,38 @@ export class TokenLattice {
     }
 
     /**
-     * @param {TokenLatticeNode} node
-     * @returns {string} The array of nodes representing the most likely sequence of tokens.
+     * Returns the piece of the sentence that corresponds to the given token node.
      */
-    piece(node) {
+    piece(node: TokenLatticeNode): string {
         return this.chars.slice(node.pos, node.pos + node.length).join('');
     }
 
     /**
-     * @returns {string[]} The most likely sequence of tokens.
+     * Returns the most likely sequence of tokens.
      */
-    tokens() {
+    tokens(): string[] {
         const nodes = this.viterbi();
         return nodes.map(x => this.piece(x));
     }
 
     /**
-     * @returns {number[]} The most likely sequence of token ids.
+     * Returns the most likely sequence of token IDs.
      */
-    tokenIds() {
+    tokenIds(): number[] {
         const nodes = this.viterbi();
         return nodes.map(x => x.tokenId);
     }
 }
+
 class TokenLatticeNode {
+    tokenId: number;
+    nodeId: number;
+    pos: number;
+    length: number;
+    score: number;
+    prev: TokenLatticeNode | null;
+    backtraceScore: number;
+
     /**
      * Represents a node in a token lattice for a given sentence.
      * @param {number} tokenId The ID of the token associated with this node.
@@ -424,7 +398,7 @@ class TokenLatticeNode {
      * @param {number} length The length of the token.
      * @param {number} score The score associated with the token.
      */
-    constructor(tokenId, nodeId, pos, length, score) {
+    constructor(tokenId: number, nodeId: number, pos: number, length: number, score: number) {
         this.tokenId = tokenId;
         this.nodeId = nodeId;
         this.pos = pos;
@@ -436,12 +410,11 @@ class TokenLatticeNode {
 
     /**
      * Returns a clone of this node.
-     * @returns {TokenLatticeNode} A clone of this node.
      */
-    clone() {
+    clone(): TokenLatticeNode {
         const n = new TokenLatticeNode(this.tokenId, this.nodeId, this.pos, this.length, this.score);
         n.prev = this.prev;
         n.backtraceScore = this.backtraceScore;
         return n;
     }
-}
+} 
