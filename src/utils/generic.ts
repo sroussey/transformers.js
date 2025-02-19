@@ -17,7 +17,7 @@ export type CallableConstructor = new () => CallableFunction;
  * 
  * @type {new () => {(...args: any[]): any, _call(...args: any[]): any}}
  */
-export const Callable = /** @type {CallableConstructor} */ (class {
+export const Callable: CallableConstructor = class {
     /**
     * Creates a new instance of the Callable class.
     */
@@ -48,4 +48,4 @@ export const Callable = /** @type {CallableConstructor} */ (class {
     _call(...args: any[]): any {
         throw Error('Must implement _call method in subclass');
     }
-});
+} as unknown as CallableConstructor;
