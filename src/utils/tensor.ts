@@ -48,7 +48,7 @@ export type DataType = keyof typeof DataTypeMap;
 export type DataArray = AnyTypedArray | any[];
 
 export class Tensor {
-    private ort_tensor: ONNXTensor;
+    public ort_tensor: ONNXTensor;
 
     /** @type {number[]} Dimensions of the tensor. */
     get dims(): number[] {
