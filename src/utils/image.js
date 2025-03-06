@@ -101,7 +101,8 @@ export class RawImage {
     /**
      * Helper method for reading an image from a variety of input types.
      * @param {RawImage|string|URL} input
-     * @param {AbortSignal} abort_signal An optional AbortSignal to cancel the request.
+     * @param {Object} options Additional options for reading the image.
+     * @param {AbortSignal} [options.abort_signal=null] An optional AbortSignal to cancel the request.
      * @returns The image object.
      *
      * **Example:** Read image from a URL.
@@ -115,11 +116,11 @@ export class RawImage {
      * // }
      * ```
      */
-    static async read(input, abort_signal) {
+    static async read(input, { abort_signal = null } = {}) {
         if (input instanceof RawImage) {
             return input;
         } else if (typeof input === 'string' || input instanceof URL) {
-            return await this.fromURL(input, abort_signal);
+            return await this.fromURL(input, { abort_signal });
         } else {
             throw new Error(`Unsupported input type: ${typeof input}`);
         }
@@ -143,11 +144,12 @@ export class RawImage {
     /**
      * Read an image from a URL or file path.
      * @param {string|URL} url The URL or file path to read the image from.
-     * @param {AbortSignal} abort_signal An optional AbortSignal to cancel the request.
+     * @param {Object} options Additional options for reading the image.
+     * @param {AbortSignal} [options.abort_signal=null] An optional AbortSignal to cancel the request.
      * @returns {Promise<RawImage>} The image object.
      */
-    static async fromURL(url, abort_signal) {
-        const response = await getFile(url, abort_signal);
+    static async fromURL(url, { abort_signal = null } = {}) {
+        const response = await getFile(url, { abort_signal });
         if (response.status !== 200) {
             throw new Error(`Unable to read image from "${url}" (${response.status} ${response.statusText})`);
         }

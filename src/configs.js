@@ -370,7 +370,7 @@ export class PretrainedConfig {
         cache_dir = null,
         local_files_only = false,
         revision = 'main',
-        abort_signal = undefined,
+        abort_signal = null,
     } = {}) {
         if (config && !(config instanceof PretrainedConfig)) {
             config = new PretrainedConfig(config);

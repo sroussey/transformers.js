@@ -51,7 +51,7 @@ export class VLChatProcessor extends Processor {
                 conversation
                     .filter((msg) => msg.images)
                     .flatMap((msg) => msg.images)
-                    .map((img) => RawImage.read(img, this.abort_signal))
+                    .map((img) => RawImage.read(img, { abort_signal: this.abort_signal }))
             );
         } else if (!Array.isArray(images)) {
             images = [images];

@@ -1088,7 +1088,7 @@ export class PreTrainedModel extends Callable {
         local_files_only = false,
         revision = 'main',
         model_file_name = null,
-        abort_signal = undefined,
+        abort_signal = null,
         subfolder = 'onnx',
         device = null,
         dtype = null,
@@ -7324,7 +7324,7 @@ export class PretrainedMixin {
         dtype = null,
         use_external_data_format = null,
         session_options = {},
-        abort_signal = undefined,
+        abort_signal = null,
     } = {}) {
 
         const options = {
