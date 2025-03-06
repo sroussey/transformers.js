@@ -25,8 +25,8 @@ export class BaseStreamer {
 }
 
 const stdout_write = apis.IS_PROCESS_AVAILABLE
-    ? x => process.stdout.write(x)
-    : x => console.log(x);
+    ? (x: string | Uint8Array<ArrayBufferLike>) => process.stdout.write(x)
+    : (x: any) => console.log(x);
 
 /**
  * Simple text streamer that prints the token(s) to stdout as soon as entire words are formed.
@@ -93,7 +93,7 @@ export class TextStreamer extends BaseStreamer {
         this.token_cache = mergeArrays(this.token_cache, tokens);
         const text = this.tokenizer.decode(this.token_cache, this.decode_kwargs);
 
-        let printable_text;
+        let printable_text: string | string[];
         if (text.endsWith('\n')) {
             // After the symbol for a new line, we flush the cache.
             printable_text = text.slice(this.print_len);
@@ -117,7 +117,7 @@ export class TextStreamer extends BaseStreamer {
      * Flushes any remaining cache and prints a newline to stdout.
      */
     end() {
-        let printable_text;
+        let printable_text: string;
         if (this.token_cache.length > 0) {
             const text = this.tokenizer.decode(this.token_cache, this.decode_kwargs);
             printable_text = text.slice(this.print_len);

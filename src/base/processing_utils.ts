@@ -1,4 +1,3 @@
-
 /**
  * @file Processors are used to prepare inputs (e.g., text, image or audio) for a model.
  * 
@@ -24,13 +23,26 @@ import {
     Callable,
 } from '../utils/generic.js';
 import { getModelJSON } from '../utils/hub.js';
+import { PreTrainedTokenizer } from '../tokenizers.js';
+import { ImageProcessor } from './image_processors_utils.js';
+import { FeatureExtractor } from './feature_extraction_utils.js';
 
-/**
- * @typedef {Object} ProcessorProperties Additional processor-specific properties.
- * @typedef {import('../utils/hub.js').PretrainedOptions & ProcessorProperties} PretrainedProcessorOptions
- * @typedef {import('../tokenizers.js').PreTrainedTokenizer} PreTrainedTokenizer
- */
+type ProcessorComponents = {
+    image_processor?: ImageProcessor;
+    tokenizer?: PreTrainedTokenizer;
+    feature_extractor?: FeatureExtractor;
+};
 
+interface ProcessorProperties {
+    revision?: string;
+    cache_dir?: string;
+    local_files_only?: boolean;
+    trust_remote_code?: boolean;
+}
+
+type PretrainedProcessorOptions = ProcessorProperties & {
+    [key: string]: any;
+};
 
 /**
  * Represents a Processor that extracts features from an input.
@@ -40,38 +52,46 @@ export class Processor extends Callable {
         'image_processor_class',
         'tokenizer_class',
         'feature_extractor_class',
-    ]
+    ] as const;
     static uses_processor_config = false;
+
+    // Add static type for component classes
+    static image_processor_class?: typeof ImageProcessor;
+    static tokenizer_class?: typeof PreTrainedTokenizer;
+    static feature_extractor_class?: typeof FeatureExtractor;
+
+    config: object;
+    components: ProcessorComponents;
 
     /**
      * Creates a new Processor with the given components
      * @param {Object} config 
-     * @param {Record<string, Object>} components 
+     * @param {ProcessorComponents} components 
      */
-    constructor(config, components) {
+    constructor(config: object, components: ProcessorComponents) {
         super();
         this.config = config;
         this.components = components;
     }
 
     /**
-     * @returns {import('./image_processors_utils.js').ImageProcessor|undefined} The image processor of the processor, if it exists.
+     * @returns {ImageProcessor|undefined} The image processor of the processor, if it exists.
      */
-    get image_processor() {
+    get image_processor(): ImageProcessor | undefined {
         return this.components.image_processor;
     }
 
     /**
      * @returns {PreTrainedTokenizer|undefined} The tokenizer of the processor, if it exists.
      */
-    get tokenizer() {
+    get tokenizer(): PreTrainedTokenizer | undefined {
         return this.components.tokenizer;
     }
 
     /**
-     * @returns {import('./feature_extraction_utils.js').FeatureExtractor|undefined} The feature extractor of the processor, if it exists.
+     * @returns {FeatureExtractor|undefined} The feature extractor of the processor, if it exists.
      */
-    get feature_extractor() {
+    get feature_extractor(): FeatureExtractor | undefined {
         return this.components.feature_extractor;
     }
 
@@ -80,7 +100,7 @@ export class Processor extends Callable {
      * @param {Parameters<PreTrainedTokenizer['apply_chat_template']>[1]} options
      * @returns {ReturnType<PreTrainedTokenizer['apply_chat_template']>}
      */
-    apply_chat_template(messages, options = {}) {
+    apply_chat_template(messages: Parameters<PreTrainedTokenizer['apply_chat_template']>[0], options: Parameters<PreTrainedTokenizer['apply_chat_template']>[1] = {}): ReturnType<PreTrainedTokenizer['apply_chat_template']> {
         if (!this.tokenizer) {
             throw new Error('Unable to apply chat template without a tokenizer.');
         }
@@ -94,7 +114,7 @@ export class Processor extends Callable {
      * @param {Parameters<PreTrainedTokenizer['batch_decode']>} args
      * @returns {ReturnType<PreTrainedTokenizer['batch_decode']>}
      */
-    batch_decode(...args) {
+    batch_decode(...args: Parameters<PreTrainedTokenizer['batch_decode']>): ReturnType<PreTrainedTokenizer['batch_decode']> {
         if (!this.tokenizer) {
             throw new Error('Unable to decode without a tokenizer.');
         }
@@ -105,7 +125,7 @@ export class Processor extends Callable {
      * @param {Parameters<PreTrainedTokenizer['decode']>} args
      * @returns {ReturnType<PreTrainedTokenizer['decode']>}
      */
-    decode(...args) {
+    decode(...args: Parameters<PreTrainedTokenizer['decode']>): ReturnType<PreTrainedTokenizer['decode']> {
         if (!this.tokenizer) {
             throw new Error('Unable to decode without a tokenizer.');
         }
@@ -119,7 +139,7 @@ export class Processor extends Callable {
      * @param {...any} args Additional arguments.
      * @returns {Promise<any>} A Promise that resolves with the extracted features.
      */
-    async _call(input, ...args) {
+    async _call(input: any, ...args: any[]): Promise<any> {
         for (const item of [this.image_processor, this.feature_extractor, this.tokenizer]) {
             if (item) {
                 return item(input, ...args);
@@ -144,18 +164,23 @@ export class Processor extends Callable {
      * 
      * @returns {Promise<Processor>} A new instance of the Processor class.
      */
-    static async from_pretrained(pretrained_model_name_or_path, options) {
-
+    static async from_pretrained(pretrained_model_name_or_path: string, options: PretrainedProcessorOptions): Promise<Processor> {
+        type ComponentClass = typeof ImageProcessor | typeof PreTrainedTokenizer | typeof FeatureExtractor;
+        type ComponentClassKey = typeof Processor.classes[number];
+        
         const [config, components] = await Promise.all([
-            // TODO:
             this.uses_processor_config
                 ? getModelJSON(pretrained_model_name_or_path, PROCESSOR_NAME, true, options)
                 : {},
             Promise.all(
                 this.classes
-                    .filter((cls) => cls in this)
+                    .filter((cls): cls is ComponentClassKey => 
+                        cls in this && 
+                        typeof this[cls as keyof typeof this] === 'function'
+                    )
                     .map(async (cls) => {
-                        const component = await this[cls].from_pretrained(pretrained_model_name_or_path, options);
+                        const ComponentClass = this[cls as keyof typeof this] as ComponentClass;
+                        const component = await ComponentClass.from_pretrained(pretrained_model_name_or_path, options);
                         return [cls.replace(/_class$/, ''), component];
                     })
             ).then(Object.fromEntries)
