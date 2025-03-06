@@ -68,6 +68,7 @@ import {
 import {
     getModelFile,
     getModelJSON,
+    MAX_EXTERNAL_DATA_CHUNKS,
 } from './utils/hub.js';
 
 import {
@@ -108,6 +109,7 @@ import {
     stack,
     std_mean,
     Tensor,
+    DataTypeMap,
 } from './utils/tensor.js';
 import { RawImage } from './utils/image.js';
 
@@ -132,6 +134,8 @@ const MODEL_TYPES = {
     Musicgen: 7,
     MultiModality: 8,
     Phi3V: 9,
+    AudioTextToText: 10,
+    AutoEncoder: 11,
 }
 //////////////////////////////////////////////////
 
@@ -150,7 +154,7 @@ const MODEL_CLASS_TO_NAME_MAPPING = new Map();
  * @param {string} pretrained_model_name_or_path The path to the directory containing the model file.
  * @param {string} fileName The name of the model file.
  * @param {import('./utils/hub.js').PretrainedModelOptions} options Additional options for loading the model.
- * @returns {Promise<{buffer: Uint8Array, session_options: Object, session_config: Object}>} A Promise that resolves to the data needed to create an InferenceSession object.
+ * @returns {Promise<{buffer_or_path: Uint8Array|string, session_options: Object, session_config: Object}>} A Promise that resolves to the data needed to create an InferenceSession object.
  * @private
  */
 async function getSession(pretrained_model_name_or_path, fileName, options) {
@@ -225,7 +229,8 @@ async function getSession(pretrained_model_name_or_path, fileName, options) {
 
     // Construct the model file name
     const suffix = DEFAULT_DTYPE_SUFFIX_MAPPING[selectedDtype];
-    const modelFileName = `${options.subfolder ?? ''}/${fileName}${suffix}.onnx`;
+    const baseName = `${fileName}${suffix}.onnx`;
+    const modelFileName = `${options.subfolder ?? ''}/${baseName}`;
 
     const session_options = { ...options.session_options };
 
@@ -243,29 +248,38 @@ async function getSession(pretrained_model_name_or_path, fileName, options) {
         );
     }
 
-    const bufferPromise = getModelFile(pretrained_model_name_or_path, modelFileName, true, options);
+    const bufferOrPathPromise = getModelFile(pretrained_model_name_or_path, modelFileName, true, options, apis.IS_NODE_ENV);
 
     // handle onnx external data files
     const use_external_data_format = options.use_external_data_format ?? custom_config.use_external_data_format;
-    /** @type {Promise<{path: string, data: Uint8Array}>[]} */
+    /** @type {Promise<string|{path: string, data: Uint8Array}>[]} */
     let externalDataPromises = [];
-    if (use_external_data_format && (
-        use_external_data_format === true ||
-        (
-            typeof use_external_data_format === 'object' &&
-            use_external_data_format.hasOwnProperty(fileName) &&
-            use_external_data_format[fileName] === true
-        )
-    )) {
-        if (apis.IS_NODE_ENV) {
-            throw new Error('External data format is not yet supported in Node.js');
+    if (use_external_data_format) {
+        let external_data_format;
+        if (typeof use_external_data_format === 'object') {
+            if (use_external_data_format.hasOwnProperty(baseName)) {
+                external_data_format = use_external_data_format[baseName];
+            } else if (use_external_data_format.hasOwnProperty(fileName)) {
+                external_data_format = use_external_data_format[fileName];
+            } else {
+                external_data_format = false;
+            }
+        } else {
+            external_data_format = use_external_data_format;
         }
-        const path = `${fileName}${suffix}.onnx_data`;
-        const fullPath = `${options.subfolder ?? ''}/${path}`;
-        externalDataPromises.push(new Promise(async (resolve, reject) => {
-            const data = await getModelFile(pretrained_model_name_or_path, fullPath, true, options);
-            resolve({ path, data })
-        }));
+
+        const num_chunks = +external_data_format; // (false=0, true=1, number remains the same)
+        if (num_chunks > MAX_EXTERNAL_DATA_CHUNKS) {
+            throw new Error(`The number of external data chunks (${num_chunks}) exceeds the maximum allowed value (${MAX_EXTERNAL_DATA_CHUNKS}).`);
+        }
+        for (let i = 0; i < num_chunks; ++i) {
+            const path = `${baseName}_data${i === 0 ? '' : '_' + i}`;
+            const fullPath = `${options.subfolder ?? ''}/${path}`;
+            externalDataPromises.push(new Promise(async (resolve, reject) => {
+                const data = await getModelFile(pretrained_model_name_or_path, fullPath, true, options, apis.IS_NODE_ENV);
+                resolve(data instanceof Uint8Array ? { path, data } : path);
+            }));
+        }
 
     } else if (session_options.externalData !== undefined) {
         externalDataPromises = session_options.externalData.map(async (ext) => {
@@ -282,7 +296,10 @@ async function getSession(pretrained_model_name_or_path, fileName, options) {
     }
 
     if (externalDataPromises.length > 0) {
-        session_options.externalData = await Promise.all(externalDataPromises);
+        const externalData = await Promise.all(externalDataPromises);
+        if (!apis.IS_NODE_ENV) {
+            session_options.externalData = externalData;
+        }
     }
 
     if (selectedDevice === 'webgpu') {
@@ -300,9 +317,9 @@ async function getSession(pretrained_model_name_or_path, fileName, options) {
         }
     }
 
-    const buffer = await bufferPromise;
+    const buffer_or_path = await bufferOrPathPromise;
 
-    return { buffer, session_options, session_config };
+    return { buffer_or_path, session_options, session_config };
 }
 
 /**
@@ -317,8 +334,8 @@ async function getSession(pretrained_model_name_or_path, fileName, options) {
 async function constructSessions(pretrained_model_name_or_path, names, options) {
     return Object.fromEntries(await Promise.all(
         Object.keys(names).map(async (name) => {
-            const { buffer, session_options, session_config } = await getSession(pretrained_model_name_or_path, names[name], options);
-            const session = await createInferenceSession(buffer, session_options, session_config);
+            const { buffer_or_path, session_options, session_config } = await getSession(pretrained_model_name_or_path, names[name], options);
+            const session = await createInferenceSession(buffer_or_path, session_options, session_config);
             return [name, session];
         })
     ));
@@ -548,8 +565,14 @@ async function encoderForward(self, model_inputs) {
         const dims = encoderFeeds.pixel_values.dims;
         encoderFeeds.pixel_mask = ones([dims[0], dims[2], dims[3]]);
     }
-    
+
     return await sessionRun(session, encoderFeeds);
+}
+
+async function autoEncoderForward(self, model_inputs) {
+    const encoded = await self.encode(model_inputs);
+    const decoded = await self.decode(encoded);
+    return decoded;
 }
 
 /**
@@ -586,6 +609,38 @@ async function decoderForward(self, model_inputs, is_encoder_decoder = false) {
 
 
 
+function default_merge_input_ids_with_features({
+    modality_token_id,
+    inputs_embeds,
+    modality_features,
+    input_ids,
+    attention_mask,
+}) {
+    const token_positions = input_ids.tolist().map(ids =>
+        ids.reduce((acc, x, idx) => {
+            if (x == modality_token_id) acc.push(idx);
+            return acc;
+        }, [])
+    );
+    const n_tokens = token_positions.reduce((acc, x) => acc + x.length, 0);
+    const n_features = modality_features.dims[0];
+    if (n_tokens !== n_features) {
+        throw new Error(`Number of tokens and features do not match: tokens: ${n_tokens}, features ${n_features}`);
+    }
+
+    // Equivalent to performing a masked_scatter
+    let img = 0;
+    for (let i = 0; i < token_positions.length; ++i) {
+        const tokens = token_positions[i];
+        const embeds = inputs_embeds[i];
+        for (let j = 0; j < tokens.length; ++j) {
+            embeds[tokens[j]].data.set(modality_features[img++].data)
+        }
+    }
+    return { inputs_embeds, attention_mask }
+}
+
+
 function default_merge_input_ids_with_image_features({
     image_token_id,
     inputs_embeds,
@@ -593,51 +648,59 @@ function default_merge_input_ids_with_image_features({
     input_ids,
     attention_mask,
 }) {
-    const image_tokens = input_ids.tolist().map(ids =>
-        ids.reduce((acc, x, idx) => {
-            if (x == image_token_id) acc.push(idx);
-            return acc;
-        }, [])
-    );
-    const n_image_tokens = image_tokens.reduce((acc, x) => acc + x.length, 0);
-    const n_image_features = image_features.dims[0];
-    if (n_image_tokens !== n_image_features) {
-        throw new Error(`Image features and image tokens do not match: tokens: ${n_image_tokens}, features ${n_image_features}`);
-    }
-
-    // Equivalent to performing a masked_scatter
-    let img = 0;
-    for (let i = 0; i < image_tokens.length; ++i) {
-        const tokens = image_tokens[i];
-        const embeds = inputs_embeds[i];
-        for (let j = 0; j < tokens.length; ++j) {
-            embeds[tokens[j]].data.set(image_features[img++].data)
-        }
-    }
-    return { inputs_embeds, attention_mask }
+    return default_merge_input_ids_with_features({
+        modality_token_id: image_token_id,
+        inputs_embeds,
+        modality_features: image_features,
+        input_ids,
+        attention_mask,
+    })
 }
 
+function default_merge_input_ids_with_audio_features({
+    audio_token_id,
+    inputs_embeds,
+    audio_features,
+    input_ids,
+    attention_mask,
+}) {
+    return default_merge_input_ids_with_features({
+        modality_token_id: audio_token_id,
+        inputs_embeds,
+        modality_features: audio_features,
+        input_ids,
+        attention_mask,
+    })
+}
 
 /**
- * Forward pass of an image-text-to-text model.
- * @param {Object} self The image-text-to-text model model.
- * @param {Object} model_inputs The input data to be used for the forward pass.
- * @param {Tensor} [model_inputs.input_ids=null]
- * @param {Tensor} [model_inputs.attention_mask=null]
- * @param {Tensor} [model_inputs.pixel_values=null]
- * @param {Tensor} [model_inputs.position_ids=null]
- * @param {Tensor} [model_inputs.inputs_embeds=null]
- * @param {Tensor} [model_inputs.past_key_values=null]
- * @param {Object} [model_inputs.generation_config=null]
- * @param {Object} [model_inputs.logits_processor=null]
+ * Abstract forward pass function for image-text-to-text or audio-text-to-text models.
+ * @param {Object} self The model object.
+ * @param {Object} params Additional parameters.
+ * @param {Function} [params.encode_function] The function to encode the modality values.
+ * @param {Function} [params.merge_function] The function to merge the modality features with the input embeddings.
+ * @param {string} [params.modality_input_name] The modality input name.
+ * @param {string} [params.modality_output_name] The modality output name.
+ * @param {Tensor} [params.input_ids=null]
+ * @param {Tensor} [params.attention_mask=null]
+ * @param {Tensor} [params.position_ids=null]
+ * @param {Tensor} [params.inputs_embeds=null]
+ * @param {Tensor} [params.past_key_values=null]
+ * @param {Object} [params.generation_config=null]
+ * @param {Object} [params.logits_processor=null]
  * @returns {Promise<Tensor>} The model's output tensor
  * @private
  */
-async function imageTextToTextForward(self, {
+async function genericTextToTextForward(self, {
+    // Generic parameters:
+    encode_function,
+    merge_function,
+    modality_input_name,
+    modality_output_name,
+
     // Produced by the tokenizer/processor:
     input_ids = null,
     attention_mask = null,
-    pixel_values = null,
 
     // Used during generation:
     position_ids = null,
@@ -648,27 +711,31 @@ async function imageTextToTextForward(self, {
     generation_config = null,
     logits_processor = null,
 
-    // TODO: needed?
+    // Additional parameters
     ...kwargs
 }) {
-
+    const modality_values = kwargs[modality_input_name];
     if (!inputs_embeds) {
-        // 1. Extract the input embeddings
+        // 1. Extract the text embeddings.
         inputs_embeds = await self.encode_text({ input_ids, ...kwargs });
 
-        // 2. Possibly, merge text and images
-        if (pixel_values && input_ids.dims[1] !== 1) {
-            const image_features = await self.encode_image({ pixel_values, ...kwargs });
-
-            ({ inputs_embeds, attention_mask } = self._merge_input_ids_with_image_features({
-                image_features,
+        // 2. Possibly, merge text and modality values
+        if (modality_values && input_ids.dims[1] !== 1) {
+            const modality_features = await encode_function({
+                // Pass the modality values under its expected key.
+                // The caller knows whether this is audio or image.
+                [modality_input_name]: modality_values,
+                ...kwargs
+            });
+            ({ inputs_embeds, attention_mask } = merge_function({
+                [modality_output_name]: modality_features,
                 inputs_embeds,
                 input_ids,
                 attention_mask,
             }));
 
-        } else if (past_key_values && pixel_values && input_ids.dims[1] === 1) {
-            // This is the case when we are generating with cache
+        } else if (past_key_values && modality_values && input_ids.dims[1] === 1) {
+            // This branch handles the cache case.
             const target_length = input_ids.dims[1]; // always 1
             const past_length = Object.values(past_key_values)[0].dims.at(-2);
 
@@ -689,6 +756,7 @@ async function imageTextToTextForward(self, {
         }
     }
 
+    // 3. Call the decoder forward using the updated inputs.
     const outputs = await decoderForward(self, {
         inputs_embeds,
         past_key_values,
@@ -698,6 +766,40 @@ async function imageTextToTextForward(self, {
         logits_processor,
     }, true);
     return outputs;
+}
+
+/**
+ * Forward pass of an audio-text-to-text model.
+ * @param {Object} self The audio-text-to-text model.
+ * @param {Object} params The inputs for the audio-text-to-text forward pass.
+ * @returns {Promise<Tensor>} The model's output tensor.
+ * @private
+ */
+async function audioTextToTextForward(self, params) {
+    return await genericTextToTextForward(self, {
+        ...params,
+        modality_input_name: 'audio_values',
+        modality_output_name: 'audio_features',
+        encode_function: self.encode_audio.bind(self),
+        merge_function: self._merge_input_ids_with_audio_features.bind(self),
+    });
+}
+
+/**
+ * Forward pass of an image-text-to-text model.
+ * @param {Object} self The image-text-to-text model.
+ * @param {Object} params The inputs for the image-text-to-text forward pass.
+ * @returns {Promise<Tensor>} The model's output tensor.
+ * @private
+ */
+async function imageTextToTextForward(self, params) {
+    return await genericTextToTextForward(self, {
+        ...params,
+        modality_input_name: 'pixel_values',
+        modality_output_name: 'image_features',
+        encode_function: self.encode_image.bind(self),
+        merge_function: self._merge_input_ids_with_image_features.bind(self),
+    });
 }
 
 /**
@@ -813,7 +915,7 @@ function encoder_decoder_prepare_inputs_for_generation(self, input_ids, model_in
     };
 }
 
-function image_text_to_text_prepare_inputs_for_generation(self, ...args) {
+function multimodal_text_to_text_prepare_inputs_for_generation(self, ...args) {
     if (self.config.is_encoder_decoder) {
         return encoder_decoder_prepare_inputs_for_generation(self, ...args);
     } else {
@@ -917,18 +1019,24 @@ export class PreTrainedModel extends Callable {
             case MODEL_TYPES.ImageTextToText:
                 this.can_generate = true;
                 this._forward = imageTextToTextForward;
-                this._prepare_inputs_for_generation = image_text_to_text_prepare_inputs_for_generation;
+                this._prepare_inputs_for_generation = multimodal_text_to_text_prepare_inputs_for_generation;
+                break;
+            case MODEL_TYPES.AudioTextToText:
+                this.can_generate = true;
+                this._forward = audioTextToTextForward;
+                this._prepare_inputs_for_generation = multimodal_text_to_text_prepare_inputs_for_generation;
                 break;
             case MODEL_TYPES.Phi3V:
                 this.can_generate = true;
-                this._prepare_inputs_for_generation = image_text_to_text_prepare_inputs_for_generation;
+                this._prepare_inputs_for_generation = multimodal_text_to_text_prepare_inputs_for_generation;
                 break;
-
             case MODEL_TYPES.MultiModality:
                 this.can_generate = true;
                 this._prepare_inputs_for_generation = multimodality_prepare_inputs_for_generation;
                 break;
-
+            case MODEL_TYPES.AutoEncoder:
+                this._forward = autoEncoderForward;
+                break;
             default:
                 // should be MODEL_TYPES.EncoderOnly
                 this._forward = encoderForward;
@@ -1062,6 +1170,19 @@ export class PreTrainedModel extends Callable {
                 }, options),
             ]);
 
+        } else if (modelType === MODEL_TYPES.AudioTextToText) {
+            const sessions = {
+                embed_tokens: 'embed_tokens',
+                audio_encoder: 'audio_encoder',
+                decoder_model_merged: 'decoder_model_merged',
+            }
+            info = await Promise.all([
+                constructSessions(pretrained_model_name_or_path, sessions, options),
+                getOptionalConfigs(pretrained_model_name_or_path, {
+                    generation_config: 'generation_config.json',
+                }, options),
+            ]);
+
         } else if (modelType === MODEL_TYPES.Musicgen) {
             info = await Promise.all([
                 constructSessions(pretrained_model_name_or_path, {
@@ -1100,7 +1221,13 @@ export class PreTrainedModel extends Callable {
                     generation_config: 'generation_config.json',
                 }, options),
             ]);
-
+        } else if (modelType === MODEL_TYPES.AutoEncoder) {
+            info = await Promise.all([
+                constructSessions(pretrained_model_name_or_path, {
+                    encoder_model: 'encoder_model',
+                    decoder_model: 'decoder_model',
+                }, options),
+            ]);
         } else { // should be MODEL_TYPES.EncoderOnly
             if (modelType !== MODEL_TYPES.EncoderOnly) {
                 const type = modelName ?? config?.model_type;
@@ -1849,7 +1976,7 @@ export class PreTrainedModel extends Callable {
         } else {
             const session = this.sessions['decoder_model_merged'] ?? this.sessions['model'];
             const dtype = session?.config?.kv_cache_dtype ?? 'float32';
-            const empty = (dtype === 'float16') ? new Uint16Array() : [];
+            const empty = (dtype === 'float16') ? new DataTypeMap.float16() : [];
 
             const batch_size = (decoderFeeds[this.main_input_name] ?? decoderFeeds.attention_mask)?.dims?.[0] ?? 1;
             const shapes = getKeyValueShapes(this.config, { batch_size });
@@ -1878,6 +2005,11 @@ export class PreTrainedModel extends Callable {
     async encode_text({ input_ids }) {
         // text_inputs === { input_ids, attention_mask }
         return (await sessionRun(this.sessions['embed_tokens'], { input_ids })).inputs_embeds;
+    }
+
+    async encode_audio({ audio_values }) {
+        // audio_inputs === { audio_values }
+        return (await sessionRun(this.sessions['audio_encoder'], { audio_values })).audio_features;
     }
 }
 
@@ -3422,6 +3554,7 @@ export class WhisperForConditionalGeneration extends WhisperPreTrainedModel {
 }
 //////////////////////////////////////////////////
 
+export class LiteWhisperForConditionalGeneration extends WhisperForConditionalGeneration { }
 
 //////////////////////////////////////////////////
 // Moonshine models
@@ -3693,7 +3826,7 @@ export class Idefics3PreTrainedModel extends PreTrainedModel {
 }
 
 /**
- * The LLAVA model which consists of a vision backbone and a language model.
+ * The Idefics3 model which consists of a vision backbone and a language model.
  */
 export class Idefics3ForConditionalGeneration extends Idefics3PreTrainedModel {
 
@@ -3716,6 +3849,13 @@ export class Idefics3ForConditionalGeneration extends Idefics3PreTrainedModel {
 }
 //////////////////////////////////////////////////
 
+/**
+ * The SmolVLM Model with a language modeling head.
+ * It is made up a SigLIP vision encoder, with a language modeling head on top.
+ */
+export class SmolVLMForConditionalGeneration extends Idefics3ForConditionalGeneration { }
+
+//////////////////////////////////////////////////
 export class Phi3VPreTrainedModel extends PreTrainedModel {
     forward_params = [
         'input_ids',
@@ -5114,6 +5254,7 @@ export class SwinForImageClassification extends SwinPreTrainedModel {
         return new SequenceClassifierOutput(await super._call(model_inputs));
     }
 }
+export class SwinForSemanticSegmentation extends SwinPreTrainedModel { }
 //////////////////////////////////////////////////
 
 //////////////////////////////////////////////////
@@ -6716,6 +6857,8 @@ export class MobileNetV1ForImageClassification extends MobileNetV1PreTrainedMode
         return new SequenceClassifierOutput(await super._call(model_inputs));
     }
 }
+
+export class MobileNetV1ForSemanticSegmentation extends MobileNetV1PreTrainedModel { }
 //////////////////////////////////////////////////
 
 //////////////////////////////////////////////////
@@ -6739,6 +6882,7 @@ export class MobileNetV2ForImageClassification extends MobileNetV2PreTrainedMode
         return new SequenceClassifierOutput(await super._call(model_inputs));
     }
 }
+export class MobileNetV2ForSemanticSegmentation extends MobileNetV2PreTrainedModel { }
 //////////////////////////////////////////////////
 
 //////////////////////////////////////////////////
@@ -6762,6 +6906,7 @@ export class MobileNetV3ForImageClassification extends MobileNetV3PreTrainedMode
         return new SequenceClassifierOutput(await super._call(model_inputs));
     }
 }
+export class MobileNetV3ForSemanticSegmentation extends MobileNetV3PreTrainedModel { }
 //////////////////////////////////////////////////
 
 //////////////////////////////////////////////////
@@ -6785,6 +6930,7 @@ export class MobileNetV4ForImageClassification extends MobileNetV4PreTrainedMode
         return new SequenceClassifierOutput(await super._call(model_inputs));
     }
 }
+export class MobileNetV4ForSemanticSegmentation extends MobileNetV4PreTrainedModel { }
 //////////////////////////////////////////////////
 
 //////////////////////////////////////////////////
@@ -6965,6 +7111,183 @@ export class PatchTSMixerModel extends PatchTSMixerPreTrainedModel { }
 export class PatchTSMixerForPrediction extends PatchTSMixerPreTrainedModel { }
 //////////////////////////////////////////////////
 
+//////////////////////////////////////////////////
+export class UltravoxPreTrainedModel extends PreTrainedModel {
+    forward_params = [
+        'input_ids',
+        'attention_mask',
+        'position_ids',
+        'audio_values',
+        'past_key_values',
+    ];
+}
+
+export class UltravoxModel extends UltravoxPreTrainedModel {
+
+    _merge_input_ids_with_audio_features(kwargs) {
+        const audio_hidden_size = kwargs.audio_features.dims.at(-1);
+        const reshaped_audio_features = kwargs.audio_features.view(-1, audio_hidden_size);
+
+        return default_merge_input_ids_with_audio_features({
+            // @ts-ignore
+            audio_token_id: this.config.ignore_index,
+            ...kwargs,
+            audio_features: reshaped_audio_features,
+        })
+    }
+}
+//////////////////////////////////////////////////
+
+//////////////////////////////////////////////////
+// Mimi models
+export class MimiPreTrainedModel extends PreTrainedModel {
+    main_input_name = 'input_values';
+    forward_params = ['input_values'];
+}
+
+export class MimiEncoderOutput extends ModelOutput {
+    /**
+     * @param {Object} output The output of the model.
+     * @param {Tensor} output.audio_codes Discrete code embeddings, of shape `(batch_size, num_quantizers, codes_length)`.
+     */
+    constructor({ audio_codes }) {
+        super();
+        this.audio_codes = audio_codes;
+    }
+}
+
+export class MimiDecoderOutput extends ModelOutput {
+    /**
+     * @param {Object} output The output of the model.
+     * @param {Tensor} output.audio_values Decoded audio values, of shape `(batch_size, num_channels, sequence_length)`.
+     */
+    constructor({ audio_values }) {
+        super();
+        this.audio_values = audio_values;
+    }
+}
+
+/**
+ * The Mimi neural audio codec model.
+ */
+export class MimiModel extends MimiPreTrainedModel {
+    /**
+     * Encodes the input audio waveform into discrete codes.
+     * @param {Object} inputs Model inputs
+     * @param {Tensor} [inputs.input_values] Float values of the input audio waveform, of shape `(batch_size, channels, sequence_length)`).
+     * @returns {Promise<MimiEncoderOutput>} The output tensor of shape `(batch_size, num_codebooks, sequence_length)`.
+     */
+    async encode(inputs) {
+        return new MimiEncoderOutput(await sessionRun(this.sessions['encoder_model'], inputs));
+    }
+
+    /**
+     * Decodes the given frames into an output audio waveform.
+     * @param {MimiEncoderOutput} inputs The encoded audio codes.
+     * @returns {Promise<MimiDecoderOutput>} The output tensor of shape `(batch_size, num_channels, sequence_length)`.
+     */
+    async decode(inputs) {
+        return new MimiDecoderOutput(await sessionRun(this.sessions['decoder_model'], inputs));
+    }
+}
+
+export class MimiEncoderModel extends MimiPreTrainedModel {
+    /** @type {typeof PreTrainedModel.from_pretrained} */
+    static async from_pretrained(pretrained_model_name_or_path, options = {}) {
+        return super.from_pretrained(pretrained_model_name_or_path, {
+            ...options,
+            // Update default model file name if not provided
+            model_file_name: options.model_file_name ?? 'encoder_model',
+        });
+    }
+}
+export class MimiDecoderModel extends MimiPreTrainedModel {
+    /** @type {typeof PreTrainedModel.from_pretrained} */
+    static async from_pretrained(pretrained_model_name_or_path, options = {}) {
+        return super.from_pretrained(pretrained_model_name_or_path, {
+            ...options,
+            // Update default model file name if not provided
+            model_file_name: options.model_file_name ?? 'decoder_model',
+        });
+    }
+}
+//////////////////////////////////////////////////
+
+
+//////////////////////////////////////////////////
+// Dac models
+export class DacPreTrainedModel extends PreTrainedModel {
+    main_input_name = 'input_values';
+    forward_params = ['input_values'];
+}
+
+export class DacEncoderOutput extends ModelOutput {
+    /**
+     * @param {Object} output The output of the model.
+     * @param {Tensor} output.audio_codes Discrete code embeddings, of shape `(batch_size, num_quantizers, codes_length)`.
+     */
+    constructor({ audio_codes }) {
+        super();
+        this.audio_codes = audio_codes;
+    }
+}
+
+export class DacDecoderOutput extends ModelOutput {
+    /**
+     * @param {Object} output The output of the model.
+     * @param {Tensor} output.audio_values Decoded audio values, of shape `(batch_size, num_channels, sequence_length)`.
+     */
+    constructor({ audio_values }) {
+        super();
+        this.audio_values = audio_values;
+    }
+}
+
+/**
+ * The DAC (Descript Audio Codec) model.
+ */
+export class DacModel extends DacPreTrainedModel {
+    /**
+     * Encodes the input audio waveform into discrete codes.
+     * @param {Object} inputs Model inputs
+     * @param {Tensor} [inputs.input_values] Float values of the input audio waveform, of shape `(batch_size, channels, sequence_length)`).
+     * @returns {Promise<DacEncoderOutput>} The output tensor of shape `(batch_size, num_codebooks, sequence_length)`.
+     */
+    async encode(inputs) {
+        return new DacEncoderOutput(await sessionRun(this.sessions['encoder_model'], inputs));
+    }
+
+    /**
+     * Decodes the given frames into an output audio waveform.
+     * @param {DacEncoderOutput} inputs The encoded audio codes.
+     * @returns {Promise<DacDecoderOutput>} The output tensor of shape `(batch_size, num_channels, sequence_length)`.
+     */
+    async decode(inputs) {
+        return new DacDecoderOutput(await sessionRun(this.sessions['decoder_model'], inputs));
+    }
+}
+
+export class DacEncoderModel extends DacPreTrainedModel {
+    /** @type {typeof PreTrainedModel.from_pretrained} */
+    static async from_pretrained(pretrained_model_name_or_path, options = {}) {
+        return super.from_pretrained(pretrained_model_name_or_path, {
+            ...options,
+            // Update default model file name if not provided
+            model_file_name: options.model_file_name ?? 'encoder_model',
+        });
+    }
+}
+export class DacDecoderModel extends DacPreTrainedModel {
+    /** @type {typeof PreTrainedModel.from_pretrained} */
+    static async from_pretrained(pretrained_model_name_or_path, options = {}) {
+        return super.from_pretrained(pretrained_model_name_or_path, {
+            ...options,
+            // Update default model file name if not provided
+            model_file_name: options.model_file_name ?? 'decoder_model',
+        });
+    }
+}
+//////////////////////////////////////////////////
 
 //////////////////////////////////////////////////
 // AutoModels, used to simplify construction of PreTrainedModels
@@ -7023,20 +7346,29 @@ export class PretrainedMixin {
         if (!this.MODEL_CLASS_MAPPINGS) {
             throw new Error("`MODEL_CLASS_MAPPINGS` not implemented for this type of `AutoClass`: " + this.name);
         }
-
+        const model_type = options.config.model_type;
         for (const MODEL_CLASS_MAPPING of this.MODEL_CLASS_MAPPINGS) {
-            const modelInfo = MODEL_CLASS_MAPPING.get(options.config.model_type);
+            let modelInfo = MODEL_CLASS_MAPPING.get(model_type);
             if (!modelInfo) {
-                continue; // Item not found in this mapping
+                // As a fallback, we check if model_type is specified as the exact class
+                for (const cls of MODEL_CLASS_MAPPING.values()) {
+                    if (cls[0] === model_type) {
+                        modelInfo = cls;
+                        break;
+                    }
+                }
+                if (!modelInfo) continue; // Item not found in this mapping
             }
             return await modelInfo[1].from_pretrained(pretrained_model_name_or_path, options);
         }
 
         if (this.BASE_IF_FAIL) {
-            console.warn(`Unknown model class "${options.config.model_type}", attempting to construct from base class.`);
+            if (!(CUSTOM_ARCHITECTURES.has(model_type))) {
+                console.warn(`Unknown model class "${model_type}", attempting to construct from base class.`);
+            }
             return await PreTrainedModel.from_pretrained(pretrained_model_name_or_path, options);
         } else {
-            throw Error(`Unsupported model type: ${options.config.model_type}`)
+            throw Error(`Unsupported model type: ${model_type}`)
         }
     }
 }
@@ -7137,6 +7469,10 @@ const MODEL_MAPPING_NAMES_ENCODER_DECODER = new Map([
     ['blenderbot-small', ['BlenderbotSmallModel', BlenderbotSmallModel]],
 ]);
 
+const MODEL_MAPPING_NAMES_AUTO_ENCODER = new Map([
+    ['mimi', ['MimiModel', MimiModel]],
+    ['dac', ['DacModel', DacModel]],
+]);
 
 const MODEL_MAPPING_NAMES_DECODER_ONLY = new Map([
     ['bloom', ['BloomModel', BloomModel]],
@@ -7173,6 +7509,7 @@ const MODEL_MAPPING_NAMES_DECODER_ONLY = new Map([
 const MODEL_FOR_SPEECH_SEQ_2_SEQ_MAPPING_NAMES = new Map([
     ['speecht5', ['SpeechT5ForSpeechToText', SpeechT5ForSpeechToText]],
     ['whisper', ['WhisperForConditionalGeneration', WhisperForConditionalGeneration]],
+    ['lite-whisper', ['LiteWhisperForConditionalGeneration', LiteWhisperForConditionalGeneration]],
     ['moonshine', ['MoonshineForConditionalGeneration', MoonshineForConditionalGeneration]],
 ]);
 
@@ -7319,6 +7656,7 @@ const MODEL_FOR_QUESTION_ANSWERING_MAPPING_NAMES = new Map([
 const MODEL_FOR_VISION_2_SEQ_MAPPING_NAMES = new Map([
     ['vision-encoder-decoder', ['VisionEncoderDecoderModel', VisionEncoderDecoderModel]],
     ['idefics3', ['Idefics3ForConditionalGeneration', Idefics3ForConditionalGeneration]],
+    ['smolvlm', ['SmolVLMForConditionalGeneration', SmolVLMForConditionalGeneration]],
 ]);
 
 const MODEL_FOR_IMAGE_TEXT_TO_TEXT_MAPPING_NAMES = new Map([
@@ -7328,8 +7666,14 @@ const MODEL_FOR_IMAGE_TEXT_TO_TEXT_MAPPING_NAMES = new Map([
     ['florence2', ['Florence2ForConditionalGeneration', Florence2ForConditionalGeneration]],
     ['qwen2-vl', ['Qwen2VLForConditionalGeneration', Qwen2VLForConditionalGeneration]],
     ['idefics3', ['Idefics3ForConditionalGeneration', Idefics3ForConditionalGeneration]],
+    ['smolvlm', ['SmolVLMForConditionalGeneration', SmolVLMForConditionalGeneration]],
     ['paligemma', ['PaliGemmaForConditionalGeneration', PaliGemmaForConditionalGeneration]],
 ]);
+
+const MODEL_FOR_AUDIO_TEXT_TO_TEXT_MAPPING_NAMES = new Map([
+    ['ultravox', ['UltravoxModel', UltravoxModel]],
+]);
+
 
 const MODEL_FOR_DOCUMENT_QUESTION_ANSWERING_MAPPING_NAMES = new Map([
     ['vision-encoder-decoder', ['VisionEncoderDecoderModel', VisionEncoderDecoderModel]],
@@ -7382,6 +7726,12 @@ const MODEL_FOR_IMAGE_SEGMENTATION_MAPPING_NAMES = new Map([
 const MODEL_FOR_SEMANTIC_SEGMENTATION_MAPPING_NAMES = new Map([
     ['segformer', ['SegformerForSemanticSegmentation', SegformerForSemanticSegmentation]],
     ['sapiens', ['SapiensForSemanticSegmentation', SapiensForSemanticSegmentation]],
+
+    ['swin', ['SwinForSemanticSegmentation', SwinForSemanticSegmentation]],
+    ['mobilenet_v1', ['MobileNetV1ForSemanticSegmentation', MobileNetV1ForSemanticSegmentation]],
+    ['mobilenet_v2', ['MobileNetV2ForSemanticSegmentation', MobileNetV2ForSemanticSegmentation]],
+    ['mobilenet_v3', ['MobileNetV3ForSemanticSegmentation', MobileNetV3ForSemanticSegmentation]],
+    ['mobilenet_v4', ['MobileNetV4ForSemanticSegmentation', MobileNetV4ForSemanticSegmentation]],
 ]);
 
 const MODEL_FOR_UNIVERSAL_SEGMENTATION_MAPPING_NAMES = new Map([
@@ -7461,9 +7811,12 @@ const MODEL_FOR_IMAGE_FEATURE_EXTRACTION_MAPPING_NAMES = new Map([
 ])
 
 const MODEL_CLASS_TYPE_MAPPING = [
+    // MODEL_MAPPING_NAMES:
     [MODEL_MAPPING_NAMES_ENCODER_ONLY, MODEL_TYPES.EncoderOnly],
     [MODEL_MAPPING_NAMES_ENCODER_DECODER, MODEL_TYPES.EncoderDecoder],
     [MODEL_MAPPING_NAMES_DECODER_ONLY, MODEL_TYPES.DecoderOnly],
+    [MODEL_MAPPING_NAMES_AUTO_ENCODER, MODEL_TYPES.AutoEncoder],
+
     [MODEL_FOR_SEQUENCE_CLASSIFICATION_MAPPING_NAMES, MODEL_TYPES.EncoderOnly],
     [MODEL_FOR_TOKEN_CLASSIFICATION_MAPPING_NAMES, MODEL_TYPES.EncoderOnly],
     [MODEL_FOR_SEQ_TO_SEQ_CAUSAL_LM_MAPPING_NAMES, MODEL_TYPES.Seq2Seq],
@@ -7474,6 +7827,7 @@ const MODEL_CLASS_TYPE_MAPPING = [
     [MODEL_FOR_QUESTION_ANSWERING_MAPPING_NAMES, MODEL_TYPES.EncoderOnly],
     [MODEL_FOR_VISION_2_SEQ_MAPPING_NAMES, MODEL_TYPES.Vision2Seq],
     [MODEL_FOR_IMAGE_TEXT_TO_TEXT_MAPPING_NAMES, MODEL_TYPES.ImageTextToText],
+    [MODEL_FOR_AUDIO_TEXT_TO_TEXT_MAPPING_NAMES, MODEL_TYPES.AudioTextToText],
     [MODEL_FOR_IMAGE_CLASSIFICATION_MAPPING_NAMES, MODEL_TYPES.EncoderOnly],
     [MODEL_FOR_IMAGE_SEGMENTATION_MAPPING_NAMES, MODEL_TYPES.EncoderOnly],
     [MODEL_FOR_UNIVERSAL_SEGMENTATION_MAPPING_NAMES, MODEL_TYPES.EncoderOnly],
@@ -7518,11 +7872,29 @@ const CUSTOM_MAPPING = [
     ['JinaCLIPTextModel', JinaCLIPTextModel, MODEL_TYPES.EncoderOnly],
     ['ClapTextModelWithProjection', ClapTextModelWithProjection, MODEL_TYPES.EncoderOnly],
     ['ClapAudioModelWithProjection', ClapAudioModelWithProjection, MODEL_TYPES.EncoderOnly],
+
+    ['DacEncoderModel', DacEncoderModel, MODEL_TYPES.EncoderOnly],
+    ['DacDecoderModel', DacDecoderModel, MODEL_TYPES.EncoderOnly],
+    ['MimiEncoderModel', MimiEncoderModel, MODEL_TYPES.EncoderOnly],
+    ['MimiDecoderModel', MimiDecoderModel, MODEL_TYPES.EncoderOnly],
 ]
 for (const [name, model, type] of CUSTOM_MAPPING) {
     MODEL_TYPE_MAPPING.set(name, type);
     MODEL_CLASS_TO_NAME_MAPPING.set(model, name);
     MODEL_NAME_TO_CLASS_MAPPING.set(name, model);
+}
+
+const CUSTOM_ARCHITECTURES = new Map([
+    ['modnet', MODEL_FOR_IMAGE_SEGMENTATION_MAPPING_NAMES],
+    ['birefnet', MODEL_FOR_IMAGE_SEGMENTATION_MAPPING_NAMES],
+    ['isnet', MODEL_FOR_IMAGE_SEGMENTATION_MAPPING_NAMES],
+    ['ben', MODEL_FOR_IMAGE_SEGMENTATION_MAPPING_NAMES],
+]);
+for (const [name, mapping] of CUSTOM_ARCHITECTURES.entries()) {
+    mapping.set(name, ['PreTrainedModel', PreTrainedModel])
+    MODEL_TYPE_MAPPING.set(name, MODEL_TYPES.EncoderOnly);
+    MODEL_CLASS_TO_NAME_MAPPING.set(PreTrainedModel, name);
+    MODEL_NAME_TO_CLASS_MAPPING.set(name, PreTrainedModel);
 }
 
 
@@ -7763,6 +8135,14 @@ export class AutoModelForPoseEstimation extends PretrainedMixin {
 
 export class AutoModelForImageFeatureExtraction extends PretrainedMixin {
     static MODEL_CLASS_MAPPINGS = [MODEL_FOR_IMAGE_FEATURE_EXTRACTION_MAPPING_NAMES];
+}
+
+export class AutoModelForImageTextToText extends PretrainedMixin {
+    static MODEL_CLASS_MAPPINGS = [MODEL_FOR_IMAGE_TEXT_TO_TEXT_MAPPING_NAMES];
+}
+
+export class AutoModelForAudioTextToText extends PretrainedMixin {
+    static MODEL_CLASS_MAPPINGS = [MODEL_FOR_AUDIO_TEXT_TO_TEXT_MAPPING_NAMES];
 }
 
 //////////////////////////////////////////////////

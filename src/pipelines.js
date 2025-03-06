@@ -1736,6 +1736,7 @@ export class AutomaticSpeechRecognitionPipeline extends (/** @type {new (options
     async _call(audio, kwargs = {}) {
         switch (this.model.config.model_type) {
             case 'whisper':
+            case 'lite-whisper':
                 return this._call_whisper(audio, kwargs)
             case 'wav2vec2':
             case 'wav2vec2-bert':
@@ -2101,7 +2102,7 @@ export class ImageClassificationPipeline extends (/** @type {new (options: Image
 
 /**
  * @typedef {Object} ImageSegmentationPipelineOutput
- * @property {string} label The label of the segment.
+ * @property {string|null} label The label of the segment.
  * @property {number|null} score The score of the segment.
  * @property {RawImage} mask The mask of the segment.
  * 
@@ -2171,14 +2172,30 @@ export class ImageSegmentationPipeline extends (/** @type {new (options: ImagePi
         const preparedImages = await prepareImages(images, this.abort_signal);
         const imageSizes = preparedImages.map(x => [x.height, x.width]);
 
-        const { pixel_values, pixel_mask } = await this.processor(preparedImages);
-        const output = await this.model({ pixel_values, pixel_mask });
+        const inputs = await this.processor(preparedImages);
+
+        const { inputNames, outputNames } = this.model.sessions['model'];
+        if (!inputNames.includes('pixel_values')) {
+            if (inputNames.length !== 1) {
+                throw Error(`Expected a single input name, but got ${inputNames.length} inputs: ${inputNames}.`);
+            }
+
+            const newName = inputNames[0];
+            if (newName in inputs) {
+                throw Error(`Input name ${newName} already exists in the inputs.`);
+            }
+            // To ensure compatibility with certain background-removal models,
+            // we may need to perform a mapping of input to output names
+            inputs[newName] = inputs.pixel_values;
+        }
+
+        const output = await this.model(inputs);
 
         let fn = null;
         if (subtask !== null) {
             fn = this.subtasks_mapping[subtask];
-        } else {
-            for (let [task, func] of Object.entries(this.subtasks_mapping)) {
+        } else if (this.processor.image_processor) {
+            for (const [task, func] of Object.entries(this.subtasks_mapping)) {
                 if (func in this.processor.image_processor) {
                     fn = this.processor.image_processor[func].bind(this.processor.image_processor);
                     subtask = task;
@@ -2192,7 +2209,23 @@ export class ImageSegmentationPipeline extends (/** @type {new (options: ImagePi
 
         /** @type {ImageSegmentationPipelineOutput[]} */
         const annotation = [];
-        if (subtask === 'panoptic' || subtask === 'instance') {
+        if (!subtask) {
+            // Perform standard image segmentation
+            const result = output[outputNames[0]];
+            for (let i = 0; i < imageSizes.length; ++i) {
+                const size = imageSizes[i];
+                const item = result[i];
+                if (item.data.some(x => x < 0 || x > 1)) {
+                    item.sigmoid_();
+                }
+                const mask = await RawImage.fromTensor(item.mul_(255).to('uint8')).resize(size[1], size[0]);
+                annotation.push({
+                    label: null,
+                    score: null,
+                    mask
+                });
+            }
+        } else if (subtask === 'panoptic' || subtask === 'instance') {
             const processed = fn(
                 output,
                 threshold,
@@ -2245,6 +2278,63 @@ export class ImageSegmentationPipeline extends (/** @type {new (options: ImagePi
         }
 
         return annotation;
+    }
+}
+
+
+/**
+ * @typedef {Object} BackgroundRemovalPipelineOptions Parameters specific to image segmentation pipelines.
+ * 
+ * @callback BackgroundRemovalPipelineCallback Segment the input images.
+ * @param {ImagePipelineInputs} images The input images.
+ * @param {BackgroundRemovalPipelineOptions} [options] The options to use for image segmentation.
+ * @returns {Promise<RawImage[]>} The images with the background removed.
+ * 
+ * @typedef {ImagePipelineConstructorArgs & BackgroundRemovalPipelineCallback & Disposable} BackgroundRemovalPipelineType
+ */
+
+/**
+ * Background removal pipeline using certain `AutoModelForXXXSegmentation`.
+ * This pipeline removes the backgrounds of images.
+ * 
+ * **Example:** Perform background removal with `Xenova/modnet`.
+ * ```javascript
+ * const segmenter = await pipeline('background-removal', 'Xenova/modnet');
+ * const url = 'https://huggingface.co/datasets/Xenova/transformers.js-docs/resolve/main/portrait-of-woman_small.jpg';
+ * const output = await segmenter(url);
+ * // [
+ * //   RawImage { data: Uint8ClampedArray(648000) [ ... ], width: 360, height: 450, channels: 4 }
+ * // ]
+ * ```
+ */
+export class BackgroundRemovalPipeline extends (/** @type {new (options: ImagePipelineConstructorArgs) => ImageSegmentationPipelineType} */ (ImageSegmentationPipeline)) {
+    /**
+     * Create a new BackgroundRemovalPipeline.
+     * @param {ImagePipelineConstructorArgs} options An object used to instantiate the pipeline.
+     */
+    constructor(options) {
+        super(options);
+    }
+
+    /** @type {BackgroundRemovalPipelineCallback} */
+    async _call(images, options = {}) {
+        const isBatched = Array.isArray(images);
+
+        if (isBatched && images.length !== 1) {
+            throw Error("Background removal pipeline currently only supports a batch size of 1.");
+        }
+
+        const preparedImages = await prepareImages(images);
+
+        // @ts-expect-error TS2339
+        const masks = await super._call(images, options);
+        const result = preparedImages.map((img, i) => {
+            const cloned = img.clone();
+            cloned.putAlpha(masks[i].mask);
+            return cloned;
+        });
+
+        return result;
     }
 }
 
@@ -2560,7 +2650,7 @@ export class ZeroShotObjectDetectionPipeline extends (/** @type {new (options: T
             const output = await this.model({ ...text_inputs, pixel_values });
 
             let result;
-            if('post_process_grounded_object_detection' in this.processor) {
+            if ('post_process_grounded_object_detection' in this.processor) {
                 // @ts-ignore
                 const processed = this.processor.post_process_grounded_object_detection(
                     output,
@@ -3141,6 +3231,16 @@ const SUPPORTED_TASKS = Object.freeze({
         },
         "type": "multimodal",
     },
+    "background-removal": {
+        // no tokenizer
+        "pipeline": BackgroundRemovalPipeline,
+        "model": [AutoModelForImageSegmentation, AutoModelForSemanticSegmentation, AutoModelForUniversalSegmentation],
+        "processor": AutoProcessor,
+        "default": {
+            "model": "Xenova/modnet",
+        },
+        "type": "image",
+    },
 
     "zero-shot-image-classification": {
         "tokenizer": AutoTokenizer,
@@ -3306,6 +3406,8 @@ export async function pipeline(
         revision = 'main',
         device = null,
         dtype = null,
+        subfolder = 'onnx',
+        use_external_data_format = null,
         model_file_name = null,
         session_options = {},
         abort_signal = undefined,
@@ -3337,6 +3439,8 @@ export async function pipeline(
         revision,
         device,
         dtype,
+        subfolder,
+        use_external_data_format,
         model_file_name,
         session_options,
         abort_signal,

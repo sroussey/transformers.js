@@ -57,8 +57,8 @@ let ONNX;
 const ORT_SYMBOL = Symbol.for('onnxruntime');
 
 if (ORT_SYMBOL in globalThis) {
-  // If the JS runtime exposes their own ONNX runtime, use it
-  ONNX = globalThis[ORT_SYMBOL];
+    // If the JS runtime exposes their own ONNX runtime, use it
+    ONNX = globalThis[ORT_SYMBOL];
 
 } else if (apis.IS_NODE_ENV) {
     ONNX = ONNX_NODE.default ?? ONNX_NODE;
@@ -141,19 +141,19 @@ let wasmInitPromise = null;
 
 /**
  * Create an ONNX inference session.
- * @param {Uint8Array} buffer The ONNX model buffer.
+ * @param {Uint8Array|string} buffer_or_path The ONNX model buffer or path.
  * @param {import('onnxruntime-common').InferenceSession.SessionOptions} session_options ONNX inference session options.
  * @param {Object} session_config ONNX inference session configuration.
  * @returns {Promise<import('onnxruntime-common').InferenceSession & { config: Object}>} The ONNX inference session.
  */
-export async function createInferenceSession(buffer, session_options, session_config) {
+export async function createInferenceSession(buffer_or_path, session_options, session_config) {
     if (wasmInitPromise) {
         // A previous session has already initialized the WASM runtime
         // so we wait for it to resolve before creating this new session.
         await wasmInitPromise;
     }
 
-    const sessionPromise = InferenceSession.create(buffer, session_options);
+    const sessionPromise = InferenceSession.create(buffer_or_path, session_options);
     wasmInitPromise ??= sessionPromise;
     const session = await sessionPromise;
     session.config = session_config;
@@ -175,11 +175,15 @@ const ONNX_ENV = ONNX?.env;
 if (ONNX_ENV?.wasm) {
     // Initialize wasm backend with suitable default settings.
 
-    // (Optional) Set path to wasm files. This is needed when running in a web worker.
-    // https://onnxruntime.ai/docs/api/js/interfaces/Env.WebAssemblyFlags.html#wasmPaths
-    // We use remote wasm files by default to make it easier for newer users.
-    // In practice, users should probably self-host the necessary .wasm files.
-    ONNX_ENV.wasm.wasmPaths = `https://cdn.jsdelivr.net/npm/@huggingface/transformers@${env.version}/dist/`;
+    // (Optional) Set path to wasm files. This will override the default path search behavior of onnxruntime-web.
+    // By default, we only do this if we are not in a service worker and the wasmPaths are not already set.
+    if (
+        // @ts-ignore Cannot find name 'ServiceWorkerGlobalScope'.ts(2304)
+        !(typeof ServiceWorkerGlobalScope !== 'undefined' && self instanceof ServiceWorkerGlobalScope)
+        && !ONNX_ENV.wasm.wasmPaths
+    ) {
+        ONNX_ENV.wasm.wasmPaths = `https://cdn.jsdelivr.net/npm/@huggingface/transformers@${env.version}/dist/`;
+    }
 
     // TODO: Add support for loading WASM files from cached buffer when we upgrade to onnxruntime-web@1.19.0
     // https://github.com/microsoft/onnxruntime/pull/21534
@@ -187,11 +191,6 @@ if (ONNX_ENV?.wasm) {
     // Users may wish to proxy the WASM backend to prevent the UI from freezing,
     // However, this is not necessary when using WebGPU, so we default to false.
     ONNX_ENV.wasm.proxy = false;
-
-    // https://developer.mozilla.org/en-US/docs/Web/API/crossOriginIsolated
-    if (typeof crossOriginIsolated === 'undefined' || !crossOriginIsolated) {
-        ONNX_ENV.wasm.numThreads = 1;
-    }
 }
 
 if (ONNX_ENV?.webgpu) {
