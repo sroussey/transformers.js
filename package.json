@@ -1,6 +1,6 @@
 {
   "name": "@sroussey/transformers",
-  "version": "3.3.3",
+  "version": "3.4.0",
   "description": "State-of-the-art Machine Learning for the web. Run 🤗 Transformers directly in your browser, with no need for a server!",
   "main": "./src/transformers.js",
   "types": "./types/transformers.d.ts",
@@ -56,20 +56,20 @@
   "homepage": "https://github.com/sroussey/transformers.js#readme",
   "dependencies": {
     "@huggingface/jinja": "^0.3.3",
-    "onnxruntime-node": "1.20.1",
-    "onnxruntime-web": "1.22.0-dev.20250306-aafa8d170a",
+    "onnxruntime-node": "1.22.0-dev.20250306-ccf8fdd9ea",
+    "onnxruntime-web": "1.22.0-dev.20250306-ccf8fdd9ea",
     "sharp": "^0.33.5"
   },
   "devDependencies": {
     "@types/jest": "^29.5.14",
     "@types/node": "^22.10.1",
-    "@webgpu/types": "^0.1.51",
+    "@webgpu/types": "^0.1.55",
     "catharsis": "github:xenova/catharsis",
     "jest": "^30.0.0-alpha.6",
     "jest-environment-node": "^30.0.0-alpha.6",
     "jsdoc-to-markdown": "^9.1.1",
     "prettier": "3.4.2",
-    "typescript": "^5.7.2",
+    "typescript": "^5.8.2",
     "wavefile": "11.0.0",
     "webpack": "^5.97.1",
     "webpack-cli": "^5.1.4",

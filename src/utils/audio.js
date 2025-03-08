@@ -152,6 +152,7 @@ function hertz_to_mel(freq, mel_scale = "htk") {
         throw new Error('mel_scale should be one of "htk", "slaney" or "kaldi".');
     }
 
+    // @ts-expect-error ts(2322)
     return typeof freq === 'number' ? fn(freq) : freq.map(x => fn(x));
 }
 
@@ -175,6 +176,7 @@ function mel_to_hertz(mels, mel_scale = "htk") {
         throw new Error('mel_scale should be one of "htk", "slaney" or "kaldi".');
     }
 
+    // @ts-expect-error ts(2322)
     return typeof mels === 'number' ? fn(mels) : mels.map(x => fn(x));
 }
 

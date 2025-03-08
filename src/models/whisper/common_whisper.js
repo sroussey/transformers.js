@@ -135,6 +135,12 @@ export function whisper_language_to_code(language) {
     if (language_code === undefined) {
         // User provided something that is not a language name
 
+        // Perhaps the user passed the special token itself
+        const language_special_token = language.match(/^<\|([a-z]{2})\|>$/);
+        if (language_special_token) {
+            language = language_special_token[1];
+        }
+
         if (WHISPER_LANGUAGE_MAPPING.has(language)) {
             // User provided the language code directly (e.g., "en")
             language_code = language;
@@ -144,7 +150,7 @@ export function whisper_language_to_code(language) {
             const is_language_code = language.length === 2;
             const langs = is_language_code ? WHISPER_LANGUAGE_MAPPING.keys() : WHISPER_LANGUAGE_MAPPING.values();
 
-            throw new Error(`Language "${language}" is not supported. Must be one of: ${JSON.stringify(langs)}`);
+            throw new Error(`Language "${language}" is not supported. Must be one of: ${JSON.stringify(Array.from(langs))}`);
         }
     }
     return language_code;
