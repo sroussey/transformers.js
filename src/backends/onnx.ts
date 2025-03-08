@@ -22,15 +22,18 @@ import { env, apis } from '../env.js';
 // In either case, we select the default export if it exists, otherwise we use the named export.
 import * as ONNX_NODE from 'onnxruntime-node';
 import * as ONNX_WEB from 'onnxruntime-web';
+import { DeviceType } from '../utils/devices.js';
+import { InferenceSession as ONNXInferenceSession } from 'onnxruntime-common';
 
 export { Tensor } from 'onnxruntime-common';
 
 /**
  * @typedef {import('onnxruntime-common').InferenceSession.ExecutionProviderConfig} ONNXExecutionProviders
  */
+type ONNXExecutionProviders = ONNXInferenceSession.ExecutionProviderConfig;
 
 /** @type {Record<import("../utils/devices.js").DeviceType, ONNXExecutionProviders>} */
-const DEVICE_TO_EXECUTION_PROVIDER_MAPPING = Object.freeze({
+const DEVICE_TO_EXECUTION_PROVIDER_MAPPING: Record<DeviceType, ONNXExecutionProviders> = Object.freeze({
     auto: null, // Auto-detect based on device and environment
     gpu: null, // Auto-detect GPU
     cpu: 'cpu', // CPU
@@ -49,10 +52,10 @@ const DEVICE_TO_EXECUTION_PROVIDER_MAPPING = Object.freeze({
  * The list of supported devices, sorted by priority/performance.
  * @type {import("../utils/devices.js").DeviceType[]}
  */
-const supportedDevices = [];
+const supportedDevices: import("../utils/devices.js").DeviceType[] = [];
 
 /** @type {ONNXExecutionProviders[]} */
-let defaultDevices;
+let defaultDevices: ONNXExecutionProviders[];
 let ONNX;
 const ORT_SYMBOL = Symbol.for('onnxruntime');
 
@@ -109,7 +112,7 @@ const InferenceSession = ONNX.InferenceSession;
  * @param {import("../utils/devices.js").DeviceType|"auto"|null} [device=null] (Optional) The device to run the inference on.
  * @returns {ONNXExecutionProviders[]} The execution providers to use for the given device.
  */
-export function deviceToExecutionProviders(device = null) {
+export function deviceToExecutionProviders(device: import("../utils/devices.js").DeviceType | "auto" | null = null): ONNXExecutionProviders[] {
     // Use the default execution providers if the user hasn't specified anything
     if (!device) return defaultDevices;
 
@@ -137,7 +140,7 @@ export function deviceToExecutionProviders(device = null) {
  * will wait for this Promise to resolve before creating their own InferenceSession.
  * @type {Promise<any>|null}
  */
-let wasmInitPromise = null;
+let wasmInitPromise: Promise<any> | null = null;
 
 /**
  * Create an ONNX inference session.
@@ -146,7 +149,7 @@ let wasmInitPromise = null;
  * @param {Object} session_config ONNX inference session configuration.
  * @returns {Promise<import('onnxruntime-common').InferenceSession & { config: Object}>} The ONNX inference session.
  */
-export async function createInferenceSession(buffer, session_options, session_config) {
+export async function createInferenceSession(buffer: Uint8Array, session_options: ONNXInferenceSession.SessionOptions, session_config: Object): Promise<ONNXInferenceSession & { config: Object; }> {
     if (wasmInitPromise) {
         // A previous session has already initialized the WASM runtime
         // so we wait for it to resolve before creating this new session.
@@ -165,13 +168,13 @@ export async function createInferenceSession(buffer, session_options, session_co
  * @param {any} x The object to check
  * @returns {boolean} Whether the object is an ONNX tensor.
  */
-export function isONNXTensor(x) {
+export function isONNXTensor(x: any): boolean {
     return x instanceof ONNX.Tensor;
 }
 
 /** @type {import('onnxruntime-common').Env} */
 // @ts-ignore
-const ONNX_ENV = ONNX?.env;
+const ONNX_ENV: import('onnxruntime-common').Env = ONNX?.env;
 if (ONNX_ENV?.wasm) {
     // Initialize wasm backend with suitable default settings.
 
@@ -202,7 +205,7 @@ if (ONNX_ENV?.webgpu) {
  * Check if ONNX's WASM backend is being proxied.
  * @returns {boolean} Whether ONNX's WASM backend is being proxied.
  */
-export function isONNXProxy() {
+export function isONNXProxy(): boolean {
     // TODO: Update this when allowing non-WASM backends.
     return ONNX_ENV?.wasm?.proxy;
 }
