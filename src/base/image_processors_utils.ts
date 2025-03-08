@@ -3,7 +3,7 @@ import { Tensor, interpolate, stack } from "../utils/tensor.js";
 import { bankers_round, max, min, softmax } from "../utils/maths.js";
 import { RawImage } from "../utils/image.js";
 import { calculateReflectOffset } from "../utils/core.js";
-import { getModelJSON } from "../utils/hub.js";
+import { getModelJSON, PretrainedOptions } from "../utils/hub.js";
 import { IMAGE_PROCESSOR_NAME } from '../utils/constants.js';
 
 /**
@@ -1147,7 +1147,7 @@ export class ImageProcessor extends Callable {
      * 
      * @returns {Promise<ImageProcessor>} A new instance of the Processor class.
      */
-    static async from_pretrained(pretrained_model_name_or_path: string, options: import('../utils/hub.js').PretrainedOptions): Promise<ImageProcessor> {
+    static async from_pretrained(pretrained_model_name_or_path: string, options: PretrainedOptions): Promise<ImageProcessor> {
         const preprocessorConfig = await getModelJSON(pretrained_model_name_or_path, IMAGE_PROCESSOR_NAME, true, options);
         return new this(preprocessorConfig);
     }
