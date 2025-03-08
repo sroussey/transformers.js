@@ -7,10 +7,10 @@
  * @module utils/image
  */
 
-import { isNullishDimension, saveBlob } from './core.js';
-import { getFile } from './hub.js';
-import { apis } from '../env.js';
-import { Tensor } from './tensor.js';
+import { isNullishDimension, saveBlob } from './core';
+import { getFile } from './hub';
+import { apis } from '../env';
+import { Tensor } from './tensor';
 
 // Will be empty (or not used) if running in browser or web-worker
 import sharp from 'sharp';

@@ -18,14 +18,14 @@
  * 
  * @module processors
  */
-import { PROCESSOR_NAME } from '../utils/constants.js';
+import { PROCESSOR_NAME } from '../utils/constants';
 import {
     Callable,
-} from '../utils/generic.js';
-import { getModelJSON } from '../utils/hub.js';
-import { PreTrainedTokenizer } from '../tokenizers.js';
-import { ImageProcessor } from './image_processors_utils.js';
-import { FeatureExtractor } from './feature_extraction_utils.js';
+} from '../utils/generic';
+import { getModelJSON } from '../utils/hub';
+import { PreTrainedTokenizer } from '../tokenizers';
+import { ImageProcessor } from './image_processors_utils';
+import { FeatureExtractor } from './feature_extraction_utils';
 
 type ProcessorComponents = {
     image_processor?: ImageProcessor;

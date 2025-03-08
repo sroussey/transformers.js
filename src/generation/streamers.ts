@@ -3,9 +3,9 @@
  * @module generation/streamers
  */
 
-import { mergeArrays } from '../utils/core.js';
-import { is_chinese_char, PreTrainedTokenizer } from '../tokenizers.js';
-import { apis } from '../env.js';
+import { mergeArrays } from '../utils/core';
+import { is_chinese_char, PreTrainedTokenizer } from '../tokenizers';
+import { apis } from '../env';
 
 export class BaseStreamer {
     /**
@@ -43,7 +43,7 @@ export class TextStreamer extends BaseStreamer {
 
     /**
      * 
-     * @param {import('../tokenizers.js').PreTrainedTokenizer} tokenizer
+     * @param {import('../tokenizers').PreTrainedTokenizer} tokenizer
      * @param {Object} options
      * @param {boolean} [options.skip_prompt=false] Whether to skip the prompt tokens
      * @param {boolean} [options.skip_special_tokens=true] Whether to skip special tokens when decoding
@@ -162,7 +162,7 @@ export class WhisperTextStreamer extends TextStreamer {
     waiting_for_timestamp: boolean;
 
     /**
-     * @param {import('../tokenizers.js').WhisperTokenizer} tokenizer
+     * @param {import('../tokenizers').WhisperTokenizer} tokenizer
      * @param {Object} options
      * @param {boolean} [options.skip_prompt=false] Whether to skip the prompt tokens
      * @param {function(string): void} [options.callback_function=null] Function to call when a piece of text is ready to display
@@ -174,7 +174,7 @@ export class WhisperTextStreamer extends TextStreamer {
      * @param {boolean} [options.skip_special_tokens=true] Whether to skip special tokens when decoding
      * @param {Object} [options.decode_kwargs={}] Additional keyword arguments to pass to the tokenizer's decode method
      */
-    constructor(tokenizer: import('../tokenizers.js').WhisperTokenizer, {
+    constructor(tokenizer: import('../tokenizers').WhisperTokenizer, {
         skip_prompt = false,
         callback_function = null,
         token_callback_function = null,

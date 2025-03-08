@@ -28,7 +28,7 @@ export class FeatureExtractor extends Callable {
      *   Valid model ids can be located at the root-level, like `bert-base-uncased`, or namespaced under a
      *   user or organization name, like `dbmdz/bert-base-german-cased`.
      * - A path to a *directory* containing feature_extractor files, e.g., `./my_model_directory/`.
-     * @param {import('../utils/hub.js').PretrainedOptions} options Additional options for loading the feature_extractor.
+     * @param {import('../utils/hub').PretrainedOptions} options Additional options for loading the feature_extractor.
      * 
      * @returns {Promise<FeatureExtractor>} A new instance of the Feature Extractor class.
      */

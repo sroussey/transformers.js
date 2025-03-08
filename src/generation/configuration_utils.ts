@@ -260,10 +260,10 @@ export class GenerationConfig {
 
     /**
      * A streamer that will be used to stream the generation.
-     * @type {import('./streamers.js').TextStreamer}
+     * @type {import('./streamers').TextStreamer}
      * @default null
      */
-    streamer: import('./streamers.js').TextStreamer = null;
+    streamer: import('./streamers').TextStreamer = null;
 
     /**
      * A list of tokens that will be suppressed at the beginning of the generation.
@@ -378,9 +378,9 @@ export class GenerationConfig {
 
     /**
      * 
-     * @param {GenerationConfig|import('../configs.js').PretrainedConfig} config 
+     * @param {GenerationConfig|import('../configs').PretrainedConfig} config 
      */
-    constructor(config: GenerationConfig | import('../configs.js').PretrainedConfig) {
+    constructor(config: GenerationConfig | import('../configs').PretrainedConfig) {
         Object.assign(this, pick(config as GenerationConfig, Object.getOwnPropertyNames(this) as Array<keyof GenerationConfig>));
     }
 }

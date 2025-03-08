@@ -9,16 +9,16 @@
 
 import {
     getFile,
-} from './hub.js';
-import { FFT, max } from './maths.js';
+} from './hub';
+import { FFT, max } from './maths';
 import {
     calculateReflectOffset, saveBlob,
-} from './core.js';
-import { apis } from '../env.js';
+} from './core';
+import { apis } from '../env';
 import fs from 'fs';
-import { Tensor, matmul } from './tensor.js';
-import type { AnyTypedArray } from './maths.js';
-import type { DataType } from './tensor.js';
+import { Tensor, matmul } from './tensor';
+import type { AnyTypedArray } from './maths';
+import type { DataType } from './tensor';
 
 export interface SpectrogramOptions {
     fft_length?: number | null;

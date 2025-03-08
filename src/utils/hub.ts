@@ -7,18 +7,18 @@
 import fs from 'fs';
 import path from 'path';
 
-import { env } from '../env.js';
-import { dispatchCallback } from './core.js';
-import { type DeviceType } from './devices.js';
-import { type DataType } from './dtypes.js';
-import { type ProgressCallback } from './core.js';
-import { type PretrainedConfig } from '../configs.js';
+import { env } from '../env';
+import { dispatchCallback } from './core';
+import { type DeviceType } from './devices';
+import { type DataType } from './dtypes';
+import { type ProgressCallback } from './core';
+import { type PretrainedConfig } from '../configs';
 import { type InferenceSession } from 'onnxruntime-common';
 
 /**
  * @typedef {Object} PretrainedOptions Options for loading a pretrained model.     
- * @property {import('./core.js').ProgressCallback} [progress_callback=null] If specified, this function will be called during model construction, to provide the user with progress updates.
- * @property {import('../configs.js').PretrainedConfig} [config=null] Configuration for the model to use instead of an automatically loaded configuration. Configuration can be automatically loaded when:
+ * @property {import('./core').ProgressCallback} [progress_callback=null] If specified, this function will be called during model construction, to provide the user with progress updates.
+ * @property {import('../configs').PretrainedConfig} [config=null] Configuration for the model to use instead of an automatically loaded configuration. Configuration can be automatically loaded when:
  * - The model is a model provided by the library (loaded with the *model id* string of a pretrained model).
  * - The model is loaded by supplying a local directory as `pretrained_model_name_or_path` and a configuration JSON file named *config.json* is found in the directory.
  * @property {string} [cache_dir=null] Path to a directory in which a downloaded pretrained model configuration should be cached if the standard cache should not be used.

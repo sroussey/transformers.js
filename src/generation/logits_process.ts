@@ -309,10 +309,10 @@ export class WhisperTimeStampLogitsProcessor extends LogitsProcessor {
     /**
      * The maximum index of the first timestamp token.
      * Constructs a new WhisperTimeStampLogitsProcessor.
-     * @param {import('../models/whisper/generation_whisper.js').WhisperGenerationConfig} generate_config The config object passed to the `generate()` method of a transformer model.
+     * @param {import('../models/whisper/generation_whisper').WhisperGenerationConfig} generate_config The config object passed to the `generate()` method of a transformer model.
      * @param {number[]} init_tokens The initial tokens of the input sequence.
      */
-    constructor(generate_config: import('../models/whisper/generation_whisper.js').WhisperGenerationConfig, init_tokens: number[]) {
+    constructor(generate_config: import('../models/whisper/generation_whisper').WhisperGenerationConfig, init_tokens: number[]) {
         super();
         this.eos_token_id =
             Array.isArray(generate_config.eos_token_id)

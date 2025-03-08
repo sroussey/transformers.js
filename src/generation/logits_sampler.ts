@@ -9,9 +9,9 @@ import { Tensor, topk } from "../utils/tensor.js";
 import {
     max,
     softmax,
-} from '../utils/maths.js';
-import type { GenerationConfig } from './configuration_utils.js';
-import type { DataArray } from '../transformers.js';
+} from '../utils/maths';
+import type { GenerationConfig } from './configuration_utils';
+import type { DataArray } from '../transformers';
 
 /**
  * Sampler is a base class for all sampling methods used for text generation.

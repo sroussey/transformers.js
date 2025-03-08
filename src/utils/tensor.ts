@@ -14,13 +14,13 @@ import {
     permute_data,
     AnyTypedArray,
     TypedArray
-} from './maths.js';
+} from './maths';
 
 import {
     Tensor as ONNXTensor, isONNXTensor,
-} from '../backends/onnx.js';
+} from '../backends/onnx';
 
-import { TensorOpRegistry } from '../ops/registry.js';
+import { TensorOpRegistry } from '../ops/registry';
 
 const DataTypeMap = Object.freeze({
     float32: Float32Array,
@@ -42,7 +42,7 @@ const DataTypeMap = Object.freeze({
 
 /**
  * @typedef {keyof typeof DataTypeMap} DataType
- * @typedef {import('./maths.js').AnyTypedArray | any[]} DataArray
+ * @typedef {import('./maths').AnyTypedArray | any[]} DataArray
  */
 export type DataType = keyof typeof DataTypeMap;
 export type DataArray = AnyTypedArray | any[];

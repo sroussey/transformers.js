@@ -16,13 +16,13 @@
  * @module backends/onnx
  */
 
-import { env, apis } from '../env.js';
+import { env, apis } from '../env';
 
 // NOTE: Import order matters here. We need to import `onnxruntime-node` before `onnxruntime-web`.
 // In either case, we select the default export if it exists, otherwise we use the named export.
 import * as ONNX_NODE from 'onnxruntime-node';
 import * as ONNX_WEB from 'onnxruntime-web';
-import { DeviceType } from '../utils/devices.js';
+import { DeviceType } from '../utils/devices';
 import { InferenceSession as ONNXInferenceSession } from 'onnxruntime-common';
 
 export { Tensor } from 'onnxruntime-common';

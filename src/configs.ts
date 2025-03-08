@@ -26,35 +26,35 @@
  * @module configs
  */
 
-import { pick } from './utils/core.js';
-import { getModelJSON } from './utils/hub.js';
-import { DEVICE_TYPES } from './utils/devices.js';
-import { DATA_TYPES } from './utils/dtypes.js';
+import { pick } from './utils/core';
+import { getModelJSON } from './utils/hub';
+import { DEVICE_TYPES } from './utils/devices';
+import { DATA_TYPES } from './utils/dtypes';
 
 /**
- * @typedef {import('./utils/hub.js').PretrainedOptions} PretrainedOptions
+ * @typedef {import('./utils/hub').PretrainedOptions} PretrainedOptions
  */
-import type { PretrainedOptions } from './utils/hub.js';
+import type { PretrainedOptions } from './utils/hub';
 
 /**
- * @typedef {import('./utils/core.js').ProgressCallback} ProgressCallback
+ * @typedef {import('./utils/core').ProgressCallback} ProgressCallback
  */
-export type { ProgressCallback } from './utils/core.js';
+export type { ProgressCallback } from './utils/core';
 
 /**
- * @typedef {import('./utils/core.js').ProgressInfo} ProgressInfo
+ * @typedef {import('./utils/core').ProgressInfo} ProgressInfo
  */
-export type { ProgressInfo } from './utils/core.js';
+export type { ProgressInfo } from './utils/core';
 
 /**
  * Transformers.js-specific configuration, possibly present in config.json under the key `transformers.js_config`.
  * @typedef {Object} TransformersJSConfig
- * @property {import('./utils/tensor.js').DataType|Record<import('./utils/dtypes.js').DataType, import('./utils/tensor.js').DataType>} [kv_cache_dtype] The data type of the key-value cache.
+ * @property {import('./utils/tensor').DataType|Record<import('./utils/dtypes').DataType, import('./utils/tensor').DataType>} [kv_cache_dtype] The data type of the key-value cache.
  * @property {Record<string, number>} [free_dimension_overrides] Override the free dimensions of the model.
  * See https://onnxruntime.ai/docs/tutorials/web/env-flags-and-session-options.html#freedimensionoverrides
  * for more information.
- * @property {import('./utils/devices.js').DeviceType} [device] The default device to use for the model.
- * @property {import('./utils/dtypes.js').DataType|Record<string, import('./utils/dtypes.js').DataType>} [dtype] The default data type to use for the model.
+ * @property {import('./utils/devices').DeviceType} [device] The default device to use for the model.
+ * @property {import('./utils/dtypes').DataType|Record<string, import('./utils/dtypes').DataType>} [dtype] The default data type to use for the model.
  * @property {boolean|Record<string, boolean>} [use_external_data_format=false] Whether to load the model using the external data format (used for models >= 2GB in size).
  */
 export type TransformersJSConfig = {
