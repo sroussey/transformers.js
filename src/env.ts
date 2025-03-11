@@ -26,6 +26,7 @@ import fs from 'fs';
 import path from 'path';
 import url from 'url';
 import { Env } from 'onnxruntime-common';
+import { ICache } from './utils/hub';
 
 const VERSION = '3.3.3';
 
@@ -141,7 +142,7 @@ export interface TransformersEnvironment {
     useFSCache: boolean;
     cacheDir: string | null;
     useCustomCache: boolean;
-    customCache: { match: Function; put: Function } | null;
+    customCache: ICache | null;
 }
 
 export const env: TransformersEnvironment = {

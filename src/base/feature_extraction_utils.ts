@@ -45,9 +45,10 @@ export class FeatureExtractor extends Callable {
  * @param {string} feature_extractor The name of the feature extractor.
  * @private
  */
-export function validate_audio_inputs(audio: any, feature_extractor: string) {
+export function validate_audio_inputs(audio: Float32Array | Float64Array, feature_extractor: string) {
     if (!(audio instanceof Float32Array || audio instanceof Float64Array)) {
         throw new Error(
+            // @ts-expect-error TS2339
             `${feature_extractor} expects input to be a Float32Array or a Float64Array, but got ${audio?.constructor?.name ?? typeof audio} instead. ` +
             `If using the feature extractor directly, remember to use \`read_audio(url, sampling_rate)\` to obtain the raw audio data of the file/url.`
         )

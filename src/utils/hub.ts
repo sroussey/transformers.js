@@ -14,6 +14,10 @@ import { type DataType } from './dtypes';
 import { type ProgressCallback } from './core';
 import { type PretrainedConfig } from '../configs';
 import { type InferenceSession } from 'onnxruntime-common';
+export interface ICache {
+    match(request: string): Promise<Response | FileResponse | undefined>;
+    put(request: string, response: Response | FileResponse): Promise<void>;
+}
 
 /**
  * @typedef {Object} PretrainedOptions Options for loading a pretrained model.     
@@ -340,7 +344,7 @@ class FileCache {
  * @param {string[]} names The names of the item to search for
  * @returns {Promise<FileResponse|Response|undefined>} The item from the cache, or undefined if not found.
  */
-async function tryCache(cache: FileCache | Cache, ...names: string[]): Promise<FileResponse | Response | undefined> {
+async function tryCache(cache: ICache, ...names: string[]): Promise<FileResponse | Response | undefined> {
     for (let name of names) {
         try {
             let result = await cache.match(name);
@@ -393,7 +397,7 @@ export async function getModelFile(
 
     // First, check if the a caching backend is available
     // If no caching mechanism available, will download the file every time
-    let cache: FileCache | Cache | undefined;
+    let cache: ICache | undefined;
     if (!cache && env.useBrowserCache) {
         if (typeof caches === 'undefined') {
             throw Error('Browser cache is not available in this environment.')

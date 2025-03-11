@@ -52,7 +52,7 @@ const DEVICE_TO_EXECUTION_PROVIDER_MAPPING: Record<DeviceType, ONNXExecutionProv
  * The list of supported devices, sorted by priority/performance.
  * @type {import("../utils/devices.js").DeviceType[]}
  */
-const supportedDevices: import("../utils/devices.js").DeviceType[] = [];
+const supportedDevices: DeviceType[] = [];
 
 /** @type {ONNXExecutionProviders[]} */
 let defaultDevices: ONNXExecutionProviders[];
@@ -64,7 +64,7 @@ if (ORT_SYMBOL in globalThis) {
   ONNX = globalThis[ORT_SYMBOL];
 
 } else if (apis.IS_NODE_ENV) {
-    ONNX = ONNX_NODE.default ?? ONNX_NODE;
+    ONNX = ONNX_NODE;
 
     // Updated as of ONNX Runtime 1.20.1
     // The following table lists the supported versions of ONNX Runtime Node.js binding provided with pre-built binaries.
@@ -112,7 +112,7 @@ const InferenceSession = ONNX.InferenceSession;
  * @param {import("../utils/devices.js").DeviceType|"auto"|null} [device=null] (Optional) The device to run the inference on.
  * @returns {ONNXExecutionProviders[]} The execution providers to use for the given device.
  */
-export function deviceToExecutionProviders(device: import("../utils/devices.js").DeviceType | "auto" | null = null): ONNXExecutionProviders[] {
+export function deviceToExecutionProviders(device: DeviceType | "auto" | null = null): ONNXExecutionProviders[] {
     // Use the default execution providers if the user hasn't specified anything
     if (!device) return defaultDevices;
 
@@ -174,7 +174,7 @@ export function isONNXTensor(x: any): boolean {
 
 /** @type {import('onnxruntime-common').Env} */
 // @ts-ignore
-const ONNX_ENV: import('onnxruntime-common').Env = ONNX?.env;
+const ONNX_ENV: Env = ONNX?.env;
 if (ONNX_ENV?.wasm) {
     // Initialize wasm backend with suitable default settings.
 
