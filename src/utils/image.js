@@ -101,6 +101,8 @@ export class RawImage {
     /**
      * Helper method for reading an image from a variety of input types.
      * @param {RawImage|string|URL|Blob|HTMLCanvasElement|OffscreenCanvas} input
+     * @param {Object} options Additional options for reading the image.
+     * @param {AbortSignal} [options.abort_signal=null] An optional AbortSignal to cancel the request.
      * @returns The image object.
      *
      * **Example:** Read image from a URL.
@@ -114,13 +116,13 @@ export class RawImage {
      * // }
      * ```
      */
-    static async read(input) {
+    static async read(input, { abort_signal = null } = {}) {
         if (input instanceof RawImage) {
             return input;
         } else if (typeof input === 'string' || input instanceof URL) {
-            return await this.fromURL(input);
+            return await this.fromURL(input, { abort_signal });
         } else if (input instanceof Blob) {
-            return await this.fromBlob(input);
+            return await this.fromBlob(input, { abort_signal });
         } else if (
             (typeof HTMLCanvasElement !== "undefined" && input instanceof HTMLCanvasElement)
             ||
@@ -150,23 +152,30 @@ export class RawImage {
     /**
      * Read an image from a URL or file path.
      * @param {string|URL} url The URL or file path to read the image from.
+     * @param {Object} options Additional options for reading the image.
+     * @param {AbortSignal} [options.abort_signal=null] An optional AbortSignal to cancel the request.
      * @returns {Promise<RawImage>} The image object.
      */
-    static async fromURL(url) {
-        const response = await getFile(url);
+    static async fromURL(url, { abort_signal = null } = {}) {
+        const response = await getFile(url, { abort_signal });
         if (response.status !== 200) {
             throw new Error(`Unable to read image from "${url}" (${response.status} ${response.statusText})`);
         }
         const blob = await response.blob();
-        return this.fromBlob(blob);
+        return this.fromBlob(blob, { abort_signal });
     }
 
     /**
      * Helper method to create a new Image from a blob.
      * @param {Blob} blob The blob to read the image from.
+     * @param {Object} options Additional options for reading the image.
+     * @param {AbortSignal} [options.abort_signal=null] An optional AbortSignal to cancel the request.  
      * @returns {Promise<RawImage>} The image object.
      */
-    static async fromBlob(blob) {
+    static async fromBlob(blob, {abort_signal = null} = {}) {
+        if (abort_signal?.aborted) {
+            throw new Error('Aborted');
+        }
         if (IS_BROWSER_OR_WEBWORKER) {
             // Running in environment with canvas
             const img = await loadImageFunction(blob);
