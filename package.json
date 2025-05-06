@@ -1,5 +1,5 @@
 {
-  "name": "@huggingface/transformers",
+  "name": "@sroussey/transformers",
   "version": "3.7.1",
   "description": "State-of-the-art Machine Learning for the web. Run 🤗 Transformers directly in your browser, with no need for a server!",
   "main": "./src/transformers.js",
@@ -32,10 +32,10 @@
     "docs-api": "node ./docs/scripts/generate.js",
     "docs-preview": "doc-builder preview transformers.js ./docs/source/ --not_python_module",
     "docs-build": "doc-builder build transformers.js ./docs/source/ --not_python_module --build_dir ./docs/build/"
-  },
+  },  
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/huggingface/transformers.js.git"
+    "url": "git+https://github.com/sroussey/transformers.js.git"
   },
   "keywords": [
     "transformers",
@@ -56,7 +56,7 @@
   "homepage": "https://github.com/huggingface/transformers.js#readme",
   "dependencies": {
     "@huggingface/jinja": "^0.5.1",
-    "onnxruntime-node": "1.21.0",
+    "onnxruntime-node": "1.21.1",
     "onnxruntime-web": "1.22.0-dev.20250409-89f8206ba4",
     "sharp": "^0.34.1"
   },
@@ -69,7 +69,7 @@
     "jest-environment-node": "^30.0.0-alpha.6",
     "jsdoc-to-markdown": "^9.1.1",
     "prettier": "3.4.2",
-    "typescript": "^5.8.2",
+    "typescript": "^5.8.3",
     "wavefile": "11.0.0",
     "webpack": "^5.97.1",
     "webpack-cli": "^5.1.4",
