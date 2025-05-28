@@ -38,6 +38,7 @@ const DEVICE_TO_EXECUTION_PROVIDER_MAPPING = Object.freeze({
     webgpu: 'webgpu', // WebGPU
     cuda: 'cuda', // CUDA
     dml: 'dml', // DirectML
+    coreml: 'coreml', // CoreML
 
     webnn: { name: 'webnn', deviceType: 'cpu' }, // WebNN (default)
     'webnn-npu': { name: 'webnn', deviceType: 'npu' }, // WebNN NPU
@@ -70,6 +71,8 @@ if (ORT_SYMBOL in globalThis) {
     // | CPU           | ✔️          | ✔️            | ✔️                | ✔️          | ✔️        | ✔️          |
     // | DirectML      | ✔️          | ✔️            | ❌                | ❌          | ❌        | ❌          |
     // | CUDA          | ❌          | ❌            | ✔️ (CUDA v11.8)   | ❌          | ❌        | ❌          |
+    // | CoreML        | ❌          | ❌            | ❌                | ❌          | ✔️        | ✔️          |
+
     switch (process.platform) {
         case 'win32': // Windows x64 and Windows arm64
             supportedDevices.push('dml');
@@ -80,6 +83,7 @@ if (ORT_SYMBOL in globalThis) {
             }
             break;
         case 'darwin': // MacOS x64 and MacOS arm64
+            supportedDevices.push('coreml');
             break;
     }
 
