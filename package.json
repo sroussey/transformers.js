@@ -53,7 +53,7 @@
   "bugs": {
     "url": "https://github.com/huggingface/transformers.js/issues"
   },
-  "homepage": "https://github.com/huggingface/transformers.js#readme",
+  "homepage": "https://github.com/sroussey/transformers.js/tree/v3-publish#readme",
   "dependencies": {
     "@huggingface/jinja": "^0.5.1",
     "onnxruntime-node": "1.22.0",
