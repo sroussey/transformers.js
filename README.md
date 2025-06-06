@@ -23,6 +23,16 @@
   <p>State-of-the-art Machine Learning for the Web</p>
 </h3>
 
+## This is a fork
+
+- This fork is published as `@sroussey/transformers` instead of `@huggingface/transformers`
+- This fork has the ability to abort downloads via abort signals
+- This fork uses ONNX Runtime 1.22.0 instead of 1.21.1
+- This fork uses sharp 0.34.2 instead of 0.34.1
+- This fork adds support for coreml (untested though!)
+
+## About
+
 Run 🤗 Transformers directly in your browser, with no need for a server!
 
 Transformers.js is designed to be functionally equivalent to Hugging Face's [transformers](https://github.com/huggingface/transformers) python library, meaning you can run the same pretrained models using a very similar API. These models support common tasks in different modalities, such as:
