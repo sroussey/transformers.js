@@ -48,6 +48,7 @@ import {
     createInferenceSession,
     isONNXTensor,
     isONNXProxy,
+    runInferenceSession,
 } from './backends/onnx.js';
 import {
     DATA_TYPES,
@@ -88,8 +89,6 @@ import {
     MinNewTokensLengthLogitsProcessor,
 
     TemperatureLogitsWarper,
-    TopKLogitsWarper,
-    TopPLogitsWarper,
     ClassifierFreeGuidanceLogitsProcessor,
 } from './generation/logits_process.js';
 
@@ -419,10 +418,6 @@ function validateInputs(session, inputs) {
     return checkedInputs;
 }
 
-// Currently, Transformers.js doesn't support simultaneous execution of sessions in WASM/WebGPU.
-// For this reason, we need to chain the inference calls (otherwise we get "Error: Session already started").
-let webInferenceChain = Promise.resolve();
-
 /**
  * Executes an InferenceSession using the specified inputs.
  * NOTE: `inputs` must contain at least the input names of the model.
@@ -439,10 +434,7 @@ async function sessionRun(session, inputs) {
     try {
         // pass the original ort tensor
         const ortFeed = Object.fromEntries(Object.entries(checkedInputs).map(([k, v]) => [k, v.ort_tensor]));
-        const run = () => session.run(ortFeed);
-        const output = await ((apis.IS_BROWSER_ENV || apis.IS_WEBWORKER_ENV)
-            ? (webInferenceChain = webInferenceChain.then(run))
-            : run());
+        const output = await runInferenceSession(session, ortFeed);
         return replaceTensors(output);
     } catch (e) {
         // Error messages can be long (nested) and uninformative. For this reason,
@@ -1319,32 +1311,6 @@ export class PreTrainedModel extends Callable {
     }
 
     /**
-     * This function returns a [`LogitsProcessorList`] list object that contains all relevant [`LogitsWarper`]
-     * instances used for multinomial sampling.
-     * @param {GenerationConfig} generation_config The generation config.
-     * @returns {LogitsProcessorList} generation_config 
-     */
-    _get_logits_warper(generation_config) {
-
-        // instantiate warpers list
-        const warpers = new LogitsProcessorList();
-
-        if (generation_config.temperature !== null && generation_config.temperature !== 1.0) {
-            warpers.push(new TemperatureLogitsWarper(generation_config.temperature));
-        }
-        if (generation_config.top_k !== null && generation_config.top_k !== 0) {
-            // TODO: add min_tokens_to_keep
-            warpers.push(new TopKLogitsWarper(generation_config.top_k));
-        }
-        if (generation_config.top_p !== null && generation_config.top_p < 1.0) {
-            // TODO: add min_tokens_to_keep
-            warpers.push(new TopPLogitsWarper(generation_config.top_p));
-        }
-
-        return warpers;
-    }
-
-    /**
      * @param {GenerationConfig} generation_config 
      * @param {number} input_ids_seq_length The starting sequence length for the input ids.
      * @returns {LogitsProcessorList}
@@ -1461,6 +1427,19 @@ export class PreTrainedModel extends Callable {
         // 8. prepare batched CFG externally
         if (generation_config.guidance_scale !== null && generation_config.guidance_scale > 1) {
             processors.push(new ClassifierFreeGuidanceLogitsProcessor(generation_config.guidance_scale));
+        }
+
+        if (generation_config.do_sample) {
+            if (generation_config.temperature !== null && generation_config.temperature !== 1.0) {
+                processors.push(new TemperatureLogitsWarper(generation_config.temperature));
+            }
+            // TODO: Add TopPLogitsWarper and TopKLogitsWarper
+            // if (generation_config.top_k !== null && generation_config.top_k !== 0) {
+            //     processors.push(new TopKLogitsWarper(generation_config.top_k));
+            // }
+            // if (generation_config.top_p !== null && generation_config.top_p < 1.0) {
+            //     processors.push(new TopPLogitsWarper(generation_config.top_p));
+            // }
         }
 
         if (logits_processor !== null) {
@@ -4596,6 +4575,13 @@ export class LlamaModel extends LlamaPreTrainedModel { }
 export class LlamaForCausalLM extends LlamaPreTrainedModel { }
 //////////////////////////////////////////////////
 
+
+//////////////////////////////////////////////////
+export class Llama4PreTrainedModel extends PreTrainedModel { }
+export class Llama4ForCausalLM extends Llama4PreTrainedModel { }
+//////////////////////////////////////////////////
+
+
 //////////////////////////////////////////////////
 // Arcee models
 export class ArceePreTrainedModel extends PreTrainedModel { }
@@ -4712,6 +4698,12 @@ export class Gemma2Model extends Gemma2PreTrainedModel { }
 export class Gemma2ForCausalLM extends Gemma2PreTrainedModel { }
 //////////////////////////////////////////////////
 
+//////////////////////////////////////////////////
+// VaultGemma models
+export class VaultGemmaPreTrainedModel extends PreTrainedModel { }
+export class VaultGemmaModel extends VaultGemmaPreTrainedModel { }
+export class VaultGemmaForCausalLM extends VaultGemmaPreTrainedModel { }
+//////////////////////////////////////////////////
 
 //////////////////////////////////////////////////
 // Gemma3 models
@@ -5869,6 +5861,18 @@ export class Dinov2WithRegistersForImageClassification extends Dinov2WithRegiste
         return new SequenceClassifierOutput(await super._call(model_inputs));
     }
 }
+//////////////////////////////////////////////////
+
+//////////////////////////////////////////////////
+export class DINOv3ViTPreTrainedModel extends PreTrainedModel { }
+export class DINOv3ViTModel extends DINOv3ViTPreTrainedModel { }
+//////////////////////////////////////////////////
+
+//////////////////////////////////////////////////
+export class DINOv3ConvNextPreTrainedModel extends PreTrainedModel { }
+export class DINOv3ConvNextModel extends DINOv3ConvNextPreTrainedModel { }
+//////////////////////////////////////////////////
+
 //////////////////////////////////////////////////
 export class GroundingDinoPreTrainedModel extends PreTrainedModel { }
 export class GroundingDinoForObjectDetection extends GroundingDinoPreTrainedModel { }
@@ -7776,6 +7780,8 @@ const MODEL_MAPPING_NAMES_ENCODER_ONLY = new Map([
     ['convnextv2', ['ConvNextV2Model', ConvNextV2Model]],
     ['dinov2', ['Dinov2Model', Dinov2Model]],
     ['dinov2_with_registers', ['Dinov2WithRegistersModel', Dinov2WithRegistersModel]],
+    ['dinov3_vit', ['DINOv3ViTModel', DINOv3ViTModel]],
+    ['dinov3_convnext', ['DINOv3ConvNextModel', DINOv3ConvNextModel]],
     ['resnet', ['ResNetModel', ResNetModel]],
     ['swin', ['SwinModel', SwinModel]],
     ['swin2sr', ['Swin2SRModel', Swin2SRModel]],
@@ -7842,6 +7848,7 @@ const MODEL_MAPPING_NAMES_DECODER_ONLY = new Map([
     ['cohere', ['CohereModel', CohereModel]],
     ['gemma', ['GemmaModel', GemmaModel]],
     ['gemma2', ['Gemma2Model', Gemma2Model]],
+    ['vaultgemma', ['VaultGemmaModel', VaultGemmaModel]],
     ['gemma3_text', ['Gemma3Model', Gemma3Model]],
     ['helium', ['HeliumModel', HeliumModel]],
     ['glm', ['GlmModel', GlmModel]],
@@ -7939,6 +7946,7 @@ const MODEL_FOR_CAUSAL_LM_MAPPING_NAMES = new Map([
     ['gpt_neox', ['GPTNeoXForCausalLM', GPTNeoXForCausalLM]],
     ['codegen', ['CodeGenForCausalLM', CodeGenForCausalLM]],
     ['llama', ['LlamaForCausalLM', LlamaForCausalLM]],
+    ['llama4_text', ['Llama4ForCausalLM', Llama4ForCausalLM]],
     ['arcee', ['ArceeForCausalLM', ArceeForCausalLM]],
     ['lfm2', ['Lfm2ForCausalLM', Lfm2ForCausalLM]],
     ['smollm3', ['SmolLM3ForCausalLM', SmolLM3ForCausalLM]],
@@ -7950,6 +7958,7 @@ const MODEL_FOR_CAUSAL_LM_MAPPING_NAMES = new Map([
     ['cohere', ['CohereForCausalLM', CohereForCausalLM]],
     ['gemma', ['GemmaForCausalLM', GemmaForCausalLM]],
     ['gemma2', ['Gemma2ForCausalLM', Gemma2ForCausalLM]],
+    ['vaultgemma', ['VaultGemmaForCausalLM', VaultGemmaForCausalLM]],
     ['gemma3_text', ['Gemma3ForCausalLM', Gemma3ForCausalLM]],
     ['helium', ['HeliumForCausalLM', HeliumForCausalLM]],
     ['glm', ['GlmForCausalLM', GlmForCausalLM]],

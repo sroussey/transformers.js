@@ -111,6 +111,7 @@ function getNormalizedConfig(config) {
             mapping['hidden_size'] = 'hidden_size';
             break;
         case 'llama':
+        case 'llama4_text':
         case 'arcee':
         case 'lfm2':
         case 'smollm3':
@@ -136,6 +137,7 @@ function getNormalizedConfig(config) {
         case 'qwen3':
         case 'gemma':
         case 'gemma2':
+        case 'vaultgemma':
         case 'gemma3_text':
         case 'gemma3n_text':
         case 'glm':
