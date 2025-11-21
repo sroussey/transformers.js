@@ -109,6 +109,7 @@ import {
     std_mean,
     Tensor,
     DataTypeMap,
+    randn,
 } from './utils/tensor.js';
 import { RawImage } from './utils/image.js';
 
@@ -136,6 +137,7 @@ const MODEL_TYPES = {
     AudioTextToText: 10,
     AutoEncoder: 11,
     ImageAudioTextToText: 12,
+    Supertonic: 13,
 }
 //////////////////////////////////////////////////
 
@@ -1264,6 +1266,14 @@ export class PreTrainedModel extends Callable {
                     decoder_model: 'decoder_model',
                 }, options),
             ]);
+        } else if (modelType === MODEL_TYPES.Supertonic) {
+            info = await Promise.all([
+                constructSessions(pretrained_model_name_or_path, {
+                    text_encoder: 'text_encoder',
+                    latent_denoiser: 'latent_denoiser',
+                    voice_decoder: 'voice_decoder',
+                }, options),
+            ]);
         } else { // should be MODEL_TYPES.EncoderOnly
             if (modelType !== MODEL_TYPES.EncoderOnly) {
                 const type = modelName ?? config?.model_type;
@@ -1427,6 +1437,12 @@ export class PreTrainedModel extends Callable {
         // 8. prepare batched CFG externally
         if (generation_config.guidance_scale !== null && generation_config.guidance_scale > 1) {
             processors.push(new ClassifierFreeGuidanceLogitsProcessor(generation_config.guidance_scale));
+        }
+
+
+        if (generation_config.temperature === 0 && generation_config.do_sample) {
+          console.warn('`do_sample` changed to false because `temperature: 0` implies greedy sampling (always selecting the most likely token), which is incompatible with `do_sample: true`.');
+          generation_config.do_sample = false;
         }
 
         if (generation_config.do_sample) {
@@ -4581,6 +4597,12 @@ export class Llama4PreTrainedModel extends PreTrainedModel { }
 export class Llama4ForCausalLM extends Llama4PreTrainedModel { }
 //////////////////////////////////////////////////
 
+//////////////////////////////////////////////////
+// NanoChat models
+export class NanoChatPreTrainedModel extends PreTrainedModel { }
+export class NanoChatModel extends NanoChatPreTrainedModel { }
+export class NanoChatForCausalLM extends NanoChatPreTrainedModel { }
+//////////////////////////////////////////////////
 
 //////////////////////////////////////////////////
 // Arcee models
@@ -4655,6 +4677,12 @@ export class GraniteModel extends GranitePreTrainedModel { }
 export class GraniteForCausalLM extends GranitePreTrainedModel { }
 //////////////////////////////////////////////////
 
+//////////////////////////////////////////////////
+// GraniteMoeHybrid models
+export class GraniteMoeHybridPreTrainedModel extends PreTrainedModel { }
+export class GraniteMoeHybridModel extends GraniteMoeHybridPreTrainedModel { }
+export class GraniteMoeHybridForCausalLM extends GraniteMoeHybridPreTrainedModel { }
+//////////////////////////////////////////////////
 
 //////////////////////////////////////////////////
 // Cohere models
@@ -5996,18 +6024,12 @@ export class SamModel extends SamPreTrainedModel {
                 ...model_inputs,
                 ...(await this.get_image_embeddings(model_inputs))
             }
+        } else {
+            model_inputs = { ...model_inputs };
         }
 
-        if (!model_inputs.input_labels && model_inputs.input_points) {
-            // Set default input labels if they are missing
-            const shape = model_inputs.input_points.dims.slice(0, -1);
-            const numElements = shape.reduce((a, b) => a * b, 1);
-            model_inputs.input_labels = new Tensor(
-                'int64',
-                new BigInt64Array(numElements).fill(1n),
-                shape
-            );
-        }
+        // Set default input labels if they are missing
+        model_inputs.input_labels ??= ones(model_inputs.input_points.dims.slice(0, -1));
 
         const decoder_inputs = {
             image_embeddings: model_inputs.image_embeddings,
@@ -6055,6 +6077,97 @@ export class SamImageSegmentationOutput extends ModelOutput {
         this.pred_masks = pred_masks;
     }
 }
+//////////////////////////////////////////////////
+
+//////////////////////////////////////////////////
+export class Sam2ImageSegmentationOutput extends ModelOutput {
+    /**
+     * @param {Object} output The output of the model.
+     * @param {Tensor} output.iou_scores The output logits of the model.
+     * @param {Tensor} output.pred_masks Predicted boxes.
+     * @param {Tensor} output.object_score_logits Logits for the object score, indicating if an object is present.
+     */
+    constructor({ iou_scores, pred_masks, object_score_logits }) {
+        super();
+        this.iou_scores = iou_scores;
+        this.pred_masks = pred_masks;
+        this.object_score_logits = object_score_logits;
+    }
+}
+
+export class Sam2PreTrainedModel extends PreTrainedModel { }
+export class Sam2Model extends Sam2PreTrainedModel {
+
+    /**
+     * Compute image embeddings and positional image embeddings, given the pixel values of an image.
+     * @param {Object} model_inputs Object containing the model inputs.
+     * @param {Tensor} model_inputs.pixel_values Pixel values obtained using a `Sam2Processor`.
+     * @returns {Promise<Record<String, Tensor>>} The image embeddings.
+     */
+    async get_image_embeddings({ pixel_values }) {
+        // in:
+        //  - pixel_values: tensor.float32[batch_size,3,1024,1024]
+        // 
+        // out:
+        //  - image_embeddings.0: tensor.float32[batch_size,32,256,256]
+        //  - image_embeddings.1: tensor.float32[batch_size,64,128,128]
+        //  - image_embeddings.2: tensor.float32[batch_size,256,64,64]
+        return await encoderForward(this, { pixel_values });
+    }
+
+    async forward(model_inputs) {
+        // @ts-expect-error ts(2339)
+        const { num_feature_levels } = this.config.vision_config;
+        const image_embeddings_name = Array.from({ length: num_feature_levels }, (_, i) => `image_embeddings.${i}`);
+
+        if (image_embeddings_name.some(name => !model_inputs[name])) {
+            // Compute the image embeddings if they are missing
+            model_inputs = {
+                ...model_inputs,
+                ...(await this.get_image_embeddings(model_inputs))
+            }
+        } else {
+            model_inputs = { ...model_inputs };
+        }
+
+        if (model_inputs.input_points) {
+            if (model_inputs.input_boxes && model_inputs.input_boxes.dims[1] !== 1) {
+                throw new Error('When both `input_points` and `input_boxes` are provided, the number of boxes per image must be 1.');
+            }
+            const shape = model_inputs.input_points.dims;
+            model_inputs.input_labels ??= ones(shape.slice(0, -1));
+            model_inputs.input_boxes ??= full([shape[0], 0, 4], 0.0);
+
+        } else if (model_inputs.input_boxes) { // only boxes
+            const shape = model_inputs.input_boxes.dims;
+            model_inputs.input_labels = full([shape[0], shape[1], 0], -1n);
+            model_inputs.input_points = full([shape[0], 1, 0, 2], 0.0);
+
+        } else {
+            throw new Error('At least one of `input_points` or `input_boxes` must be provided.');
+        }
+
+        const prompt_encoder_mask_decoder_session = this.sessions['prompt_encoder_mask_decoder'];
+        const decoder_inputs = pick(model_inputs, prompt_encoder_mask_decoder_session.inputNames);
+
+        // Returns:
+        //  - iou_scores: tensor.float32[batch_size,num_boxes_or_points,3]
+        //  - pred_masks: tensor.float32[batch_size,num_boxes_or_points,3,256,256]
+        //  - object_score_logits: tensor.float32[batch_size,num_boxes_or_points,1]
+        return await sessionRun(prompt_encoder_mask_decoder_session, decoder_inputs);
+    }
+
+    /**
+     * Runs the model with the provided inputs
+     * @param {Object} model_inputs Model inputs
+     * @returns {Promise<Sam2ImageSegmentationOutput>} Object containing segmentation outputs
+     */
+    async _call(model_inputs) {
+        return new Sam2ImageSegmentationOutput(await super._call(model_inputs));
+    }
+}
+export class EdgeTamModel extends Sam2Model { } // NOTE: extends Sam2Model
+export class Sam3TrackerModel extends Sam2Model { } // NOTE: extends Sam2Model
 //////////////////////////////////////////////////
 
 
@@ -6141,6 +6254,21 @@ export class Wav2Vec2ForAudioFrameClassification extends Wav2Vec2PreTrainedModel
      */
     async _call(model_inputs) {
         return new TokenClassifierOutput(await super._call(model_inputs));
+    }
+}
+//////////////////////////////////////////////////
+
+//////////////////////////////////////////////////
+// Parakeet models
+export class ParakeetPreTrainedModel extends PreTrainedModel { };
+export class ParakeetForCTC extends ParakeetPreTrainedModel {
+    /**
+     * @param {Object} model_inputs
+     * @param {Tensor} model_inputs.input_values Float values of input raw speech waveform.
+     * @param {Tensor} model_inputs.attention_mask Mask to avoid performing convolution and attention on padding token indices. Mask values selected in [0, 1]
+     */
+    async _call(model_inputs) {
+        return new CausalLMOutput(await super._call(model_inputs));
     }
 }
 //////////////////////////////////////////////////
@@ -6741,6 +6869,61 @@ export class SpeechT5HifiGan extends PreTrainedModel {
     main_input_name = 'spectrogram';
 }
 //////////////////////////////////////////////////
+
+export class SupertonicPreTrainedModel extends PreTrainedModel { }
+export class SupertonicForConditionalGeneration extends SupertonicPreTrainedModel {
+
+    async generate_speech({
+        // Required inputs
+        input_ids,
+        attention_mask,
+        style,
+
+        // Optional inputs
+        num_inference_steps = 5,
+        speed = 1.05,
+    }) {
+        // @ts-expect-error TS2339
+        const { sampling_rate, chunk_compress_factor, base_chunk_size, latent_dim } = this.config;
+
+        // 1. Text Encoder
+        const { last_hidden_state, durations } = await sessionRun(this.sessions['text_encoder'], {
+            input_ids, attention_mask, style,
+        });
+        durations.div_(speed); // Apply speed factor to duration
+
+        // 2. Latent Denoiser
+        const wav_len_max = durations.max().item() * sampling_rate;
+        const chunk_size = base_chunk_size * chunk_compress_factor;
+        const latent_len = Math.floor((wav_len_max + chunk_size - 1) / chunk_size);
+        const batch_size = input_ids.dims[0];
+        const latent_mask = ones([batch_size, latent_len]);
+        const num_steps = full([batch_size], num_inference_steps);
+
+        let noisy_latents = randn([batch_size, latent_dim * chunk_compress_factor, latent_len]);
+        for (let step = 0; step < num_inference_steps; ++step) {
+            const timestep = full([batch_size], step);
+            ({ denoised_latents: noisy_latents } = await sessionRun(this.sessions['latent_denoiser'], {
+                style,
+                noisy_latents,
+                latent_mask,
+                encoder_outputs: last_hidden_state,
+                attention_mask,
+                timestep,
+                num_inference_steps: num_steps,
+            }));
+        }
+
+        // 3. Voice Decoder
+        const { waveform } = await sessionRun(this.sessions['voice_decoder'], {
+            latents: noisy_latents,
+        });
+        return {
+            waveform,
+            durations,
+        }
+    }
+}
 
 
 //////////////////////////////////////////////////
@@ -7837,6 +8020,7 @@ const MODEL_MAPPING_NAMES_DECODER_ONLY = new Map([
     ['gpt_neox', ['GPTNeoXModel', GPTNeoXModel]],
     ['codegen', ['CodeGenModel', CodeGenModel]],
     ['llama', ['LlamaModel', LlamaModel]],
+    ['nanochat', ['NanoChatModel', NanoChatModel]],
     ['arcee', ['ArceeModel', ArceeModel]],
     ['lfm2', ['Lfm2Model', Lfm2Model]],
     ['smollm3', ['SmolLM3Model', SmolLM3Model]],
@@ -7845,6 +8029,7 @@ const MODEL_MAPPING_NAMES_DECODER_ONLY = new Map([
     ['olmo2', ['Olmo2Model', Olmo2Model]],
     ['mobilellm', ['MobileLLMModel', MobileLLMModel]],
     ['granite', ['GraniteModel', GraniteModel]],
+    ['granitemoehybrid', ['GraniteMoeHybridModel', GraniteMoeHybridModel]],
     ['cohere', ['CohereModel', CohereModel]],
     ['gemma', ['GemmaModel', GemmaModel]],
     ['gemma2', ['Gemma2Model', Gemma2Model]],
@@ -7881,6 +8066,7 @@ const MODEL_FOR_TEXT_TO_SPECTROGRAM_MAPPING_NAMES = new Map([
 const MODEL_FOR_TEXT_TO_WAVEFORM_MAPPING_NAMES = new Map([
     ['vits', ['VitsModel', VitsModel]],
     ['musicgen', ['MusicgenForConditionalGeneration', MusicgenForConditionalGeneration]],
+    ['supertonic', ['SupertonicForConditionalGeneration', SupertonicForConditionalGeneration]],
 ]);
 
 const MODEL_FOR_SEQUENCE_CLASSIFICATION_MAPPING_NAMES = new Map([
@@ -7946,6 +8132,7 @@ const MODEL_FOR_CAUSAL_LM_MAPPING_NAMES = new Map([
     ['gpt_neox', ['GPTNeoXForCausalLM', GPTNeoXForCausalLM]],
     ['codegen', ['CodeGenForCausalLM', CodeGenForCausalLM]],
     ['llama', ['LlamaForCausalLM', LlamaForCausalLM]],
+    ['nanochat', ['NanoChatForCausalLM', NanoChatForCausalLM]],
     ['llama4_text', ['Llama4ForCausalLM', Llama4ForCausalLM]],
     ['arcee', ['ArceeForCausalLM', ArceeForCausalLM]],
     ['lfm2', ['Lfm2ForCausalLM', Lfm2ForCausalLM]],
@@ -7955,6 +8142,7 @@ const MODEL_FOR_CAUSAL_LM_MAPPING_NAMES = new Map([
     ['olmo2', ['Olmo2ForCausalLM', Olmo2ForCausalLM]],
     ['mobilellm', ['MobileLLMForCausalLM', MobileLLMForCausalLM]],
     ['granite', ['GraniteForCausalLM', GraniteForCausalLM]],
+    ['granitemoehybrid', ['GraniteMoeHybridForCausalLM', GraniteMoeHybridForCausalLM]],
     ['cohere', ['CohereForCausalLM', CohereForCausalLM]],
     ['gemma', ['GemmaForCausalLM', GemmaForCausalLM]],
     ['gemma2', ['Gemma2ForCausalLM', Gemma2ForCausalLM]],
@@ -8121,6 +8309,9 @@ const MODEL_FOR_UNIVERSAL_SEGMENTATION_MAPPING_NAMES = new Map([
 
 const MODEL_FOR_MASK_GENERATION_MAPPING_NAMES = new Map([
     ['sam', ['SamModel', SamModel]],
+    ['sam2', ['Sam2Model', Sam2Model]],
+    ['edgetam', ['EdgeTamModel', EdgeTamModel]],
+    ['sam3_tracker', ['Sam3TrackerModel', Sam3TrackerModel]],
 ]);
 
 const MODEL_FOR_CTC_MAPPING_NAMES = new Map([
@@ -8130,6 +8321,7 @@ const MODEL_FOR_CTC_MAPPING_NAMES = new Map([
     ['unispeech-sat', ['UniSpeechSatForCTC', UniSpeechSatForCTC]],
     ['wavlm', ['WavLMForCTC', WavLMForCTC]],
     ['hubert', ['HubertForCTC', HubertForCTC]],
+    ['parakeet_ctc', ['ParakeetForCTC', ParakeetForCTC]],
 ]);
 
 const MODEL_FOR_AUDIO_CLASSIFICATION_MAPPING_NAMES = new Map([
@@ -8263,6 +8455,7 @@ const CUSTOM_MAPPING = [
     ['SnacDecoderModel', SnacDecoderModel, MODEL_TYPES.EncoderOnly],
 
     ['Gemma3nForConditionalGeneration', Gemma3nForConditionalGeneration, MODEL_TYPES.ImageAudioTextToText],
+    ['SupertonicForConditionalGeneration', SupertonicForConditionalGeneration, MODEL_TYPES.Supertonic],
 ]
 for (const [name, model, type] of CUSTOM_MAPPING) {
     MODEL_TYPE_MAPPING.set(name, type);
