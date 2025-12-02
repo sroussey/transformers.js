@@ -149,7 +149,7 @@ class FileResponse {
      */
     async blob() {
         const data = await fs.promises.readFile(this.filePath);
-        return new Blob([data], { type: this.headers.get('content-type') });
+        return new Blob([/** @type {BlobPart} */(data)], { type: this.headers.get('content-type') });
     }
 
     /**
@@ -652,7 +652,7 @@ export async function getModelFile(path_or_repo_id, filename, fatal = true, opti
             await cache.put(cacheKey, /** @type {Response} */(response), wrapped_progress);
         } else {
             // NOTE: We use `new Response(buffer, ...)` instead of `response.clone()` to handle LFS files
-            await cache.put(cacheKey, new Response(result, {
+            await cache.put(cacheKey, new Response(/** @type {BodyInit} */(result), {
                 headers: response.headers
             }))
                 .catch(err => {

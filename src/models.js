@@ -3868,6 +3868,8 @@ export class LlavaQwen2ForCausalLM extends LlavaPreTrainedModel {
     }
 }
 
+export class Mistral3ForConditionalGeneration extends LlavaQwen2ForCausalLM { }
+
 export class Gemma3nPreTrainedModel extends PreTrainedModel {
     forward_params = [
         'input_ids',
@@ -6951,12 +6953,26 @@ export class MistralForCausalLM extends MistralPreTrainedModel { }
 //////////////////////////////////////////////////
 
 //////////////////////////////////////////////////
+// Ministral models
+export class MinistralPreTrainedModel extends PreTrainedModel { }
+export class MinistralModel extends MinistralPreTrainedModel { }
+export class MinistralForCausalLM extends MinistralPreTrainedModel { }
+//////////////////////////////////////////////////
+
+//////////////////////////////////////////////////
+// Ministral3 models
+export class Ministral3PreTrainedModel extends PreTrainedModel { }
+export class Ministral3Model extends Ministral3PreTrainedModel { }
+export class Ministral3ForCausalLM extends Ministral3PreTrainedModel { }
+//////////////////////////////////////////////////
+
+//////////////////////////////////////////////////
 // ERNIE-4.5 models
-export class Ernie4_5_PretrainedModel extends PreTrainedModel { }
+export class Ernie4_5PreTrainedModel extends PreTrainedModel { }
 
-export class Ernie4_5_Model extends Ernie4_5_PretrainedModel { }
+export class Ernie4_5Model extends Ernie4_5PreTrainedModel { }
 
-export class Ernie4_5_ForCausalLM extends Ernie4_5_PretrainedModel { }
+export class Ernie4_5ForCausalLM extends Ernie4_5PreTrainedModel { }
 //////////////////////////////////////////////////
 
 
@@ -8045,7 +8061,9 @@ const MODEL_MAPPING_NAMES_DECODER_ONLY = new Map([
     ['mpt', ['MptModel', MptModel]],
     ['opt', ['OPTModel', OPTModel]],
     ['mistral', ['MistralModel', MistralModel]],
-    ['ernie4_5', ['Ernie4_5_Model', Ernie4_5_Model]],
+    ['ministral', ['MinistralModel', MinistralModel]],
+    ['ministral3', ['Ministral3Model', Ministral3Model]],
+    ['ernie4_5', ['Ernie4_5Model', Ernie4_5Model]],
     ['starcoder2', ['Starcoder2Model', Starcoder2Model]],
     ['falcon', ['FalconModel', FalconModel]],
     ['stablelm', ['StableLmModel', StableLmModel]],
@@ -8159,7 +8177,9 @@ const MODEL_FOR_CAUSAL_LM_MAPPING_NAMES = new Map([
     ['opt', ['OPTForCausalLM', OPTForCausalLM]],
     ['mbart', ['MBartForCausalLM', MBartForCausalLM]],
     ['mistral', ['MistralForCausalLM', MistralForCausalLM]],
-    ['ernie4_5', ['Ernie4_5_ForCausalLM', Ernie4_5_ForCausalLM]],
+    ['ministral', ['MinistralForCausalLM', MinistralForCausalLM]],
+    ['ministral3', ['Ministral3ForCausalLM', Ministral3ForCausalLM]],
+    ['ernie4_5', ['Ernie4_5ForCausalLM', Ernie4_5ForCausalLM]],
     ['starcoder2', ['Starcoder2ForCausalLM', Starcoder2ForCausalLM]],
     ['falcon', ['FalconForCausalLM', FalconForCausalLM]],
     ['trocr', ['TrOCRForCausalLM', TrOCRForCausalLM]],
@@ -8232,6 +8252,7 @@ const MODEL_FOR_IMAGE_TEXT_TO_TEXT_MAPPING_NAMES = new Map([
     ['paligemma', ['PaliGemmaForConditionalGeneration', PaliGemmaForConditionalGeneration]],
     ['llava_qwen2', ['LlavaQwen2ForCausalLM', LlavaQwen2ForCausalLM]],
     ['gemma3n', ['Gemma3nForConditionalGeneration', Gemma3nForConditionalGeneration]],
+    ['mistral3', ['Mistral3ForConditionalGeneration', Mistral3ForConditionalGeneration]],
 ]);
 
 const MODEL_FOR_AUDIO_TEXT_TO_TEXT_MAPPING_NAMES = new Map([
