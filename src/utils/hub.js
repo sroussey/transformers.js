@@ -327,9 +327,11 @@ class FileCache {
      * @param {Response} response
      * @param {(data: {progress: number, loaded: number, total: number}) => void} [progress_callback] Optional.
      * The function to call with progress updates
+     * @param {Object} options An optional object containing the following properties:
+     * @param {AbortSignal} [options.abort_signal=null] An optional AbortSignal to cancel the request.
      * @returns {Promise<void>}
      */
-    async put(request, response, progress_callback = undefined) {
+    async put(request, response, progress_callback = undefined, {abort_signal = null} = {}) {
         let filePath = path.join(this.path, request);
 
         try {
@@ -342,13 +344,41 @@ class FileCache {
             const reader = response.body.getReader();
 
             while (true) {
+                // Check if the request has been aborted
+                if (abort_signal?.aborted) {
+                    reader.cancel();
+                    fileStream.destroy();
+                    throw new Error('Request aborted');
+                }
+
                 const { done, value } = await reader.read();
                 if (done) {
                     break;
                 }
 
+                // Check again after reading
+                if (abort_signal?.aborted) {
+                    reader.cancel();
+                    fileStream.destroy();
+                    throw new Error('Request aborted');
+                }
+
                 await new Promise((resolve, reject) => {
+                    // Set up abort listener
+                    const abortHandler = () => {
+                        reader.cancel();
+                        fileStream.destroy();
+                        reject(new Error('Request aborted'));
+                    };
+                    
+                    if (abort_signal) {
+                        abort_signal.addEventListener('abort', abortHandler);
+                    }
+
                     fileStream.write(value, (err) => {
+                        if (abort_signal) {
+                            abort_signal.removeEventListener('abort', abortHandler);
+                        }
                         if (err) {
                             reject(err);
                             return;
@@ -597,6 +627,10 @@ export async function getModelFile(path_or_repo_id, filename, fatal = true, opti
         if (!options.progress_callback) {
             // If no progress callback is specified, we can use the `.arrayBuffer()`
             // method to read the response.
+            // Check abort signal before reading
+            if (options?.abort_signal?.aborted) {
+                throw new Error('Request aborted');
+            }
             buffer = new Uint8Array(await response.arrayBuffer());
 
         } else if (
@@ -625,7 +659,7 @@ export async function getModelFile(path_or_repo_id, filename, fatal = true, opti
                     file: filename,
                     ...data,
                 })
-            })
+            }, {abort_signal: options?.abort_signal})
         }
         result = buffer;
     }
@@ -649,17 +683,19 @@ export async function getModelFile(path_or_repo_id, filename, fatal = true, opti
                     ...data,
                 })
                 : undefined;
-            await cache.put(cacheKey, /** @type {Response} */(response), wrapped_progress);
+            await cache.put(cacheKey, /** @type {Response} */(response), wrapped_progress, {abort_signal: options?.abort_signal});
         } else {
             // NOTE: We use `new Response(buffer, ...)` instead of `response.clone()` to handle LFS files
-            await cache.put(cacheKey, new Response(/** @type {BodyInit} */(result), {
-                headers: response.headers
-            }))
-                .catch(err => {
-                    // Do not crash if unable to add to cache (e.g., QuotaExceededError).
-                    // Rather, log a warning and proceed with execution.
-                    console.warn(`Unable to add response to browser cache: ${err}.`);
-                });
+            
+                await cache.put(cacheKey, new Response(/** @type {BodyInit} */(result), {
+                    headers: response.headers
+                }), undefined, {abort_signal: options?.abort_signal})
+                    .catch(err => {
+                        // Do not crash if unable to add to cache (e.g., QuotaExceededError).
+                        // Rather, log a warning and proceed with execution.
+                        console.warn(`Unable to add response to file cache: ${err}.`);
+                    });
+            
         }
     }
     dispatchCallback(options.progress_callback, {
@@ -736,9 +772,11 @@ export async function getModelJSON(modelPath, fileName, fatal = true, options = 
  *
  * @param {Response|FileResponse} response The Response object to read
  * @param {(data: {progress: number, loaded: number, total: number}) => void} progress_callback The function to call with progress updates
+ * @param {Object} options An optional object containing the following properties:
+ * @param {AbortSignal} [options.abort_signal=null] An optional AbortSignal to cancel the request.  
  * @returns {Promise<Uint8Array>} A Promise that resolves with the Uint8Array buffer
  */
-async function readResponse(response, progress_callback) {
+async function readResponse(response, progress_callback, {abort_signal = null} = {}) {
 
     const contentLength = response.headers.get('Content-Length');
     if (contentLength === null) {
@@ -749,36 +787,63 @@ async function readResponse(response, progress_callback) {
     let loaded = 0;
 
     const reader = response.body.getReader();
-    async function read() {
-        const { done, value } = await reader.read();
-        if (done) return;
-
-        const newLoaded = loaded + value.length;
-        if (newLoaded > total) {
-            total = newLoaded;
-
-            // Adding the new data will overflow buffer.
-            // In this case, we extend the buffer
-            const newBuffer = new Uint8Array(total);
-
-            // copy contents
-            newBuffer.set(buffer);
-
-            buffer = newBuffer;
-        }
-        buffer.set(value, loaded);
-        loaded = newLoaded;
-
-        const progress = (loaded / total) * 100;
-
-        // Call your function here
-        progress_callback({ progress, loaded, total });
-
-        return read();
+    
+    // Set up abort listener to cancel the reader immediately
+    let abortHandler = null;
+    if (abort_signal) {
+        abortHandler = () => {
+            reader.cancel().catch(() => {
+                // Ignore errors from canceling
+            });
+        };
+        abort_signal.addEventListener('abort', abortHandler);
     }
+    
+    try {
+        async function read() {
+            // Check if aborted before reading
+            if (abort_signal?.aborted) {
+                throw new Error('Request aborted');
+            }
 
-    // Actually read
-    await read();
+            const { done, value } = await reader.read();
+            if (done) return;
+
+            // Check if aborted after reading
+            if (abort_signal?.aborted) {
+                throw new Error('Request aborted');
+            }
+
+            const newLoaded = loaded + value.length;
+            if (newLoaded > total) {
+                total = newLoaded;
+
+                // Adding the new data will overflow buffer.
+                // In this case, we extend the buffer
+                const newBuffer = new Uint8Array(total);
+
+                // copy contents
+                newBuffer.set(buffer);
+
+                buffer = newBuffer;
+            }
+            buffer.set(value, loaded);
+            loaded = newLoaded;
+
+            const progress = (loaded / total) * 100;
+
+            // Call your function here
+            progress_callback({ progress, loaded, total });
+
+            return read();
+        }
+        
+        await read();
+    } finally {
+        if (abort_signal && abortHandler) {
+            abort_signal.removeEventListener('abort', abortHandler);
+        }
+    }
 
     return buffer;
 }
