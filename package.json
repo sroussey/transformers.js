@@ -1,6 +1,6 @@
 {
   "name": "@sroussey/transformers",
-  "version": "3.8.1",
+  "version": "3.8.2",
   "description": "State-of-the-art Machine Learning for the web. Run 🤗 Transformers directly in your browser, with no need for a server!",
   "main": "./src/transformers.js",
   "types": "./types/transformers.d.ts",
@@ -56,9 +56,9 @@
   "homepage": "https://github.com/sroussey/transformers.js/tree/v3-publish#readme",
   "dependencies": {
     "@huggingface/jinja": "^0.5.3",
-    "onnxruntime-node": "1.22.0",
-    "onnxruntime-web": "1.22.0",
-    "sharp": "^0.34.2"
+    "onnxruntime-node": "1.23.2",
+    "onnxruntime-web": "1.23.2",
+    "sharp": "^0.34.5"
   },
   "devDependencies": {
     "@types/jest": "^29.5.14",
