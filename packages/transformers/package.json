@@ -1,5 +1,5 @@
 {
-  "name": "@huggingface/transformers",
+  "name": "@sroussey/transformers",
   "version": "4.0.0-next.4",
   "description": "State-of-the-art Machine Learning for the web. Run 🤗 Transformers directly in your browser, with no need for a server!",
   "main": "./dist/transformers.node.cjs",
@@ -35,7 +35,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/huggingface/transformers.js.git"
+    "url": "git+https://github.com/sroussey/transformers.js.git"
   },
   "keywords": [
     "transformers",

@@ -23,6 +23,13 @@
   <p>State-of-the-art Machine Learning for the Web</p>
 </h3>
 
+## This is a fork
+
+- This fork is published as `@sroussey/transformers` instead of `@huggingface/transformers`
+- This fork has the ability to abort downloads via abort signals
+
+## About
+
 Run 🤗 Transformers directly in your browser, with no need for a server!
 
 Transformers.js is designed to be functionally equivalent to Hugging Face's [transformers](https://github.com/huggingface/transformers) python library, meaning you can run the same pretrained models using a very similar API. These models support common tasks in different modalities, such as:
