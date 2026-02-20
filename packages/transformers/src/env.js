@@ -191,7 +191,7 @@ export const LogLevel = Object.freeze({
  * This can improve performance by avoiding repeated downloads of WASM files. Note: Only the WASM binary is cached.
  * The MJS loader file still requires network access unless you use a Service Worker.
  * @property {string} cacheKey The cache key to use for storing models and WASM binaries. Defaults to 'transformers-cache'.
- * @property {typeof fetch} customFetch The fetch function to use. Defaults to `fetch`.
+ * @property {typeof fetch} fetch The fetch function to use. Defaults to `fetch`.
  */
 
 /** @type {TransformersEnvironment} */
@@ -230,7 +230,7 @@ export const env = {
     cacheKey: 'transformers-cache',
 
     /////////////////// Custom fetch /////////////////////
-    customFetch: fetch,
+    fetch: fetch,
 
     //////////////////////////////////////////////////////
 };
