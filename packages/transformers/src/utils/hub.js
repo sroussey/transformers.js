@@ -82,12 +82,12 @@ export async function getFile(urlOrPath) {
                 headers.set('Authorization', `Bearer ${token}`);
             }
         }
-        return env.customFetch(urlOrPath, { headers });
+        return env.fetch(urlOrPath, { headers });
     } else {
         // Running in a browser-environment, so we use default headers
         // NOTE: We do not allow passing authorization headers in the browser,
         // since this would require exposing the token to the client.
-        return env.customFetch(urlOrPath);
+        return env.fetch(urlOrPath);
     }
 }
 

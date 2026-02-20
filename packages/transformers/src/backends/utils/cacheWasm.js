@@ -28,7 +28,7 @@ async function loadAndCacheFile(url) {
     }
 
     // If not in cache, fetch it
-    const response = await env.customFetch(url);
+    const response = await env.fetch(url);
 
     if (!response.ok) {
         throw new Error(`Failed to fetch ${fileName}: ${response.status} ${response.statusText}`);
