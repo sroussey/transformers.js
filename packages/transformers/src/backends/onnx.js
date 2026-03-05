@@ -22,7 +22,8 @@ import { env, apis, LogLevel } from '../env.js';
 // In either case, we select the default export if it exists, otherwise we use the named export.
 import * as ONNX_NODE from 'onnxruntime-node';
 import * as ONNX_WEB from 'onnxruntime-web/webgpu';
-import { isBlobURL, loadWasmBinary, loadWasmFactory, toAbsoluteURL } from './utils/cacheWasm.js';
+import { loadWasmBinary, loadWasmFactory } from './utils/cacheWasm.js';
+import { isBlobURL, toAbsoluteURL } from '../utils/hub/utils.js';
 import { logger } from '../utils/logger.js';
 export { Tensor } from 'onnxruntime-common';
 
@@ -202,14 +203,23 @@ async function ensureWasmLoaded() {
         return wasmLoadPromise;
     }
 
+    // Check if we should load the WASM binary
     const shouldUseWasmCache =
         env.useWasmCache &&
         typeof ONNX_ENV?.wasm?.wasmPaths === 'object' &&
         ONNX_ENV?.wasm?.wasmPaths?.wasm &&
         ONNX_ENV?.wasm?.wasmPaths?.mjs;
 
-    // Check if we should load the WASM binary
     if (!shouldUseWasmCache) {
+        // In Deno's web runtime, the WASM factory must be loaded via blob URL so that Node.js detection
+        // can be patched out (see loadWasmFactory). Without caching, the factory is imported directly
+        // from its URL and Deno would crash trying to use Node.js APIs. useWasmCache defaults to true
+        // in this environment, so this only happens if the user explicitly disables it.
+        if (apis.IS_DENO_WEB_RUNTIME) {
+            throw new Error(
+                "env.useWasmCache=false is not supported in Deno's web runtime. Remove the useWasmCache override.",
+            );
+        }
         wasmLoadPromise = Promise.resolve();
         return wasmLoadPromise;
     }
@@ -220,7 +230,10 @@ async function ensureWasmLoaded() {
         // shouldUseWasmCache checks for wasmPaths.wasm and wasmPaths.mjs
         const urls = /** @type {{ wasm: string, mjs: string }} */ (ONNX_ENV.wasm.wasmPaths);
 
-        // Load and cache both the WASM binary and factory
+        // Load both in parallel; the .mjs blob URL is only kept if wasmBinary succeeded.
+        // ORT only sets locateFile when wasmBinary is provided (onnxruntime PR https://github.com/microsoft/onnxruntime/pull/27411), which
+        // prevents new URL(fileName, import.meta.url) from failing inside a blob URL factory.
+        let wasmBinaryLoaded = false;
         await Promise.all([
             // Load and cache the WASM binary
             urls.wasm && !isBlobURL(urls.wasm)
@@ -229,6 +242,7 @@ async function ensureWasmLoaded() {
                           const wasmBinary = await loadWasmBinary(toAbsoluteURL(urls.wasm));
                           if (wasmBinary) {
                               ONNX_ENV.wasm.wasmBinary = wasmBinary;
+                              wasmBinaryLoaded = true;
                           }
                       } catch (err) {
                           logger.warn('Failed to pre-load WASM binary:', err);
@@ -236,7 +250,7 @@ async function ensureWasmLoaded() {
                   })()
                 : Promise.resolve(),
 
-            // Load and cache the WASM factory
+            // Load and cache the WASM factory as a blob URL
             urls.mjs && !isBlobURL(urls.mjs)
                 ? (async () => {
                       try {
@@ -251,6 +265,12 @@ async function ensureWasmLoaded() {
                   })()
                 : Promise.resolve(),
         ]);
+
+        // If wasmBinary failed to load, revert wasmPaths.mjs to the original URL (factory can only be loaded from blob if ONNX_ENV.wasm.wasmBinary is set. @see ORT PR #27411)
+        if (!wasmBinaryLoaded) {
+            // @ts-ignore
+            ONNX_ENV.wasm.wasmPaths.mjs = urls.mjs;
+        }
     })();
 
     return wasmLoadPromise;
@@ -292,8 +312,7 @@ let webInferenceChain = Promise.resolve();
  */
 export async function runInferenceSession(session, ortFeed) {
     const run = () => session.run(ortFeed);
-    const output = await (apis.IS_WEB_ENV ? (webInferenceChain = webInferenceChain.then(run)) : run());
-    return output;
+    return apis.IS_WEB_ENV ? (webInferenceChain = webInferenceChain.then(run)) : run();
 }
 
 /**
