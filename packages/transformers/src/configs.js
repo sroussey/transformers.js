@@ -68,10 +68,13 @@ function getNormalizedConfig(config) {
         case 'florence2':
         case 'llava_onevision':
         case 'idefics3':
+        case 'granite_speech':
         case 'ultravox':
         case 'voxtral':
+        case 'voxtral_realtime':
         case 'smolvlm':
         case 'gemma3n':
+        case 'lfm2_vl':
         case 'chatterbox':
         case 'mistral3':
         case 'qwen2_5_vl':
@@ -131,10 +134,13 @@ function getNormalizedConfig(config) {
         case 'cohere':
         case 'cohere2':
         case 'mistral':
+        case 'voxtral_realtime_text':
+        case 'voxtral_realtime_encoder':
         case 'starcoder2':
         case 'qwen2':
         case 'qwen2_moe':
         case 'qwen2_vl':
+        case 'qwen2_vl_text':
         case 'qwen2_5_vl_text':
         case 'qwen3_moe':
         case 'qwen3_vl_text':
@@ -293,6 +299,9 @@ function getNormalizedConfig(config) {
  * @returns {Record<string, number[]>}
  */
 export function getCacheShapes(config, options) {
+    if (!(config instanceof PretrainedConfig)) {
+        config = new PretrainedConfig(config);
+    }
     if (['lfm2', 'lfm2_moe'].includes(config.model_type)) {
         const pkv_prefix = options?.prefix ?? 'past_key_values';
         const conv_prefix = pkv_prefix === 'present' ? 'present' : 'past';
@@ -401,8 +410,14 @@ export function getCacheShapes(config, options) {
             }
         }
         return cache_values;
-    } else if (['qwen3_5', 'qwen3_5_moe'].includes(config.model_type)) {
-        return getCacheShapes(/**@type {any} */ (config).text_config, options);
+    } else if (['lfm2_vl', 'qwen3_5', 'qwen3_5_moe', 'voxtral_realtime'].includes(config.model_type)) {
+        let subConfig;
+        if (config.model_type === 'voxtral_realtime' && options?.session_name === 'audio_encoder') {
+            subConfig = /** @type {any} */ (config).audio_config;
+        } else {
+            subConfig = /** @type {any} */ (config).text_config;
+        }
+        return getCacheShapes(subConfig, options);
     }
 
     return getKeyValueShapes(config, options);

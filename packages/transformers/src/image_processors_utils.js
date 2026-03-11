@@ -14,7 +14,7 @@ import { logger } from './utils/logger.js';
  */
 
 /**
- * @typedef {object} ImageProcessorResult
+ * @typedef {Object} ImageProcessorResult
  * @property {Tensor} pixel_values The pixel values of the batched preprocessed images.
  * @property {HeightWidth[]} original_sizes Array of two-dimensional tuples like [[480, 640]].
  * @property {HeightWidth[]} reshaped_input_sizes Array of two-dimensional tuples like [[1000, 1330]].
@@ -407,7 +407,7 @@ function compute_segments(
  * @returns {[number, number]} The new height and width of the image.
  * @throws {Error} If the height or width is smaller than the factor.
  */
-function smart_resize(height, width, factor = 28, min_pixels = 56 * 56, max_pixels = 14 * 14 * 4 * 1280) {
+export function smart_resize(height, width, factor = 28, min_pixels = 56 * 56, max_pixels = 14 * 14 * 4 * 1280) {
     if (height < factor || width < factor) {
         throw new Error(`height:${height} or width:${width} must be larger than factor:${factor}`);
     } else if (Math.max(height, width) / Math.min(height, width) > 200) {
@@ -886,7 +886,7 @@ export class ImageProcessor extends Callable {
     }
 
     /**
-     * @typedef {object} PreprocessedImage
+     * @typedef {Object} PreprocessedImage
      * @property {HeightWidth} original_size The original size of the image.
      * @property {HeightWidth} reshaped_input_size The reshaped input size of the image.
      * @property {Tensor} pixel_values The pixel values of the preprocessed image.

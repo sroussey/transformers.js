@@ -1,9 +1,4 @@
-import {
-    PreTrainedModel,
-    cumsum_masked_fill,
-    default_merge_input_ids_with_image_features,
-    getPastLength,
-} from '../modeling_utils.js';
+import { PreTrainedModel, cumsum_masked_fill, default_merge_input_ids_with_image_features } from '../modeling_utils.js';
 import { sessionRun } from '../session.js';
 import { stack, Tensor, ones_like, zeros } from '../../utils/tensor.js';
 import { max } from '../../utils/maths.js';
@@ -22,6 +17,9 @@ export class Qwen2VLPreTrainedModel extends PreTrainedModel {
     ];
 }
 export class Qwen2VLForConditionalGeneration extends Qwen2VLPreTrainedModel {
+    // NOTE: This is used as the base class for all Qwen VL models and their CausalLM variants.
+    // CausalLM variants (e.g., Qwen2VLForCausalLM) extend this class but load only
+    // embed_tokens + decoder_model_merged (no vision_encoder) via MultimodalLanguageModelOnly type.
     image_grid_thw_name = 'grid_thw';
 
     /**
@@ -250,7 +248,7 @@ export class Qwen2VLForConditionalGeneration extends Qwen2VLPreTrainedModel {
                 model_inputs.pixel_values = null;
                 // model_inputs.pixel_values_videos = null;
 
-                const past_length = getPastLength(model_inputs.past_key_values);
+                const past_length = model_inputs.past_key_values.get_seq_length();
 
                 if (past_length < model_inputs.input_ids.dims[1]) {
                     // Externally provided `past_key_values` with full input_ids:
@@ -287,3 +285,5 @@ export class Qwen2VLForConditionalGeneration extends Qwen2VLPreTrainedModel {
         return model_inputs;
     }
 }
+
+export class Qwen2VLForCausalLM extends Qwen2VLForConditionalGeneration {}

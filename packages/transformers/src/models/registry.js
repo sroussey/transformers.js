@@ -275,6 +275,7 @@ export const MODEL_FOR_CAUSAL_LM_MAPPING_NAMES = new Map([
     ['gemma2', 'Gemma2ForCausalLM'],
     ['vaultgemma', 'VaultGemmaForCausalLM'],
     ['gemma3_text', 'Gemma3ForCausalLM'],
+    ['gemma3', 'Gemma3ForCausalLM'],
     ['helium', 'HeliumForCausalLM'],
     ['glm', 'GlmForCausalLM'],
     ['openelm', 'OpenELMForCausalLM'],
@@ -283,6 +284,13 @@ export const MODEL_FOR_CAUSAL_LM_MAPPING_NAMES = new Map([
     ['qwen3', 'Qwen3ForCausalLM'],
     ['qwen3_moe', 'Qwen3MoeForCausalLM'],
     ['qwen3_next', 'Qwen3NextForCausalLM'],
+    ['qwen2_vl', 'Qwen2VLForCausalLM'],
+    ['qwen2_5_vl', 'Qwen2_5_VLForCausalLM'],
+    ['qwen3_vl', 'Qwen3VLForCausalLM'],
+    ['qwen3_vl_moe', 'Qwen3VLMoeForCausalLM'],
+    ['qwen3_5', 'Qwen3_5ForCausalLM'],
+    ['qwen3_5_moe', 'Qwen3_5MoeForCausalLM'],
+    ['gemma3n', 'Gemma3nForCausalLM'],
     ['phi', 'PhiForCausalLM'],
     ['phi3', 'Phi3ForCausalLM'],
     ['mpt', 'MptForCausalLM'],
@@ -364,6 +372,7 @@ const MODEL_FOR_IMAGE_TEXT_TO_TEXT_MAPPING_NAMES = new Map([
     ['qwen3_vl_moe', 'Qwen3VLMoeForConditionalGeneration'],
     ['qwen3_5', 'Qwen3_5ForConditionalGeneration'],
     ['qwen3_5_moe', 'Qwen3_5MoeForConditionalGeneration'],
+    ['lfm2_vl', 'Lfm2VlForConditionalGeneration'],
     ['idefics3', 'Idefics3ForConditionalGeneration'],
     ['smolvlm', 'SmolVLMForConditionalGeneration'],
     ['paligemma', 'PaliGemmaForConditionalGeneration'],
@@ -373,8 +382,10 @@ const MODEL_FOR_IMAGE_TEXT_TO_TEXT_MAPPING_NAMES = new Map([
 ]);
 
 const MODEL_FOR_AUDIO_TEXT_TO_TEXT_MAPPING_NAMES = new Map([
+    ['granite_speech', 'GraniteSpeechForConditionalGeneration'],
     ['ultravox', 'UltravoxModel'],
     ['voxtral', 'VoxtralForConditionalGeneration'],
+    ['voxtral_realtime', 'VoxtralRealtimeForConditionalGeneration'],
 ]);
 
 const MODEL_FOR_DOCUMENT_QUESTION_ANSWERING_MAPPING_NAMES = new Map([
@@ -589,6 +600,20 @@ const CUSTOM_MAPPING = [
     ],
     ['SupertonicForConditionalGeneration', ALL_MODEL_FILES.SupertonicForConditionalGeneration, MODEL_TYPES.Supertonic],
     ['ChatterboxModel', ALL_MODEL_FILES.ChatterboxModel, MODEL_TYPES.Chatterbox],
+
+    ['Qwen2VLForCausalLM', ALL_MODEL_FILES.Qwen2VLForCausalLM, MODEL_TYPES.MultimodalLanguageModelOnly],
+    ['Qwen2_5_VLForCausalLM', ALL_MODEL_FILES.Qwen2_5_VLForCausalLM, MODEL_TYPES.MultimodalLanguageModelOnly],
+    ['Qwen3VLForCausalLM', ALL_MODEL_FILES.Qwen3VLForCausalLM, MODEL_TYPES.MultimodalLanguageModelOnly],
+    ['Qwen3VLMoeForCausalLM', ALL_MODEL_FILES.Qwen3VLMoeForCausalLM, MODEL_TYPES.MultimodalLanguageModelOnly],
+    ['Qwen3_5ForCausalLM', ALL_MODEL_FILES.Qwen3_5ForCausalLM, MODEL_TYPES.MultimodalLanguageModelOnly],
+    ['Qwen3_5MoeForCausalLM', ALL_MODEL_FILES.Qwen3_5MoeForCausalLM, MODEL_TYPES.MultimodalLanguageModelOnly],
+    ['Gemma3nForCausalLM', ALL_MODEL_FILES.Gemma3nForCausalLM, MODEL_TYPES.MultimodalLanguageModelOnly],
+
+    [
+        'VoxtralRealtimeForConditionalGeneration',
+        ALL_MODEL_FILES.VoxtralRealtimeForConditionalGeneration,
+        MODEL_TYPES.VoxtralRealtime,
+    ],
 ];
 for (const [name, model, type] of CUSTOM_MAPPING) {
     MODEL_TYPE_MAPPING.set(name, type);
