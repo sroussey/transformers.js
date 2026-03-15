@@ -87,7 +87,7 @@ export async function get_available_dtypes(
             foundInMapping = true;
         }
 
-        if (!foundInMapping) {
+        if (!foundInMapping && MODEL_MAPPING_NAMES) {
             for (const mapping of Object.values(MODEL_MAPPING_NAMES)) {
                 if (mapping.has(config.model_type)) {
                     modelType = MODEL_TYPE_MAPPING.get(mapping.get(config.model_type));
