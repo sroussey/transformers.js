@@ -3,6 +3,7 @@
  *
  * Provides static methods for:
  * - Discovering which files a model needs
+ * - Detecting available quantization levels (dtypes)
  * - Getting file metadata
  * - Checking cache status
  *
@@ -33,6 +34,16 @@
  * console.log(modelFiles); // [ 'config.json', 'onnx/model_q4.onnx', 'onnx/model_q4.onnx_data' ]
  * console.log(tokenizerFiles); // [ 'tokenizer.json', 'tokenizer_config.json' ]
  * console.log(processorFiles); // [ ]
+ * ```
+ *
+ * **Example:** Detect available quantization levels for a model
+ * ```javascript
+ * const dtypes = await ModelRegistry.get_available_dtypes("onnx-community/all-MiniLM-L6-v2-ONNX");
+ * console.log(dtypes); // [ 'fp32', 'fp16', 'int8', 'uint8', 'q8', 'q4' ]
+ *
+ * // Use the result to pick the best available dtype
+ * const preferredDtype = dtypes.includes("q4") ? "q4" : "fp32";
+ * const files = await ModelRegistry.get_files("onnx-community/all-MiniLM-L6-v2-ONNX", { dtype: preferredDtype });
  * ```
  *
  * **Example:** Check file metadata without downloading
