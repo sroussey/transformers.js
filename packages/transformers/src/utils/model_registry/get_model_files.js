@@ -32,7 +32,10 @@ import { memoizePromise } from '../memoize_promise.js';
  * @param {string} [options.revision='main'] Git branch, tag, or commit SHA.
  * @returns {Promise<PretrainedConfig>}
  */
-function get_config(modelId, { config = null, cache_dir = null, local_files_only = false, revision = 'main' } = {}) {
+export function get_config(
+    modelId,
+    { config = null, cache_dir = null, local_files_only = false, revision = 'main' } = {},
+) {
     // When a pre-loaded config is provided, skip memoization — no fetch occurs
     // and there is no meaningful key to deduplicate on.
     if (config !== null) {
