@@ -265,6 +265,31 @@ export const SUPPORTED_TASKS = Object.freeze({
     },
 });
 
+/**
+ * A curated list of the most commonly used task types, ordered by popularity.
+ * Useful for UI dialogs (e.g., adding Hugging Face models) where showing
+ * all supported tasks would be overwhelming.
+ * @type {readonly TaskType[]}
+ */
+export const PRIORITY_TASK_TYPES = Object.freeze(/** @type {const} */ ([
+    'text-generation',
+    'text-classification',
+    'feature-extraction',
+    'automatic-speech-recognition',
+    'translation',
+    'summarization',
+    'image-classification',
+    'object-detection',
+    'fill-mask',
+    'question-answering',
+    'zero-shot-classification',
+    'image-to-text',
+    'depth-estimation',
+    'token-classification',
+    'text-to-audio',
+    'image-segmentation',
+]));
+
 // TODO: Add types for TASK_ALIASES
 
 export const TASK_ALIASES = Object.freeze({

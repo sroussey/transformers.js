@@ -23,6 +23,7 @@ import { AutoConfig } from './configs.js';
 import {
     SUPPORTED_TASKS,
     TASK_ALIASES,
+    PRIORITY_TASK_TYPES,
     TextClassificationPipeline,
     TokenClassificationPipeline,
     QuestionAnsweringPipeline,
@@ -232,6 +233,7 @@ export async function pipeline(
 }
 
 export {
+    PRIORITY_TASK_TYPES,
     TextClassificationPipeline,
     TokenClassificationPipeline,
     QuestionAnsweringPipeline,
