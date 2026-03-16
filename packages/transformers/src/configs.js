@@ -169,6 +169,7 @@ function getNormalizedConfig(config) {
         case 'ernie4_5':
         case 'hunyuan_v1_dense':
         case 'falcon_h1':
+        case 'nemotron_h':
         case 'ministral':
         case 'ministral3':
             mapping['num_heads'] = 'num_key_value_heads';
@@ -305,6 +306,8 @@ export function getCacheShapes(config, options) {
     if (!(config instanceof PretrainedConfig)) {
         config = new PretrainedConfig(config);
     }
+
+    const batch_size = options?.batch_size ?? 1;
     if (['lfm2', 'lfm2_moe'].includes(config.model_type)) {
         const pkv_prefix = options?.prefix ?? 'past_key_values';
         const conv_prefix = pkv_prefix === 'present' ? 'present' : 'past';
@@ -314,7 +317,6 @@ export function getCacheShapes(config, options) {
         const { layer_types, num_attention_heads, num_key_value_heads, hidden_size, conv_L_cache } =
             /** @type {any} */ (config);
         const head_dim = hidden_size / num_attention_heads;
-        const batch_size = options?.batch_size ?? 1;
         for (let i = 0; i < layer_types.length; ++i) {
             if (layer_types[i] === 'full_attention') {
                 for (const kv of ['key', 'value']) {
@@ -327,32 +329,30 @@ export function getCacheShapes(config, options) {
             }
         }
         return cache_values;
-    } else if (['granitemoehybrid', 'falcon_h1'].includes(config.model_type)) {
+    } else if (['granitemoehybrid', 'falcon_h1', 'nemotron_h'].includes(config.model_type)) {
         const pkv_prefix = options?.prefix ?? 'past_key_values';
         const conv_prefix = pkv_prefix === 'present' ? 'present' : 'past';
+
+        const c = /** @type {any} */ (config);
+
+        // Normalize config field names across model types
+        const layer_types = c.layer_types ?? c.layers_block_type;
+        const num_layers = c.num_hidden_layers ?? layer_types?.length;
+        const num_key_value_heads = c.num_key_value_heads;
+        const head_dim = c.head_dim ?? c.hidden_size / c.num_attention_heads;
+        const mamba_n_heads = c.mamba_n_heads ?? c.mamba_num_heads;
+        const mamba_d_head = c.mamba_d_head ?? c.mamba_head_dim;
+        const mamba_d_state = c.mamba_d_state ?? c.ssm_state_size;
+        const mamba_n_groups = c.mamba_n_groups ?? c.n_groups;
+        const mamba_d_conv = c.mamba_d_conv ?? c.conv_kernel;
+        const mamba_d_ssm =
+            c.mamba_d_ssm ?? (c.mamba_expand ? c.mamba_expand * c.hidden_size : mamba_n_heads * mamba_d_head);
+        const conv_d_inner = mamba_d_ssm + 2 * mamba_n_groups * mamba_d_state;
 
         /** @type {Record<string, number[]>} */
         const cache_values = {};
 
-        const {
-            layer_types,
-            num_hidden_layers,
-            num_attention_heads,
-            num_key_value_heads,
-            hidden_size,
-            mamba_d_conv,
-            mamba_n_heads,
-            mamba_d_head,
-            mamba_d_state,
-            mamba_n_groups,
-            mamba_expand,
-            mamba_d_ssm,
-        } = /** @type {any} */ (config);
-        const head_dim = hidden_size / num_attention_heads;
-        const batch_size = options?.batch_size ?? 1;
-
-        const conv_d_inner = (mamba_d_ssm ?? mamba_expand * hidden_size) + 2 * mamba_n_groups * mamba_d_state;
-        for (let i = 0; i < num_hidden_layers; ++i) {
+        for (let i = 0; i < num_layers; ++i) {
             if (!layer_types || layer_types[i] === 'mamba') {
                 cache_values[`${conv_prefix}_conv.${i}`] = [batch_size, conv_d_inner, mamba_d_conv];
                 cache_values[`${conv_prefix}_ssm.${i}`] = [batch_size, mamba_n_heads, mamba_d_head, mamba_d_state];
@@ -387,7 +387,6 @@ export function getCacheShapes(config, options) {
         const value_dim = linear_value_head_dim * linear_num_value_heads;
 
         const final_head_dim = head_dim ?? hidden_size / num_attention_heads;
-        const batch_size = options?.batch_size ?? 1;
         for (let i = 0; i < layer_types.length; ++i) {
             if (layer_types[i] === 'full_attention') {
                 for (const kv of ['key', 'value']) {
