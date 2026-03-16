@@ -1,11 +1,11 @@
-import { DATA_TYPES, DEFAULT_DTYPE_SUFFIX_MAPPING } from '../dtypes.js';
-import { get_file_metadata } from './get_file_metadata.js';
 import {
+    MODEL_MAPPING_NAMES,
     MODEL_TYPES,
     MODEL_TYPE_MAPPING,
-    MODEL_MAPPING_NAMES,
     getSessionsConfig,
 } from '../../models/modeling_utils.js';
+import { DEFAULT_DTYPE_SUFFIX_MAPPING } from '../dtypes.js';
+import { get_file_metadata } from './get_file_metadata.js';
 import { get_config } from './get_model_files.js';
 
 /**
@@ -45,6 +45,7 @@ export async function get_available_dtypes(
 
     // Determine model type (same logic as get_model_files)
     let modelType;
+    // @ts-ignore - architectures is set via Object.assign in PretrainedConfig constructor
     const architectures = /** @type {string[]} */ (config.architectures || []);
 
     let foundInMapping = false;
