@@ -1,12 +1,10 @@
 import {
-    MODEL_MAPPING_NAMES,
-    MODEL_TYPES,
-    MODEL_TYPE_MAPPING,
     getSessionsConfig,
 } from '../../models/modeling_utils.js';
 import { DEFAULT_DTYPE_SUFFIX_MAPPING } from '../dtypes.js';
 import { get_file_metadata } from './get_file_metadata.js';
 import { get_config } from './get_model_files.js';
+import { resolve_model_type } from './resolve_model_type.js';
 
 /**
  * @typedef {import('../../configs.js').PretrainedConfig} PretrainedConfig
@@ -43,42 +41,7 @@ export async function get_available_dtypes(
 
     const subfolder = 'onnx';
 
-    // Determine model type (same logic as get_model_files)
-    let modelType;
-    // @ts-ignore - architectures is set via Object.assign in PretrainedConfig constructor
-    const architectures = /** @type {string[]} */ (config.architectures || []);
-
-    let foundInMapping = false;
-    for (const arch of architectures) {
-        const mappedType = MODEL_TYPE_MAPPING.get(arch);
-        if (mappedType !== undefined) {
-            modelType = mappedType;
-            foundInMapping = true;
-            break;
-        }
-    }
-
-    if (!foundInMapping && config.model_type) {
-        const mappedType = MODEL_TYPE_MAPPING.get(config.model_type);
-        if (mappedType !== undefined) {
-            modelType = mappedType;
-            foundInMapping = true;
-        }
-
-        if (!foundInMapping && MODEL_MAPPING_NAMES) {
-            for (const mapping of Object.values(MODEL_MAPPING_NAMES)) {
-                if (mapping.has(config.model_type)) {
-                    modelType = MODEL_TYPE_MAPPING.get(mapping.get(config.model_type));
-                    foundInMapping = true;
-                    break;
-                }
-            }
-        }
-    }
-
-    if (!foundInMapping) {
-        modelType = MODEL_TYPES.EncoderOnly;
-    }
+    const modelType = resolve_model_type(config);
 
     const { sessions } = getSessionsConfig(modelType, config, { model_file_name });
 
