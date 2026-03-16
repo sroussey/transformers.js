@@ -1,8 +1,4 @@
-import {
-    MODEL_MAPPING_NAMES,
-    MODEL_TYPES,
-    MODEL_TYPE_MAPPING,
-} from '../../models/modeling_utils.js';
+import { MODEL_MAPPING_NAMES, MODEL_TYPES, MODEL_TYPE_MAPPING } from '../../models/modeling_utils.js';
 import { GITHUB_ISSUE_URL } from '../constants.js';
 import { logger } from '../logger.js';
 
