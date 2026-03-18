@@ -173,6 +173,7 @@ const MODEL_MAPPING_NAMES_DECODER_ONLY = new Map([
     ['falcon', 'FalconModel'],
     ['falcon_h1', 'FalconH1Model'],
     ['nemotron_h', 'NemotronHModel'],
+    ['solar_open', 'SolarOpenModel'],
     ['stablelm', 'StableLmModel'],
     ['modernbert-decoder', 'ModernBertDecoderModel'],
     ['hunyuan_v1_dense', 'HunYuanDenseV1Model'],
@@ -315,6 +316,7 @@ export const MODEL_FOR_CAUSAL_LM_MAPPING_NAMES = new Map([
     ['falcon_h1', 'FalconH1ForCausalLM'],
     ['nemotron_h', 'NemotronHForCausalLM'],
     ['trocr', 'TrOCRForCausalLM'],
+    ['solar_open', 'SolarOpenForCausalLM'],
     ['stablelm', 'StableLmForCausalLM'],
     ['modernbert-decoder', 'ModernBertDecoderForCausalLM'],
     ['hunyuan_v1_dense', 'HunYuanDenseV1ForCausalLM'],
@@ -515,6 +517,7 @@ const MODEL_FOR_TIME_SERIES_PREDICTION_MAPPING_NAMES = new Map([
 const MODEL_FOR_IMAGE_TO_IMAGE_MAPPING_NAMES = new Map([['swin2sr', 'Swin2SRForImageSuperResolution']]);
 
 const MODEL_FOR_DEPTH_ESTIMATION_MAPPING_NAMES = new Map([
+    ['chmv2', 'CHMv2ForDepthEstimation'],
     ['dpt', 'DPTForDepthEstimation'],
     ['depth_anything', 'DepthAnythingForDepthEstimation'],
     ['glpn', 'GLPNForDepthEstimation'],
