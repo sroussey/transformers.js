@@ -391,6 +391,7 @@ const MODEL_FOR_IMAGE_TEXT_TO_TEXT_MAPPING_NAMES = new Map([
     ['smolvlm', 'SmolVLMForConditionalGeneration'],
     ['paligemma', 'PaliGemmaForConditionalGeneration'],
     ['llava_qwen2', 'LlavaQwen2ForCausalLM'],
+    ['gemma3', 'Gemma3ForConditionalGeneration'],
     ['gemma3n', 'Gemma3nForConditionalGeneration'],
     ['mistral3', 'Mistral3ForConditionalGeneration'],
     ['lighton_ocr', 'LightOnOcrForConditionalGeneration'],
@@ -618,13 +619,6 @@ const CUSTOM_MAPPING = [
     ['SupertonicForConditionalGeneration', ALL_MODEL_FILES.SupertonicForConditionalGeneration, MODEL_TYPES.Supertonic],
     ['ChatterboxModel', ALL_MODEL_FILES.ChatterboxModel, MODEL_TYPES.Chatterbox],
 
-    ['Qwen2VLForCausalLM', ALL_MODEL_FILES.Qwen2VLForCausalLM, MODEL_TYPES.MultimodalLanguageModelOnly],
-    ['Qwen2_5_VLForCausalLM', ALL_MODEL_FILES.Qwen2_5_VLForCausalLM, MODEL_TYPES.MultimodalLanguageModelOnly],
-    ['Qwen3VLForCausalLM', ALL_MODEL_FILES.Qwen3VLForCausalLM, MODEL_TYPES.MultimodalLanguageModelOnly],
-    ['Qwen3VLMoeForCausalLM', ALL_MODEL_FILES.Qwen3VLMoeForCausalLM, MODEL_TYPES.MultimodalLanguageModelOnly],
-    ['Qwen3_5ForCausalLM', ALL_MODEL_FILES.Qwen3_5ForCausalLM, MODEL_TYPES.MultimodalLanguageModelOnly],
-    ['Qwen3_5MoeForCausalLM', ALL_MODEL_FILES.Qwen3_5MoeForCausalLM, MODEL_TYPES.MultimodalLanguageModelOnly],
-    ['Gemma3nForCausalLM', ALL_MODEL_FILES.Gemma3nForCausalLM, MODEL_TYPES.MultimodalLanguageModelOnly],
 
     [
         'VoxtralRealtimeForConditionalGeneration',

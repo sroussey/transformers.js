@@ -120,11 +120,68 @@ export default () => {
       expect(pipe).toBeInstanceOf(TextGenerationPipeline);
     });
 
+    it("should load only embed_tokens and decoder_model_merged when the model is a image-text-to-text model", async () => {
+      const sessions = pipe.model.sessions;
+      expect(sessions).toHaveProperty("embed_tokens");
+      expect(sessions).toHaveProperty("decoder_model_merged");
+      expect(sessions).not.toHaveProperty("vision_encoder");
+    });
+
     it(
       "text input (single)",
       async () => {
         const output = await pipe("hello", { max_new_tokens: 3, return_full_text: false, do_sample: false });
         expect(output).toEqual([{ generated_text: "\u0e1e\u0e22\u0e32\u0e1a\u0e32\u0e25Composition directives" }]);
+      },
+      MAX_TEST_EXECUTION_TIME,
+    );
+
+    afterAll(async () => {
+      await pipe?.dispose();
+    }, MAX_MODEL_DISPOSE_TIME);
+  });
+
+  describe("Text Generation (Gemma3 model, text-only)", () => {
+    const model_id = "onnx-internal-testing/tiny-random-Gemma3ForConditionalGeneration";
+
+    /** @type {TextGenerationPipeline} */
+    let pipe;
+    beforeAll(async () => {
+      pipe = await pipeline(PIPELINE_ID, model_id, DEFAULT_MODEL_OPTIONS);
+    }, MAX_MODEL_LOAD_TIME);
+
+    it("should be an instance of TextGenerationPipeline", () => {
+      expect(pipe).toBeInstanceOf(TextGenerationPipeline);
+    });
+
+    it("should load only embed_tokens and decoder_model_merged when the model is a image-text-to-text model", async () => {
+      const sessions = pipe.model.sessions;
+      expect(sessions).toHaveProperty("embed_tokens");
+      expect(sessions).toHaveProperty("decoder_model_merged");
+      expect(sessions).not.toHaveProperty("vision_encoder");
+    });
+
+    it(
+      "text input (single)",
+      async () => {
+        const output = await pipe("hello", { max_new_tokens: 3, return_full_text: false, do_sample: false });
+        expect(output).toEqual([{ generated_text: "hellohellohello" }]);
+      },
+      MAX_TEST_EXECUTION_TIME,
+    );
+
+    it(
+      "chat input (single)",
+      async () => {
+        const output = await pipe([{ role: "user", content: "hello" }], { max_new_tokens: 3, do_sample: false });
+        expect(output).toEqual([
+          {
+            generated_text: [
+              { role: "user", content: "hello" },
+              { role: "assistant", content: "\n\n\n" },
+            ],
+          },
+        ]);
       },
       MAX_TEST_EXECUTION_TIME,
     );
@@ -145,6 +202,13 @@ export default () => {
 
     it("should be an instance of TextGenerationPipeline", () => {
       expect(pipe).toBeInstanceOf(TextGenerationPipeline);
+    });
+
+    it("should load only embed_tokens and decoder_model_merged when the model is a image-text-to-text model", async () => {
+      const sessions = pipe.model.sessions;
+      expect(sessions).toHaveProperty("embed_tokens");
+      expect(sessions).toHaveProperty("decoder_model_merged");
+      expect(sessions).not.toHaveProperty("vision_encoder");
     });
 
     it(
