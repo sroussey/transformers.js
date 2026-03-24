@@ -39,11 +39,12 @@ const UNKNOWN_ARCH_CONFIG = {
 /**
  * Helper: given a set of files that "exist", returns a mock implementation
  * for get_file_metadata that resolves { exists: true } for those files.
+ * @param {string[]} existingFiles
  */
-function setupExistingFiles(existingFiles) {
+function setupExistingFiles(...existingFiles) {
   mockGetFileMetadata.mockImplementation((_modelId, filename, _options) => {
     return Promise.resolve({
-      exists: existingFiles.has(filename),
+      exists: existingFiles.includes(filename),
       fromCache: false,
     });
   });
@@ -56,10 +57,8 @@ describe("get_available_dtypes", () => {
 
   it("should detect fp32 and q4 for an encoder-only model", async () => {
     setupExistingFiles(
-      new Set([
-        "onnx/model.onnx", // fp32
-        "onnx/model_q4.onnx", // q4
-      ]),
+      "onnx/model.onnx", // fp32
+      "onnx/model_q4.onnx", // q4
     );
 
     const dtypes = await get_available_dtypes("test/model", { config: ENCODER_ONLY_CONFIG });
@@ -73,16 +72,14 @@ describe("get_available_dtypes", () => {
 
   it("should detect all dtypes when all files exist", async () => {
     setupExistingFiles(
-      new Set([
-        "onnx/model.onnx", // fp32
-        "onnx/model_fp16.onnx", // fp16
-        "onnx/model_int8.onnx", // int8
-        "onnx/model_uint8.onnx", // uint8
-        "onnx/model_quantized.onnx", // q8
-        "onnx/model_q4.onnx", // q4
-        "onnx/model_q4f16.onnx", // q4f16
-        "onnx/model_bnb4.onnx", // bnb4
-      ]),
+      "onnx/model.onnx", // fp32
+      "onnx/model_fp16.onnx", // fp16
+      "onnx/model_int8.onnx", // int8
+      "onnx/model_uint8.onnx", // uint8
+      "onnx/model_quantized.onnx", // q8
+      "onnx/model_q4.onnx", // q4
+      "onnx/model_q4f16.onnx", // q4f16
+      "onnx/model_bnb4.onnx", // bnb4
     );
 
     const dtypes = await get_available_dtypes("test/model", { config: ENCODER_ONLY_CONFIG });
@@ -91,8 +88,7 @@ describe("get_available_dtypes", () => {
   });
 
   it("should return empty array when no ONNX files exist", async () => {
-    setupExistingFiles(new Set());
-
+    setupExistingFiles();
     const dtypes = await get_available_dtypes("test/model", { config: ENCODER_ONLY_CONFIG });
 
     expect(dtypes).toEqual([]);
@@ -101,11 +97,9 @@ describe("get_available_dtypes", () => {
   it("should require all session files for seq2seq models", async () => {
     // Only encoder has q4, decoder does not — q4 should NOT be available
     setupExistingFiles(
-      new Set([
-        "onnx/encoder_model.onnx", // fp32 encoder
-        "onnx/decoder_model_merged.onnx", // fp32 decoder
-        "onnx/encoder_model_q4.onnx", // q4 encoder (but no q4 decoder)
-      ]),
+      "onnx/encoder_model.onnx", // fp32 encoder
+      "onnx/decoder_model_merged.onnx", // fp32 decoder
+      "onnx/encoder_model_q4.onnx", // q4 encoder (but no q4 decoder)
     );
 
     const dtypes = await get_available_dtypes("test/model", { config: SEQ2SEQ_CONFIG });
@@ -116,7 +110,7 @@ describe("get_available_dtypes", () => {
 
   it("should list dtype only when all session files exist for seq2seq", async () => {
     // Both encoder and decoder have fp32 and q8
-    setupExistingFiles(new Set(["onnx/encoder_model.onnx", "onnx/decoder_model_merged.onnx", "onnx/encoder_model_quantized.onnx", "onnx/decoder_model_merged_quantized.onnx"]));
+    setupExistingFiles("onnx/encoder_model.onnx", "onnx/decoder_model_merged.onnx", "onnx/encoder_model_quantized.onnx", "onnx/decoder_model_merged_quantized.onnx");
 
     const dtypes = await get_available_dtypes("test/model", { config: SEQ2SEQ_CONFIG });
 
@@ -127,7 +121,7 @@ describe("get_available_dtypes", () => {
   });
 
   it("should handle decoder-only models", async () => {
-    setupExistingFiles(new Set(["onnx/model.onnx", "onnx/model_q4.onnx", "onnx/model_q4f16.onnx"]));
+    setupExistingFiles("onnx/model.onnx", "onnx/model_q4.onnx", "onnx/model_q4f16.onnx");
 
     const dtypes = await get_available_dtypes("test/model", { config: DECODER_ONLY_CONFIG });
 
@@ -138,7 +132,7 @@ describe("get_available_dtypes", () => {
   });
 
   it("should fall back to EncoderOnly for unknown architectures", async () => {
-    setupExistingFiles(new Set(["onnx/model.onnx", "onnx/model_fp16.onnx"]));
+    setupExistingFiles("onnx/model.onnx", "onnx/model_fp16.onnx");
 
     const dtypes = await get_available_dtypes("test/model", { config: UNKNOWN_ARCH_CONFIG });
 
@@ -148,7 +142,7 @@ describe("get_available_dtypes", () => {
   });
 
   it("should support custom model_file_name", async () => {
-    setupExistingFiles(new Set(["onnx/custom_model.onnx", "onnx/custom_model_q4.onnx"]));
+    setupExistingFiles("onnx/custom_model.onnx", "onnx/custom_model_q4.onnx");
 
     const dtypes = await get_available_dtypes("test/model", {
       config: ENCODER_ONLY_CONFIG,
@@ -161,7 +155,7 @@ describe("get_available_dtypes", () => {
   });
 
   it("should pass revision and cache_dir to get_file_metadata", async () => {
-    setupExistingFiles(new Set(["onnx/model.onnx"]));
+    setupExistingFiles("onnx/model.onnx");
 
     await get_available_dtypes("test/model", {
       config: ENCODER_ONLY_CONFIG,
@@ -177,7 +171,7 @@ describe("get_available_dtypes", () => {
   });
 
   it("should only return valid dtype strings", async () => {
-    setupExistingFiles(new Set(["onnx/model.onnx", "onnx/model_fp16.onnx"]));
+    setupExistingFiles("onnx/model.onnx", "onnx/model_fp16.onnx");
 
     const dtypes = await get_available_dtypes("test/model", { config: ENCODER_ONLY_CONFIG });
 
