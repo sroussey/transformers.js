@@ -45,9 +45,7 @@ Not sure which quantizations a model offers? Use `ModelRegistry.get_available_dt
 ```js
 import { ModelRegistry } from "@huggingface/transformers";
 
-const dtypes = await ModelRegistry.get_available_dtypes(
-  "onnx-community/all-MiniLM-L6-v2-ONNX",
-);
+const dtypes = await ModelRegistry.get_available_dtypes("onnx-community/all-MiniLM-L6-v2-ONNX");
 console.log(dtypes); // e.g., [ 'fp32', 'fp16', 'int8', 'uint8', 'q8', 'q4' ]
 ```
 
