@@ -1,5 +1,5 @@
-import { IMAGE_PROCESSOR_NAME } from '../constants.js';
-import { get_file_metadata } from './get_file_metadata.js';
+import { IMAGE_PROCESSOR_NAME } from '../constants';
+import { get_file_metadata } from './get_file_metadata';
 
 /**
  * Returns the list of processor files that will be loaded for a model.

@@ -1,4 +1,4 @@
-import { apis } from '../env.js';
+import { apis } from '../env';
 
 /**
  * The list of devices supported by Transformers.js

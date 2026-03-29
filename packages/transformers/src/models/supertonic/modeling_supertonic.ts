@@ -1,6 +1,6 @@
-import { PreTrainedModel } from '../modeling_utils.js';
-import { Tensor, full, randn } from '../../utils/tensor.js';
-import { sessionRun } from '../session.js';
+import { Tensor, full, randn } from '../../utils/tensor';
+import { PreTrainedModel } from '../modeling_utils';
+import { sessionRun } from '../session';
 
 export class SupertonicPreTrainedModel extends PreTrainedModel {}
 export class SupertonicForConditionalGeneration extends SupertonicPreTrainedModel {

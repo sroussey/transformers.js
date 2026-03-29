@@ -2,10 +2,10 @@
  * @module generation/logits_process
  */
 
-import { Callable } from '../utils/generic.js';
-import { Tensor } from '../utils/tensor.js';
+import { Callable } from '../utils/generic';
+import { Tensor } from '../utils/tensor';
 
-import { max, log_softmax } from '../utils/maths.js';
+import { log_softmax, max } from '../utils/maths';
 
 /**
  * Abstract base class for all logit processors that can be applied during generation.

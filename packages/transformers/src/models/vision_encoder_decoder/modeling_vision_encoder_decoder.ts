@@ -1,4 +1,4 @@
-import { PreTrainedModel } from '../modeling_utils.js';
+import { PreTrainedModel } from '../modeling_utils';
 
 /**
  * Vision Encoder-Decoder model based on OpenAI's GPT architecture for image captioning and other vision tasks

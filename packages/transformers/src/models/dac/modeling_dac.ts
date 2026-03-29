@@ -1,7 +1,7 @@
-import { PreTrainedModel } from '../modeling_utils.js';
-import { sessionRun } from '../session.js';
-import { ModelOutput } from '../modeling_outputs.js';
-import { Tensor } from '../../utils/tensor.js';
+import { Tensor } from '../../utils/tensor';
+import { ModelOutput } from '../modeling_outputs';
+import { PreTrainedModel } from '../modeling_utils';
+import { sessionRun } from '../session';
 
 export class DacEncoderOutput extends ModelOutput {
     audio_codes;

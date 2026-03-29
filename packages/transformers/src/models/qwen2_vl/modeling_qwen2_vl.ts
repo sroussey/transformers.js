@@ -1,7 +1,7 @@
-import { PreTrainedModel, cumsum_masked_fill, default_merge_input_ids_with_image_features } from '../modeling_utils.js';
-import { sessionRun } from '../session.js';
-import { stack, Tensor, ones_like, zeros } from '../../utils/tensor.js';
-import { max } from '../../utils/maths.js';
+import { max } from '../../utils/maths';
+import { Tensor, ones_like, stack, zeros } from '../../utils/tensor';
+import { PreTrainedModel, cumsum_masked_fill, default_merge_input_ids_with_image_features } from '../modeling_utils';
+import { sessionRun } from '../session';
 
 export class Qwen2VLPreTrainedModel extends PreTrainedModel {
     forward_params = [

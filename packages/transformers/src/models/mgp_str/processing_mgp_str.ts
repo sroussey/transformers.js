@@ -1,7 +1,7 @@
-import { Processor } from '../../processing_utils.js';
-import { AutoImageProcessor } from '../auto/image_processing_auto.js';
-import { AutoTokenizer } from '../auto/tokenization_auto.js';
-import { max, softmax } from '../../utils/maths.js';
+import { Processor } from '../../processing_utils';
+import { max, softmax } from '../../utils/maths';
+import { AutoImageProcessor } from '../auto/image_processing_auto';
+import { AutoTokenizer } from '../auto/tokenization_auto';
 
 const DECODE_TYPE_MAPPING = {
     char: ['char_decode', 1],

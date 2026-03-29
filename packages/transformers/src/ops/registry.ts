@@ -1,5 +1,5 @@
-import { createInferenceSession, runInferenceSession, isONNXProxy } from '../backends/onnx.js';
-import { Tensor } from '../utils/tensor.js';
+import { createInferenceSession, isONNXProxy, runInferenceSession } from '../backends/onnx';
+import { Tensor } from '../utils/tensor';
 
 /**
  * Asynchronously creates a wrapper function for running an ONNX inference session.

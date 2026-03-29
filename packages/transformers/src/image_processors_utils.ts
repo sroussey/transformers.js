@@ -1,11 +1,11 @@
-import { Callable } from './utils/generic.js';
-import { Tensor, interpolate, stack } from './utils/tensor.js';
-import { bankers_round, max, min, softmax } from './utils/maths.js';
-import { RawImage } from './utils/image.js';
-import { calculateReflectOffset } from './utils/core.js';
-import { getModelJSON } from './utils/hub.js';
-import { IMAGE_PROCESSOR_NAME } from './utils/constants.js';
-import { logger } from './utils/logger.js';
+import { Callable } from './utils/generic';
+import { Tensor, interpolate, stack } from './utils/tensor';
+import { bankers_round, max, min, softmax } from './utils/maths';
+import { RawImage } from './utils/image';
+import { calculateReflectOffset } from './utils/core';
+import { getModelJSON } from './utils/hub';
+import { IMAGE_PROCESSOR_NAME } from './utils/constants';
+import { logger } from './utils/logger';
 
 /**
  * Named tuple to indicate the order we are using is (height x width),

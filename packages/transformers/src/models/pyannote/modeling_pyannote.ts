@@ -1,5 +1,5 @@
-import { PreTrainedModel } from '../modeling_utils.js';
-import { TokenClassifierOutput } from '../modeling_outputs.js';
+import { TokenClassifierOutput } from '../modeling_outputs';
+import { PreTrainedModel } from '../modeling_utils';
 
 export class PyAnnotePreTrainedModel extends PreTrainedModel {}
 

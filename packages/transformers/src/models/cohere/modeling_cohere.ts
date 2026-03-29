@@ -1,4 +1,4 @@
-import { PreTrainedModel } from '../modeling_utils.js';
+import { PreTrainedModel } from '../modeling_utils';
 
 /**
  * The bare Cohere Model outputting raw hidden-states without any specific head on top.

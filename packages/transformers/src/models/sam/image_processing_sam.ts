@@ -1,7 +1,7 @@
-import { ImageProcessor } from '../../image_processors_utils.js';
-import { calculateDimensions } from '../../utils/core.js';
+import { ImageProcessor } from '../../image_processors_utils';
+import { calculateDimensions } from '../../utils/core';
 
-import { interpolate_4d, Tensor } from '../../utils/tensor.js';
+import { interpolate_4d, Tensor } from '../../utils/tensor';
 
 /**
  * @typedef {Object} SamImageProcessorResult

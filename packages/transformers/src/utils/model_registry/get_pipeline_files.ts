@@ -1,5 +1,5 @@
-import { get_files } from './get_files.js';
-import { SUPPORTED_TASKS, TASK_ALIASES } from '../../pipelines/index.js';
+import { SUPPORTED_TASKS, TASK_ALIASES } from '../../pipelines/index';
+import { get_files } from './get_files';
 
 /**
  * Get all files needed for a specific pipeline task.

@@ -1,11 +1,11 @@
-import { PreTrainedModel } from '../modeling_utils.js';
-import { sessionRun } from '../session.js';
-import { getCacheShapes } from '../../configs.js';
-import { Tensor, ones } from '../../utils/tensor.js';
-import { DataTypeMap } from '../../utils/dtypes.js';
-import { pick } from '../../utils/core.js';
-import { DynamicCache } from '../../cache_utils.js';
-import { StoppingCriteria, StoppingCriteriaList } from '../../generation/stopping_criteria.js';
+import { DynamicCache } from '../../cache_utils';
+import { getCacheShapes } from '../../configs';
+import { StoppingCriteria, StoppingCriteriaList } from '../../generation/stopping_criteria';
+import { pick } from '../../utils/core';
+import { DataTypeMap } from '../../utils/dtypes';
+import { Tensor, ones } from '../../utils/tensor';
+import { PreTrainedModel } from '../modeling_utils';
+import { sessionRun } from '../session';
 
 // Causal conv padding constants
 const CONV1_LEFT_PAD = 2;

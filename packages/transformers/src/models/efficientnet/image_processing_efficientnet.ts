@@ -1,4 +1,4 @@
-import { ImageProcessor } from '../../image_processors_utils.js';
+import { ImageProcessor } from '../../image_processors_utils';
 
 export class EfficientNetImageProcessor extends ImageProcessor {
     include_top;

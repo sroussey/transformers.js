@@ -1,5 +1,5 @@
-import { ImageProcessor, smart_resize } from '../../image_processors_utils.js';
-import { Tensor, cat, interpolate_4d, stack } from '../../utils/tensor.js';
+import { ImageProcessor, smart_resize } from '../../image_processors_utils';
+import { Tensor, cat, interpolate_4d, stack } from '../../utils/tensor';
 
 /**
  * @typedef {import('../../utils/image.js').RawImage} RawImage

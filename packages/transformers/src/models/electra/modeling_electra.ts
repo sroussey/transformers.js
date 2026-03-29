@@ -1,10 +1,10 @@
-import { PreTrainedModel } from '../modeling_utils.js';
 import {
     MaskedLMOutput,
     QuestionAnsweringModelOutput,
     SequenceClassifierOutput,
     TokenClassifierOutput,
-} from '../modeling_outputs.js';
+} from '../modeling_outputs';
+import { PreTrainedModel } from '../modeling_utils';
 
 export class ElectraPreTrainedModel extends PreTrainedModel {}
 

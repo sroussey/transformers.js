@@ -1,5 +1,5 @@
-import { Qwen2VLImageProcessor } from '../qwen2_vl/image_processing_qwen2_vl.js';
-import { smart_resize } from '../../image_processors_utils.js';
+import { smart_resize } from '../../image_processors_utils';
+import { Qwen2VLImageProcessor } from '../qwen2_vl/image_processing_qwen2_vl';
 
 export class Glm46VImageProcessor extends Qwen2VLImageProcessor {
     /** @type {Qwen2VLImageProcessor['get_resize_output_image_size']} */

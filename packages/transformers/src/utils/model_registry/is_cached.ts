@@ -1,7 +1,7 @@
-import { getCache } from '../cache.js';
-import { buildResourcePaths, checkCachedResource } from '../hub.js';
-import { get_files } from './get_files.js';
-import { get_pipeline_files } from './get_pipeline_files.js';
+import { getCache } from '../cache';
+import { buildResourcePaths, checkCachedResource } from '../hub';
+import { get_files } from './get_files';
+import { get_pipeline_files } from './get_pipeline_files';
 
 /**
  * @typedef {Object} FileCacheStatus

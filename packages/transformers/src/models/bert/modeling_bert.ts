@@ -1,10 +1,10 @@
-import { PreTrainedModel } from '../modeling_utils.js';
 import {
-    SequenceClassifierOutput,
     MaskedLMOutput,
-    TokenClassifierOutput,
     QuestionAnsweringModelOutput,
-} from '../modeling_outputs.js';
+    SequenceClassifierOutput,
+    TokenClassifierOutput,
+} from '../modeling_outputs';
+import { PreTrainedModel } from '../modeling_utils';
 
 export class BertPreTrainedModel extends PreTrainedModel {}
 export class BertModel extends BertPreTrainedModel {}

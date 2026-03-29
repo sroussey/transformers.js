@@ -1,11 +1,11 @@
-import { Pipeline } from './_base.js';
+import { Pipeline } from './_base';
 
-import { Tensor } from '../utils/tensor.js';
-import { RawAudio } from '../utils/audio.js';
-import { logger } from '../utils/logger.js';
+import { RawAudio } from '../utils/audio';
+import { logger } from '../utils/logger';
+import { Tensor } from '../utils/tensor';
 
-import { AutoModel } from '../models/auto/modeling_auto.js';
-import { env } from '../env.js';
+import { env } from '../env';
+import { AutoModel } from '../models/auto/modeling_auto';
 
 /**
  * @typedef {import('./_base.js').TextAudioPipelineConstructorArgs} TextAudioPipelineConstructorArgs

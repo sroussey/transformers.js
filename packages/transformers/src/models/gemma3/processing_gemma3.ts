@@ -1,6 +1,6 @@
-import { Processor } from '../../processing_utils.js';
-import { AutoImageProcessor } from '../auto/image_processing_auto.js';
-import { AutoTokenizer } from '../auto/tokenization_auto.js';
+import { Processor } from '../../processing_utils';
+import { AutoImageProcessor } from '../auto/image_processing_auto';
+import { AutoTokenizer } from '../auto/tokenization_auto';
 
 export class Gemma3Processor extends Processor {
     static tokenizer_class = AutoTokenizer;

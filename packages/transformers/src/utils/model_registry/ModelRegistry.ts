@@ -101,15 +101,15 @@
  * @module utils/model_registry
  */
 
-import { get_files } from './get_files.js';
-import { get_pipeline_files } from './get_pipeline_files.js';
-import { get_model_files } from './get_model_files.js';
-import { get_tokenizer_files } from './get_tokenizer_files.js';
-import { get_processor_files } from './get_processor_files.js';
-import { is_cached, is_cached_files, is_pipeline_cached, is_pipeline_cached_files } from './is_cached.js';
-import { get_file_metadata } from './get_file_metadata.js';
-import { clear_cache, clear_pipeline_cache } from './clear_cache.js';
-import { get_available_dtypes } from './get_available_dtypes.js';
+import { clear_cache, clear_pipeline_cache } from './clear_cache';
+import { get_available_dtypes } from './get_available_dtypes';
+import { get_file_metadata } from './get_file_metadata';
+import { get_files } from './get_files';
+import { get_model_files } from './get_model_files';
+import { get_pipeline_files } from './get_pipeline_files';
+import { get_processor_files } from './get_processor_files';
+import { get_tokenizer_files } from './get_tokenizer_files';
+import { is_cached, is_cached_files, is_pipeline_cached, is_pipeline_cached_files } from './is_cached';
 
 /**
  * Static class for cache and file management operations.

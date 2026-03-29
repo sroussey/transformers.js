@@ -1,9 +1,9 @@
-import { Processor } from '../../processing_utils.js';
-import { AutoImageProcessor } from '../auto/image_processing_auto.js';
-import { AutoTokenizer } from '../auto/tokenization_auto.js';
-import { mergeArrays } from '../../utils/core.js';
-import { Tensor } from '../../utils/tensor.js';
-import { RawImage } from '../../utils/image.js';
+import { Processor } from '../../processing_utils';
+import { mergeArrays } from '../../utils/core';
+import { RawImage } from '../../utils/image';
+import { Tensor } from '../../utils/tensor';
+import { AutoImageProcessor } from '../auto/image_processing_auto';
+import { AutoTokenizer } from '../auto/tokenization_auto';
 
 export class VLChatProcessor extends Processor {
     static image_processor_class = AutoImageProcessor;

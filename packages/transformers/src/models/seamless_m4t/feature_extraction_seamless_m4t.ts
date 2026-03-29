@@ -1,6 +1,6 @@
-import { FeatureExtractor, validate_audio_inputs } from '../../feature_extraction_utils.js';
-import { Tensor } from '../../utils/tensor.js';
-import { mel_filter_bank, spectrogram, window_function } from '../../utils/audio.js';
+import { FeatureExtractor, validate_audio_inputs } from '../../feature_extraction_utils';
+import { mel_filter_bank, spectrogram, window_function } from '../../utils/audio';
+import { Tensor } from '../../utils/tensor';
 
 export class SeamlessM4TFeatureExtractor extends FeatureExtractor {
     mel_filters;

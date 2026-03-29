@@ -1,5 +1,5 @@
-import { FeatureExtractor, validate_audio_inputs } from '../../feature_extraction_utils.js';
-import { mel_filter_bank, spectrogram, window_function } from '../../utils/audio.js';
+import { FeatureExtractor, validate_audio_inputs } from '../../feature_extraction_utils';
+import { mel_filter_bank, spectrogram, window_function } from '../../utils/audio';
 
 export class VoxtralRealtimeFeatureExtractor extends FeatureExtractor {
     window;

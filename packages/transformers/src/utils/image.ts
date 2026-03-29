@@ -7,15 +7,15 @@
  * @module utils/image
  */
 
-import { isNullishDimension } from './core.js';
-import { getFile } from './hub.js';
-import { apis } from '../env.js';
-import { Tensor } from './tensor.js';
-import { saveBlob } from './io.js';
+import { apis } from '../env';
+import { isNullishDimension } from './core';
+import { getFile } from './hub';
+import { saveBlob } from './io';
+import { Tensor } from './tensor';
 
 // Will be empty (or not used) if running in browser or web-worker
 import sharp from 'sharp';
-import { logger } from './logger.js';
+import { logger } from './logger';
 
 let createCanvasFunction;
 let ImageDataClass;

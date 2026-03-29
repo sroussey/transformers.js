@@ -1,7 +1,7 @@
-import { FeatureExtractor, validate_audio_inputs } from '../../feature_extraction_utils.js';
-import { Tensor } from '../../utils/tensor.js';
-import { mel_filter_bank, spectrogram, window_function } from '../../utils/audio.js';
-import { logger } from '../../utils/logger.js';
+import { FeatureExtractor, validate_audio_inputs } from '../../feature_extraction_utils';
+import { mel_filter_bank, spectrogram, window_function } from '../../utils/audio';
+import { logger } from '../../utils/logger';
+import { Tensor } from '../../utils/tensor';
 
 export class WhisperFeatureExtractor extends FeatureExtractor {
     window;

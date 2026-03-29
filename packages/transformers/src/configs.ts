@@ -26,8 +26,8 @@
  * @module configs
  */
 
-import { pick } from './utils/core.js';
-import { getModelJSON } from './utils/hub.js';
+import { pick } from './utils/core';
+import { getModelJSON } from './utils/hub';
 
 /**
  * @typedef {import('./utils/hub.js').PretrainedOptions} PretrainedOptions

@@ -1,4 +1,4 @@
-import { Text2TextGenerationPipeline } from './text2text-generation.js';
+import { Text2TextGenerationPipeline } from './text2text-generation';
 
 /**
  * @typedef {import('./_base.js').TextPipelineConstructorArgs} TextPipelineConstructorArgs

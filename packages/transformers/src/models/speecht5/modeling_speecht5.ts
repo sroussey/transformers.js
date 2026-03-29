@@ -1,6 +1,6 @@
-import { PreTrainedModel, encoder_forward, boolTensor } from '../modeling_utils.js';
-import { sessionRun } from '../session.js';
-import { Tensor, cat } from '../../utils/tensor.js';
+import { Tensor, cat } from '../../utils/tensor';
+import { PreTrainedModel, boolTensor, encoder_forward } from '../modeling_utils';
+import { sessionRun } from '../session';
 
 /**
  * An abstract class to handle weights initialization and a simple interface for downloading and loading pretrained models.

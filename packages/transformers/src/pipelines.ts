@@ -13,12 +13,12 @@
  * @module pipelines
  */
 
-import { dispatchCallback } from './utils/core.js';
-import { logger } from './utils/logger.js';
+import { dispatchCallback } from './utils/core';
+import { logger } from './utils/logger';
 
-import { AutoTokenizer } from './models/auto/tokenization_auto.js';
-import { AutoProcessor } from './models/auto/processing_auto.js';
-import { AutoConfig } from './configs.js';
+import { AutoTokenizer } from './models/auto/tokenization_auto';
+import { AutoProcessor } from './models/auto/processing_auto';
+import { AutoConfig } from './configs';
 
 import {
     SUPPORTED_TASKS,
@@ -48,9 +48,9 @@ import {
     DepthEstimationPipeline,
     FeatureExtractionPipeline,
     ImageFeatureExtractionPipeline,
-} from './pipelines/index.js';
-import { get_pipeline_files } from './utils/model_registry/get_pipeline_files.js';
-import { get_file_metadata } from './utils/model_registry/get_file_metadata.js';
+} from './pipelines/index';
+import { get_pipeline_files } from './utils/model_registry/get_pipeline_files';
+import { get_file_metadata } from './utils/model_registry/get_file_metadata';
 
 /**
  * @typedef {keyof typeof SUPPORTED_TASKS} TaskType

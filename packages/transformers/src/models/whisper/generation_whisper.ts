@@ -1,4 +1,4 @@
-import { GenerationConfig } from '../../generation/configuration_utils.js';
+import { GenerationConfig } from '../../generation/configuration_utils';
 
 export class WhisperGenerationConfig extends GenerationConfig {
     /**

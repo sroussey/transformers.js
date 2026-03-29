@@ -1,8 +1,8 @@
-import { getModelJSON } from '../../utils/hub.js';
-import { ImageProcessor } from '../../image_processors_utils.js';
-import * as AllImageProcessors from '../image_processors.js';
-import { GITHUB_ISSUE_URL, IMAGE_PROCESSOR_NAME } from '../../utils/constants.js';
-import { logger } from '../../utils/logger.js';
+import { ImageProcessor } from '../../image_processors_utils';
+import { GITHUB_ISSUE_URL, IMAGE_PROCESSOR_NAME } from '../../utils/constants';
+import { getModelJSON } from '../../utils/hub';
+import { logger } from '../../utils/logger';
+import * as AllImageProcessors from '../image_processors';
 
 export class AutoImageProcessor {
     /** @type {typeof ImageProcessor.from_pretrained} */

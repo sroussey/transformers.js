@@ -1,8 +1,30 @@
-import { Callable } from '../utils/generic.js';
-import { constructSessions, sessionRun } from './session.js';
-import { AutoConfig, getCacheShapes } from '../configs.js';
-import { Tensor, full_like, cat, zeros_like, ones_like, ones } from '../utils/tensor.js';
-import { DataTypeMap } from '../utils/dtypes.js';
+import { DynamicCache } from '../cache_utils';
+import { AutoConfig, getCacheShapes } from '../configs';
+import { GenerationConfig } from '../generation/configuration_utils';
+import {
+    ClassifierFreeGuidanceLogitsProcessor,
+    ForcedBOSTokenLogitsProcessor,
+    ForcedEOSTokenLogitsProcessor,
+    LogitsProcessorList,
+    MinLengthLogitsProcessor,
+    MinNewTokensLengthLogitsProcessor,
+    NoBadWordsLogitsProcessor,
+    NoRepeatNGramLogitsProcessor,
+    RepetitionPenaltyLogitsProcessor,
+    SuppressTokensAtBeginLogitsProcessor,
+    TemperatureLogitsWarper,
+} from '../generation/logits_process';
+import { LogitsSampler } from '../generation/logits_sampler';
+import { EosTokenCriteria, MaxLengthCriteria, StoppingCriteriaList } from '../generation/stopping_criteria';
+import { GITHUB_ISSUE_URL } from '../utils/constants';
+import { pick } from '../utils/core';
+import { DataTypeMap } from '../utils/dtypes';
+import { Callable } from '../utils/generic';
+import { getModelJSON } from '../utils/hub';
+import { logger } from '../utils/logger';
+import { Tensor, cat, full_like, ones, ones_like, zeros_like } from '../utils/tensor';
+import { ModelOutput, Seq2SeqLMOutput } from './modeling_outputs';
+import { constructSessions, sessionRun } from './session';
 
 // These will be populated by registry.js
 export let MODEL_MAPPING_NAMES = null;
@@ -14,29 +36,6 @@ export let MODEL_MAPPING_NAMES = null;
 export function registerTaskMappings(mappings) {
     MODEL_MAPPING_NAMES = mappings;
 }
-import { GITHUB_ISSUE_URL } from '../utils/constants.js';
-import { getModelJSON } from '../utils/hub.js';
-import { Seq2SeqLMOutput } from './modeling_outputs.js';
-import {
-    LogitsProcessorList,
-    ForcedBOSTokenLogitsProcessor,
-    ForcedEOSTokenLogitsProcessor,
-    SuppressTokensAtBeginLogitsProcessor,
-    NoRepeatNGramLogitsProcessor,
-    RepetitionPenaltyLogitsProcessor,
-    NoBadWordsLogitsProcessor,
-    MinLengthLogitsProcessor,
-    MinNewTokensLengthLogitsProcessor,
-    TemperatureLogitsWarper,
-    ClassifierFreeGuidanceLogitsProcessor,
-} from '../generation/logits_process.js';
-import { GenerationConfig } from '../generation/configuration_utils.js';
-import { EosTokenCriteria, MaxLengthCriteria, StoppingCriteriaList } from '../generation/stopping_criteria.js';
-import { LogitsSampler } from '../generation/logits_sampler.js';
-import { pick } from '../utils/core.js';
-import { ModelOutput } from './modeling_outputs.js';
-import { logger } from '../utils/logger.js';
-import { DynamicCache } from '../cache_utils.js';
 
 /**
  * Converts an array or Tensor of integers to an int64 Tensor.

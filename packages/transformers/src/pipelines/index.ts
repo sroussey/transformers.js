@@ -7,55 +7,55 @@
 
 import {
     AutoModel,
-    AutoModelForSequenceClassification,
     AutoModelForAudioClassification,
-    AutoModelForTokenClassification,
-    AutoModelForQuestionAnswering,
-    AutoModelForMaskedLM,
-    AutoModelForSeq2SeqLM,
-    AutoModelForSpeechSeq2Seq,
-    AutoModelForTextToWaveform,
-    AutoModelForTextToSpectrogram,
     AutoModelForCTC,
     AutoModelForCausalLM,
-    AutoModelForVision2Seq,
-    AutoModelForImageClassification,
-    AutoModelForImageSegmentation,
-    AutoModelForSemanticSegmentation,
-    AutoModelForUniversalSegmentation,
-    AutoModelForObjectDetection,
-    AutoModelForZeroShotObjectDetection,
-    AutoModelForDocumentQuestionAnswering,
-    AutoModelForImageToImage,
     AutoModelForDepthEstimation,
+    AutoModelForDocumentQuestionAnswering,
+    AutoModelForImageClassification,
     AutoModelForImageFeatureExtraction,
-} from '../models/auto/modeling_auto.js';
+    AutoModelForImageSegmentation,
+    AutoModelForImageToImage,
+    AutoModelForMaskedLM,
+    AutoModelForObjectDetection,
+    AutoModelForQuestionAnswering,
+    AutoModelForSemanticSegmentation,
+    AutoModelForSeq2SeqLM,
+    AutoModelForSequenceClassification,
+    AutoModelForSpeechSeq2Seq,
+    AutoModelForTextToSpectrogram,
+    AutoModelForTextToWaveform,
+    AutoModelForTokenClassification,
+    AutoModelForUniversalSegmentation,
+    AutoModelForVision2Seq,
+    AutoModelForZeroShotObjectDetection,
+} from '../models/auto/modeling_auto';
 
-import { TextClassificationPipeline } from './text-classification.js';
-import { TokenClassificationPipeline } from './token-classification.js';
-import { QuestionAnsweringPipeline } from './question-answering.js';
-import { FillMaskPipeline } from './fill-mask.js';
-import { SummarizationPipeline } from './summarization.js';
-import { TranslationPipeline } from './translation.js';
-import { Text2TextGenerationPipeline } from './text2text-generation.js';
-import { TextGenerationPipeline } from './text-generation.js';
-import { ZeroShotClassificationPipeline } from './zero-shot-classification.js';
-import { AudioClassificationPipeline } from './audio-classification.js';
-import { ZeroShotAudioClassificationPipeline } from './zero-shot-audio-classification.js';
-import { AutomaticSpeechRecognitionPipeline } from './automatic-speech-recognition.js';
-import { TextToAudioPipeline } from './text-to-audio.js';
-import { ImageToTextPipeline } from './image-to-text.js';
-import { ImageClassificationPipeline } from './image-classification.js';
-import { ImageSegmentationPipeline } from './image-segmentation.js';
-import { BackgroundRemovalPipeline } from './background-removal.js';
-import { ZeroShotImageClassificationPipeline } from './zero-shot-image-classification.js';
-import { ObjectDetectionPipeline } from './object-detection.js';
-import { ZeroShotObjectDetectionPipeline } from './zero-shot-object-detection.js';
-import { DocumentQuestionAnsweringPipeline } from './document-question-answering.js';
-import { ImageToImagePipeline } from './image-to-image.js';
-import { DepthEstimationPipeline } from './depth-estimation.js';
-import { FeatureExtractionPipeline } from './feature-extraction.js';
-import { ImageFeatureExtractionPipeline } from './image-feature-extraction.js';
+import { AudioClassificationPipeline } from './audio-classification';
+import { AutomaticSpeechRecognitionPipeline } from './automatic-speech-recognition';
+import { BackgroundRemovalPipeline } from './background-removal';
+import { DepthEstimationPipeline } from './depth-estimation';
+import { DocumentQuestionAnsweringPipeline } from './document-question-answering';
+import { FeatureExtractionPipeline } from './feature-extraction';
+import { FillMaskPipeline } from './fill-mask';
+import { ImageClassificationPipeline } from './image-classification';
+import { ImageFeatureExtractionPipeline } from './image-feature-extraction';
+import { ImageSegmentationPipeline } from './image-segmentation';
+import { ImageToImagePipeline } from './image-to-image';
+import { ImageToTextPipeline } from './image-to-text';
+import { ObjectDetectionPipeline } from './object-detection';
+import { QuestionAnsweringPipeline } from './question-answering';
+import { SummarizationPipeline } from './summarization';
+import { TextClassificationPipeline } from './text-classification';
+import { TextGenerationPipeline } from './text-generation';
+import { TextToAudioPipeline } from './text-to-audio';
+import { Text2TextGenerationPipeline } from './text2text-generation';
+import { TokenClassificationPipeline } from './token-classification';
+import { TranslationPipeline } from './translation';
+import { ZeroShotAudioClassificationPipeline } from './zero-shot-audio-classification';
+import { ZeroShotClassificationPipeline } from './zero-shot-classification';
+import { ZeroShotImageClassificationPipeline } from './zero-shot-image-classification';
+import { ZeroShotObjectDetectionPipeline } from './zero-shot-object-detection';
 
 export const SUPPORTED_TASKS = Object.freeze({
     'text-classification': {
@@ -279,31 +279,31 @@ export const TASK_ALIASES = Object.freeze({
 });
 
 export {
-    TextClassificationPipeline,
-    TokenClassificationPipeline,
-    QuestionAnsweringPipeline,
-    FillMaskPipeline,
-    SummarizationPipeline,
-    TranslationPipeline,
-    Text2TextGenerationPipeline,
-    TextGenerationPipeline,
-    ZeroShotClassificationPipeline,
     AudioClassificationPipeline,
-    ZeroShotAudioClassificationPipeline,
     AutomaticSpeechRecognitionPipeline,
-    TextToAudioPipeline,
-    ImageToTextPipeline,
-    ImageClassificationPipeline,
-    ImageSegmentationPipeline,
     BackgroundRemovalPipeline,
-    ZeroShotImageClassificationPipeline,
-    ObjectDetectionPipeline,
-    ZeroShotObjectDetectionPipeline,
-    DocumentQuestionAnsweringPipeline,
-    ImageToImagePipeline,
     DepthEstimationPipeline,
+    DocumentQuestionAnsweringPipeline,
     FeatureExtractionPipeline,
+    FillMaskPipeline,
+    ImageClassificationPipeline,
     ImageFeatureExtractionPipeline,
+    ImageSegmentationPipeline,
+    ImageToImagePipeline,
+    ImageToTextPipeline,
+    ObjectDetectionPipeline,
+    QuestionAnsweringPipeline,
+    SummarizationPipeline,
+    Text2TextGenerationPipeline,
+    TextClassificationPipeline,
+    TextGenerationPipeline,
+    TextToAudioPipeline,
+    TokenClassificationPipeline,
+    TranslationPipeline,
+    ZeroShotAudioClassificationPipeline,
+    ZeroShotClassificationPipeline,
+    ZeroShotImageClassificationPipeline,
+    ZeroShotObjectDetectionPipeline
 };
 
 /**

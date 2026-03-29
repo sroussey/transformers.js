@@ -1,4 +1,4 @@
-import { ImageProcessor } from '../../image_processors_utils.js';
+import { ImageProcessor } from '../../image_processors_utils';
 
 export class PixtralImageProcessor extends ImageProcessor {
     /** @type {ImageProcessor['get_resize_output_image_size']} */

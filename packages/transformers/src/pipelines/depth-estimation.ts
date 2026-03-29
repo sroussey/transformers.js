@@ -1,7 +1,7 @@
-import { Pipeline, prepareImages } from './_base.js';
-import { RawImage } from '../utils/image.js';
+import { RawImage } from '../utils/image';
+import { Pipeline, prepareImages } from './_base';
 
-import { interpolate_4d } from '../utils/tensor.js';
+import { interpolate_4d } from '../utils/tensor';
 
 /**
  * @typedef {import('./_base.js').ImagePipelineConstructorArgs} ImagePipelineConstructorArgs

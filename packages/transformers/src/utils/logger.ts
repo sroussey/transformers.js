@@ -4,13 +4,13 @@
  * @module utils/logger
  */
 
-import { env, LogLevel } from '../env.js';
+import { env, LogLevel } from '../env';
 
 /**
  * Logger that respects the configured log level in env.logLevel.
  *
  * @example
- * import { logger } from './utils/logger.js';
+ * import { logger } from './utils/logger';
  * logger.info('Model loaded successfully');
  * logger.warn('Deprecated method used');
  * logger.error('Failed to load model');

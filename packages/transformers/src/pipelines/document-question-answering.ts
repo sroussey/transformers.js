@@ -1,6 +1,6 @@
-import { Pipeline, prepareImages } from './_base.js';
+import { Pipeline, prepareImages } from './_base';
 
-import { Tensor } from '../utils/tensor.js';
+import { Tensor } from '../utils/tensor';
 
 /**
  * @typedef {import('./_base.js').TextImagePipelineConstructorArgs} TextImagePipelineConstructorArgs

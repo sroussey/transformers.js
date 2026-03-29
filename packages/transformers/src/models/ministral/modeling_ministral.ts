@@ -1,4 +1,4 @@
-import { PreTrainedModel } from '../modeling_utils.js';
+import { PreTrainedModel } from '../modeling_utils';
 
 export class MinistralPreTrainedModel extends PreTrainedModel {}
 export class MinistralModel extends MinistralPreTrainedModel {}

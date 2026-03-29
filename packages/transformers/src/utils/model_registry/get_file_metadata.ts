@@ -2,12 +2,12 @@
  * @file File metadata utilities for cache-aware operations
  */
 
-import { env } from '../../env.js';
-import { getCache } from '../cache.js';
-import { buildResourcePaths, checkCachedResource, getFetchHeaders, getFile } from '../hub.js';
-import { isValidUrl } from '../hub/utils.js';
-import { logger } from '../logger.js';
-import { memoizePromise } from '../memoize_promise.js';
+import { env } from '../../env';
+import { getCache } from '../cache';
+import { buildResourcePaths, checkCachedResource, getFetchHeaders, getFile } from '../hub';
+import { isValidUrl } from '../hub/utils';
+import { logger } from '../logger';
+import { memoizePromise } from '../memoize_promise';
 
 /**
  * @typedef {import('../hub.js').PretrainedOptions} PretrainedOptions

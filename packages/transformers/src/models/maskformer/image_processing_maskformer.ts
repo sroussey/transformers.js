@@ -1,8 +1,8 @@
 import {
     ImageProcessor,
-    post_process_panoptic_segmentation,
     post_process_instance_segmentation,
-} from '../../image_processors_utils.js';
+    post_process_panoptic_segmentation,
+} from '../../image_processors_utils';
 
 export class MaskFormerImageProcessor extends ImageProcessor {
     /** @type {typeof post_process_panoptic_segmentation} */

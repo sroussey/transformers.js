@@ -1,4 +1,4 @@
-import { PreTrainedModel } from '../modeling_utils.js';
+import { PreTrainedModel } from '../modeling_utils';
 
 export class SmolLM3PreTrainedModel extends PreTrainedModel {}
 export class SmolLM3Model extends SmolLM3PreTrainedModel {}

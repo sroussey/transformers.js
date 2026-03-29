@@ -1,5 +1,5 @@
-import { getModelFile, MAX_EXTERNAL_DATA_CHUNKS } from './hub.js';
-import { apis } from '../env.js';
+import { apis } from '../env';
+import { getModelFile, MAX_EXTERNAL_DATA_CHUNKS } from './hub';
 
 /**
  * Resolves an `use_external_data_format` config value to the number of data chunks for a given file.

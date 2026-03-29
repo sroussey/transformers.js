@@ -1,4 +1,4 @@
-import { PreTrainedModel } from '../modeling_utils.js';
+import { PreTrainedModel } from '../modeling_utils';
 
 export class Lfm2PreTrainedModel extends PreTrainedModel {}
 export class Lfm2Model extends Lfm2PreTrainedModel {}

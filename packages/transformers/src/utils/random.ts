@@ -28,7 +28,7 @@
  * @module utils/random
  */
 
-import { apis } from '../env.js';
+import { apis } from '../env';
 
 /**
  * Mersenne Twister 19937 PRNG, matching Python's `random.Random` class exactly.

@@ -1,6 +1,6 @@
-import { PreTrainedModel, decoder_forward } from '../modeling_utils.js';
-import { sessionRun } from '../session.js';
-import { Tensor } from '../../utils/tensor.js';
+import { Tensor } from '../../utils/tensor';
+import { PreTrainedModel, decoder_forward } from '../modeling_utils';
+import { sessionRun } from '../session';
 
 export class Phi3VPreTrainedModel extends PreTrainedModel {
     forward_params = [

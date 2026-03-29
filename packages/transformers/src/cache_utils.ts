@@ -1,4 +1,4 @@
-import { Tensor } from './utils/tensor.js';
+import { Tensor } from './utils/tensor';
 
 /**
  * A cache class that stores past key values as named tensors.

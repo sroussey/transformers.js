@@ -7,15 +7,15 @@
  * @module utils/tensor
  */
 
-import { interpolate_data, max, min, permute_data, uint16_to_float32 } from './maths.js';
+import { interpolate_data, max, min, permute_data, uint16_to_float32 } from './maths';
 
-import { Tensor as ONNXTensor, isONNXTensor } from '../backends/onnx.js';
+import { Tensor as ONNXTensor, isONNXTensor } from '../backends/onnx';
 
-import { TensorOpRegistry } from '../ops/registry.js';
+import { TensorOpRegistry } from '../ops/registry';
 
-import { DataTypeMap } from './dtypes.js';
+import { DataTypeMap } from './dtypes';
 
-import { random } from './random.js';
+import { random } from './random';
 
 /**
  * @typedef {keyof typeof DataTypeMap} DataType

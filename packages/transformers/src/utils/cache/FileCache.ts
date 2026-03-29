@@ -1,9 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-import { FileResponse } from '../hub/FileResponse.js';
-import { Random } from '../random.js';
-import { apis } from '../../env.js';
+import { apis } from '../../env';
+import { FileResponse } from '../hub/FileResponse';
+import { Random } from '../random';
 
 // Create a dedicated random instance for generating unique temporary file names
 const rng = new Random();

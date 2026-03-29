@@ -1,4 +1,4 @@
-import { get_file_metadata } from './get_file_metadata.js';
+import { get_file_metadata } from './get_file_metadata';
 
 /**
  * Returns the list of files that will be loaded for a tokenizer.

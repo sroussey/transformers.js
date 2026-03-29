@@ -1,10 +1,10 @@
-import { DEFAULT_DTYPE_SUFFIX_MAPPING, selectDtype } from '../dtypes.js';
-import { selectDevice } from '../devices.js';
-import { resolveExternalDataFormat, getExternalDataChunkNames } from '../model-loader.js';
-import { getSessionsConfig } from '../../models/modeling_utils.js';
-import { AutoConfig } from '../../configs.js';
-import { memoizePromise } from '../memoize_promise.js';
-import { resolve_model_type } from './resolve_model_type.js';
+import { AutoConfig } from '../../configs';
+import { getSessionsConfig } from '../../models/modeling_utils';
+import { selectDevice } from '../devices';
+import { DEFAULT_DTYPE_SUFFIX_MAPPING, selectDtype } from '../dtypes';
+import { memoizePromise } from '../memoize_promise';
+import { getExternalDataChunkNames, resolveExternalDataFormat } from '../model-loader';
+import { resolve_model_type } from './resolve_model_type';
 
 /**
  * @typedef {import('../../configs.js').PretrainedConfig} PretrainedConfig

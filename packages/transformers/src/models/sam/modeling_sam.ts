@@ -1,8 +1,7 @@
-import { PreTrainedModel, encoder_forward } from '../modeling_utils.js';
-import { ones } from '../../utils/tensor.js';
-import { sessionRun } from '../session.js';
-import { ModelOutput } from '../modeling_outputs.js';
-import { Tensor } from '../../utils/tensor.js';
+import { Tensor, ones } from '../../utils/tensor';
+import { ModelOutput } from '../modeling_outputs';
+import { PreTrainedModel, encoder_forward } from '../modeling_utils';
+import { sessionRun } from '../session';
 
 /**
  * Base class for Segment-Anything model's output.

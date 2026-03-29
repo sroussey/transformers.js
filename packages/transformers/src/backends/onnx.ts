@@ -16,15 +16,15 @@
  * @module backends/onnx
  */
 
-import { env, apis, LogLevel } from '../env.js';
+import { apis, env, LogLevel } from '../env';
 
 // NOTE: Import order matters here. We need to import `onnxruntime-node` before `onnxruntime-web`.
 // In either case, we select the default export if it exists, otherwise we use the named export.
 import * as ONNX_NODE from 'onnxruntime-node';
 import * as ONNX_WEB from 'onnxruntime-web/webgpu';
-import { loadWasmBinary, loadWasmFactory } from './utils/cacheWasm.js';
-import { isBlobURL, toAbsoluteURL } from '../utils/hub/utils.js';
-import { logger } from '../utils/logger.js';
+import { isBlobURL, toAbsoluteURL } from '../utils/hub/utils';
+import { logger } from '../utils/logger';
+import { loadWasmBinary, loadWasmFactory } from './utils/cacheWasm';
 export { Tensor } from 'onnxruntime-common';
 
 /**

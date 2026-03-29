@@ -1,4 +1,4 @@
-import { Qwen2_5_VLForConditionalGeneration } from '../qwen2_5_vl/modeling_qwen2_5_vl.js';
+import { Qwen2_5_VLForConditionalGeneration } from '../qwen2_5_vl/modeling_qwen2_5_vl';
 
 export class GlmOcrForConditionalGeneration extends Qwen2_5_VLForConditionalGeneration {
     /**

@@ -1,8 +1,8 @@
-import { AutoFeatureExtractor } from '../auto/feature_extraction_auto.js';
-import { AutoTokenizer } from '../auto/tokenization_auto.js';
-import { Processor } from '../../processing_utils.js';
-import { Tensor } from '../../utils/tensor.js';
-import { validate_audio_inputs } from '../../feature_extraction_utils.js';
+import { validate_audio_inputs } from '../../feature_extraction_utils';
+import { Processor } from '../../processing_utils';
+import { Tensor } from '../../utils/tensor';
+import { AutoFeatureExtractor } from '../auto/feature_extraction_auto';
+import { AutoTokenizer } from '../auto/tokenization_auto';
 
 // Voxtral Realtime audio config constants (from mistral_common AudioConfig)
 const NUM_LEFT_PAD_TOKENS = 32;

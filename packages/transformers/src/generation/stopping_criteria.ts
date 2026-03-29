@@ -2,7 +2,7 @@
  * @module generation/stopping_criteria
  */
 
-import { Callable } from '../utils/generic.js';
+import { Callable } from '../utils/generic';
 
 // NOTE:
 // Stopping Criteria returns a list of `batch_size` booleans, indicating whether each sequence in the batch should be stopped.

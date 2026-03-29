@@ -1,11 +1,11 @@
-import { PreTrainedTokenizer } from '../tokenization_utils.js';
-import { PreTrainedModel } from '../models/modeling_utils.js';
-import { Processor } from '../processing_utils.js';
+import { PreTrainedModel } from '../models/modeling_utils';
+import { Processor } from '../processing_utils';
+import { PreTrainedTokenizer } from '../tokenization_utils';
 
-import { Callable } from '../utils/generic.js';
+import { Callable } from '../utils/generic';
 
-import { read_audio } from '../utils/audio.js';
-import { RawImage } from '../utils/image.js';
+import { read_audio } from '../utils/audio';
+import { RawImage } from '../utils/image';
 
 /**
  * @typedef {string | RawImage | URL | Blob | HTMLCanvasElement | OffscreenCanvas} ImageInput

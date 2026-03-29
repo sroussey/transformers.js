@@ -1,6 +1,6 @@
-import { ImageProcessor } from '../../image_processors_utils.js';
+import { ImageProcessor } from '../../image_processors_utils';
 
-import { stack, cat } from '../../utils/tensor.js';
+import { cat, stack } from '../../utils/tensor';
 
 export class VitMatteImageProcessor extends ImageProcessor {
     /**

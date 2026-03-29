@@ -7,12 +7,12 @@
  * @module utils/audio
  */
 
-import { getFile } from './hub.js';
-import { FFT, max } from './maths.js';
-import { calculateReflectOffset } from './core.js';
-import { saveBlob } from './io.js';
-import { Tensor, matmul } from './tensor.js';
-import { logger } from './logger.js';
+import { calculateReflectOffset } from './core';
+import { getFile } from './hub';
+import { saveBlob } from './io';
+import { logger } from './logger';
+import { FFT, max } from './maths';
+import { Tensor, matmul } from './tensor';
 
 /**
  * Helper function to read audio from a path/URL.

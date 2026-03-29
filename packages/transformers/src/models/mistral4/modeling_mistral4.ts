@@ -1,4 +1,4 @@
-import { PreTrainedModel } from '../modeling_utils.js';
+import { PreTrainedModel } from '../modeling_utils';
 
 export class Mistral4PreTrainedModel extends PreTrainedModel {}
 export class Mistral4Model extends Mistral4PreTrainedModel {}

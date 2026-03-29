@@ -1,16 +1,16 @@
-import { cat, mean, Tensor, stack, std_mean } from '../../utils/tensor.js';
-import { PreTrainedModel } from '../modeling_utils.js';
-import { WhisperGenerationConfig } from './generation_whisper.js';
-import { whisper_language_to_code } from './common_whisper.js';
 import {
     LogitsProcessorList,
     SuppressTokensAtBeginLogitsProcessor,
     WhisperTimeStampLogitsProcessor,
-} from '../../generation/logits_process.js';
-import { medianFilter, dynamic_time_warping } from '../../utils/maths.js';
-import { mergeArrays } from '../../utils/core.js';
-import { ModelOutput } from '../modeling_outputs.js';
-import { logger } from '../../utils/logger.js';
+} from '../../generation/logits_process';
+import { mergeArrays } from '../../utils/core';
+import { logger } from '../../utils/logger';
+import { dynamic_time_warping, medianFilter } from '../../utils/maths';
+import { cat, mean, stack, std_mean, Tensor } from '../../utils/tensor';
+import { ModelOutput } from '../modeling_outputs';
+import { PreTrainedModel } from '../modeling_utils';
+import { whisper_language_to_code } from './common_whisper';
+import { WhisperGenerationConfig } from './generation_whisper';
 
 export class WhisperPreTrainedModel extends PreTrainedModel {
     requires_attention_mask = false;

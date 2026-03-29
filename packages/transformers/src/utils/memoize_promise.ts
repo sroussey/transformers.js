@@ -9,7 +9,7 @@
  * least-recently-used entry is evicted.
  */
 
-import { LRUCache } from './lru_cache.js';
+import { LRUCache } from './lru_cache';
 
 const MAX_CACHE_SIZE = 100;
 

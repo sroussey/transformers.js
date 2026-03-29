@@ -1,5 +1,5 @@
-import { PreTrainedModel } from '../modeling_utils.js';
-import { SequenceClassifierOutput } from '../modeling_outputs.js';
+import { SequenceClassifierOutput } from '../modeling_outputs';
+import { PreTrainedModel } from '../modeling_utils';
 
 /**
  * An abstract class to handle weights initialization and a simple interface for downloading and loading pretrained models.

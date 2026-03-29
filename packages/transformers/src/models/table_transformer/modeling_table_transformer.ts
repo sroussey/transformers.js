@@ -1,5 +1,5 @@
-import { PreTrainedModel } from '../modeling_utils.js';
-import { DetrObjectDetectionOutput } from '../detr/modeling_detr.js';
+import { DetrObjectDetectionOutput } from '../detr/modeling_detr';
+import { PreTrainedModel } from '../modeling_utils';
 
 export class TableTransformerPreTrainedModel extends PreTrainedModel {}
 

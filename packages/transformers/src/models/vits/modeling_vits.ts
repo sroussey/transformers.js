@@ -1,5 +1,5 @@
-import { PreTrainedModel } from '../modeling_utils.js';
-import { ModelOutput } from '../modeling_outputs.js';
+import { ModelOutput } from '../modeling_outputs';
+import { PreTrainedModel } from '../modeling_utils';
 
 /**
  * Describes the outputs for the VITS model.

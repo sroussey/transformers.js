@@ -2,12 +2,12 @@
  * @module generation/logits_sampler
  */
 
-import { Callable } from '../utils/generic.js';
-import { Tensor, topk } from '../utils/tensor.js';
+import { Callable } from '../utils/generic';
+import { Tensor, topk } from '../utils/tensor';
 
-import { max, softmax } from '../utils/maths.js';
-import { _weightedIndex } from '../utils/random.js';
-import { GenerationConfig } from '../generation/configuration_utils.js';
+import { GenerationConfig } from '../generation/configuration_utils';
+import { max, softmax } from '../utils/maths';
+import { _weightedIndex } from '../utils/random';
 
 /**
  * Sampler is a base class for all sampling methods used for text generation.

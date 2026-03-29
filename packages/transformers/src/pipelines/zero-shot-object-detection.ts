@@ -1,4 +1,4 @@
-import { Pipeline, prepareImages, get_bounding_box } from './_base.js';
+import { get_bounding_box, Pipeline, prepareImages } from './_base';
 
 /**
  * @typedef {import('./_base.js').TextImagePipelineConstructorArgs} TextImagePipelineConstructorArgs

@@ -1,5 +1,5 @@
-import { PreTrainedModel } from '../modeling_utils.js';
-import { LlavaForConditionalGeneration } from '../llava/modeling_llava.js';
+import { LlavaForConditionalGeneration } from '../llava/modeling_llava';
+import { PreTrainedModel } from '../modeling_utils';
 
 /**
  * The bare Gemma3 Model outputting raw hidden-states without any specific head on top.

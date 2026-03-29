@@ -1,9 +1,9 @@
-import { Processor } from '../../processing_utils.js';
-import { AutoImageProcessor } from '../auto/image_processing_auto.js';
-import { AutoFeatureExtractor } from '../auto/feature_extraction_auto.js';
-import { AutoTokenizer } from '../auto/tokenization_auto.js';
-import { RawImage } from '../../utils/image.js';
-import { RawAudio } from '../../utils/audio.js';
+import { Processor } from '../../processing_utils';
+import { RawAudio } from '../../utils/audio';
+import { RawImage } from '../../utils/image';
+import { AutoFeatureExtractor } from '../auto/feature_extraction_auto';
+import { AutoImageProcessor } from '../auto/image_processing_auto';
+import { AutoTokenizer } from '../auto/tokenization_auto';
 
 export class Gemma3nProcessor extends Processor {
     static image_processor_class = AutoImageProcessor;

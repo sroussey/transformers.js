@@ -1,7 +1,7 @@
-import { AutoFeatureExtractor } from '../auto/feature_extraction_auto.js';
-import { AutoTokenizer } from '../auto/tokenization_auto.js';
-import { Processor } from '../../processing_utils.js';
-import { cat } from '../../utils/tensor.js';
+import { Processor } from '../../processing_utils';
+import { cat } from '../../utils/tensor';
+import { AutoFeatureExtractor } from '../auto/feature_extraction_auto';
+import { AutoTokenizer } from '../auto/tokenization_auto';
 
 const AUDIO_TOKEN = '[AUDIO]';
 const BEGIN_AUDIO_TOKEN = '[BEGIN_AUDIO]';

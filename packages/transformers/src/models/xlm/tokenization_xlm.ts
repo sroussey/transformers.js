@@ -1,5 +1,5 @@
-import { PreTrainedTokenizer } from '../../tokenization_utils.js';
-import { logger } from '../../utils/logger.js';
+import { PreTrainedTokenizer } from '../../tokenization_utils';
+import { logger } from '../../utils/logger';
 
 export class XLMTokenizer extends PreTrainedTokenizer {
     return_token_type_ids = true;

@@ -1,5 +1,5 @@
-import { FeatureExtractor, validate_audio_inputs } from '../../feature_extraction_utils.js';
-import { Tensor } from '../../utils/tensor.js';
+import { FeatureExtractor, validate_audio_inputs } from '../../feature_extraction_utils';
+import { Tensor } from '../../utils/tensor';
 
 export class Wav2Vec2FeatureExtractor extends FeatureExtractor {
     /**

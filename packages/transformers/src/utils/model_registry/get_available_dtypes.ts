@@ -1,8 +1,8 @@
-import { getSessionsConfig } from '../../models/modeling_utils.js';
-import { DEFAULT_DTYPE_SUFFIX_MAPPING } from '../dtypes.js';
-import { get_file_metadata } from './get_file_metadata.js';
-import { get_config } from './get_model_files.js';
-import { resolve_model_type } from './resolve_model_type.js';
+import { getSessionsConfig } from '../../models/modeling_utils';
+import { DEFAULT_DTYPE_SUFFIX_MAPPING } from '../dtypes';
+import { get_file_metadata } from './get_file_metadata';
+import { get_config } from './get_model_files';
+import { resolve_model_type } from './resolve_model_type';
 
 /**
  * @typedef {import('../../configs.js').PretrainedConfig} PretrainedConfig

@@ -2,7 +2,7 @@
  * @module generation/configuration_utils
  */
 
-import { pick } from '../utils/core.js';
+import { pick } from '../utils/core';
 
 /**
  * Class that holds a configuration for a generation task.

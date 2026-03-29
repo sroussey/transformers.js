@@ -1,9 +1,8 @@
-import { PreTrainedModel, encoder_forward } from '../modeling_utils.js';
-import { sessionRun } from '../session.js';
-import { ModelOutput } from '../modeling_outputs.js';
-import { ones, full } from '../../utils/tensor.js';
-import { pick } from '../../utils/core.js';
-import { Tensor } from '../../utils/tensor.js';
+import { pick } from '../../utils/core';
+import { Tensor, full, ones } from '../../utils/tensor';
+import { ModelOutput } from '../modeling_outputs';
+import { PreTrainedModel, encoder_forward } from '../modeling_utils';
+import { sessionRun } from '../session';
 
 export class Sam2ImageSegmentationOutput extends ModelOutput {
     iou_scores;

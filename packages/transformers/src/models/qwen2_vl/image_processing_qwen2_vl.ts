@@ -1,5 +1,5 @@
-import { ImageProcessor, smart_resize } from '../../image_processors_utils.js';
-import { cat, Tensor } from '../../utils/tensor.js';
+import { ImageProcessor, smart_resize } from '../../image_processors_utils';
+import { cat, Tensor } from '../../utils/tensor';
 
 export class Qwen2VLImageProcessor extends ImageProcessor {
     declare min_pixels;

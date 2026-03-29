@@ -1,5 +1,5 @@
-import { Processor } from '../../processing_utils.js';
-import { AutoImageProcessor } from '../auto/image_processing_auto.js';
+import { Processor } from '../../processing_utils';
+import { AutoImageProcessor } from '../auto/image_processing_auto';
 
 export class SamProcessor extends Processor {
     static image_processor_class = AutoImageProcessor;

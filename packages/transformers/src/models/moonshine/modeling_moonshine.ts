@@ -1,4 +1,4 @@
-import { PreTrainedModel } from '../modeling_utils.js';
+import { PreTrainedModel } from '../modeling_utils';
 
 export class MoonshinePreTrainedModel extends PreTrainedModel {
     requires_attention_mask = false;

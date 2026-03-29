@@ -1,7 +1,7 @@
-import { FEATURE_EXTRACTOR_NAME, GITHUB_ISSUE_URL } from '../../utils/constants.js';
-import { getModelJSON } from '../../utils/hub.js';
-import { FeatureExtractor } from '../../feature_extraction_utils.js';
-import * as AllFeatureExtractors from '../feature_extractors.js';
+import { FeatureExtractor } from '../../feature_extraction_utils';
+import { FEATURE_EXTRACTOR_NAME, GITHUB_ISSUE_URL } from '../../utils/constants';
+import { getModelJSON } from '../../utils/hub';
+import * as AllFeatureExtractors from '../feature_extractors';
 
 export class AutoFeatureExtractor {
     /** @type {typeof FeatureExtractor.from_pretrained} */

@@ -1,5 +1,5 @@
-import { PreTrainedModel } from '../modeling_utils.js';
-import { MaskedLMOutput, QuestionAnsweringModelOutput, SequenceClassifierOutput } from '../modeling_outputs.js';
+import { MaskedLMOutput, QuestionAnsweringModelOutput, SequenceClassifierOutput } from '../modeling_outputs';
+import { PreTrainedModel } from '../modeling_utils';
 
 export class MobileBertPreTrainedModel extends PreTrainedModel {}
 export class MobileBertModel extends MobileBertPreTrainedModel {}

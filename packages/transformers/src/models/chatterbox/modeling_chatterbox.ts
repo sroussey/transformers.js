@@ -1,6 +1,6 @@
-import { sessionRun } from '../session.js';
-import { PreTrainedModel, decoder_forward, decoder_prepare_inputs_for_generation } from '../modeling_utils.js';
-import { cat, ones, full, Tensor } from '../../utils/tensor.js';
+import { cat, full, ones, Tensor } from '../../utils/tensor';
+import { decoder_forward, decoder_prepare_inputs_for_generation, PreTrainedModel } from '../modeling_utils';
+import { sessionRun } from '../session';
 
 const SILENCE_TOKEN = 4299n;
 const START_SPEECH_TOKEN = 6561n;

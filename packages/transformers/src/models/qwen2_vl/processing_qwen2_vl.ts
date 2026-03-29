@@ -1,7 +1,7 @@
-import { Processor } from '../../processing_utils.js';
-import { AutoImageProcessor } from '../auto/image_processing_auto.js';
-import { AutoTokenizer } from '../auto/tokenization_auto.js';
-import { RawImage } from '../../utils/image.js';
+import { Processor } from '../../processing_utils';
+import { RawImage } from '../../utils/image';
+import { AutoImageProcessor } from '../auto/image_processing_auto';
+import { AutoTokenizer } from '../auto/tokenization_auto';
 
 export class Qwen2VLProcessor extends Processor {
     static image_processor_class = AutoImageProcessor;

@@ -1,4 +1,4 @@
-import { PreTrainedModel } from '../modeling_utils.js';
+import { PreTrainedModel } from '../modeling_utils';
 
 export class Cohere2PreTrainedModel extends PreTrainedModel {}
 export class Cohere2Model extends Cohere2PreTrainedModel {}

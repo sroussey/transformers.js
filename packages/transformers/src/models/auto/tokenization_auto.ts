@@ -1,6 +1,6 @@
-import { PreTrainedTokenizer, loadTokenizer } from '../../tokenization_utils.js';
-import * as AllTokenizers from '../tokenizers.js';
-import { logger } from '../../utils/logger.js';
+import { PreTrainedTokenizer, loadTokenizer } from '../../tokenization_utils';
+import { logger } from '../../utils/logger';
+import * as AllTokenizers from '../tokenizers';
 
 /**
  * Helper class which is used to instantiate pretrained tokenizers with the `from_pretrained` function.

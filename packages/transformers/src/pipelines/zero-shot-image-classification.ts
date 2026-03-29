@@ -1,6 +1,6 @@
-import { Pipeline, prepareImages } from './_base.js';
+import { Pipeline, prepareImages } from './_base';
 
-import { softmax } from '../utils/maths.js';
+import { softmax } from '../utils/maths';
 
 /**
  * @typedef {import('./_base.js').TextImagePipelineConstructorArgs} TextImagePipelineConstructorArgs

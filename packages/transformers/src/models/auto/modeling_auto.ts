@@ -37,13 +37,13 @@
  * @module models
  */
 
-import { AutoConfig } from '../../configs.js';
-import { PreTrainedModel } from '../modeling_utils.js';
+import { AutoConfig } from '../../configs';
+import { PreTrainedModel } from '../modeling_utils';
 
-import { CUSTOM_ARCHITECTURES, MODEL_CLASS_TYPE_MAPPING, MODEL_MAPPINGS } from '../registry.js';
+import { CUSTOM_ARCHITECTURES, MODEL_CLASS_TYPE_MAPPING, MODEL_MAPPINGS } from '../registry';
 
-import * as ALL_MODEL_FILES from '../models.js';
-import { logger } from '../../utils/logger.js';
+import { logger } from '../../utils/logger';
+import * as ALL_MODEL_FILES from '../models';
 
 /**
  * Base class of all AutoModels. Contains the `from_pretrained` function

@@ -1,6 +1,6 @@
-import { PreTrainedModel } from '../modeling_utils.js';
-import { sessionRun } from '../session.js';
-import { Tensor } from '../../utils/tensor.js';
+import { Tensor } from '../../utils/tensor';
+import { PreTrainedModel } from '../modeling_utils';
+import { sessionRun } from '../session';
 
 export class SnacPreTrainedModel extends PreTrainedModel {
     main_input_name = 'input_values';

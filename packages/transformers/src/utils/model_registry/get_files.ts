@@ -1,6 +1,6 @@
-import { get_tokenizer_files } from './get_tokenizer_files.js';
-import { get_model_files } from './get_model_files.js';
-import { get_processor_files } from './get_processor_files.js';
+import { get_model_files } from './get_model_files';
+import { get_processor_files } from './get_processor_files';
+import { get_tokenizer_files } from './get_tokenizer_files';
 
 /**
  * Returns the list of files that will be loaded for a model based on its configuration.

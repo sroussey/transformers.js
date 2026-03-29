@@ -1,4 +1,4 @@
-import { PreTrainedModel } from '../modeling_utils.js';
+import { PreTrainedModel } from '../modeling_utils';
 
 export class HunYuanDenseV1PreTrainedModel extends PreTrainedModel {}
 export class HunYuanDenseV1Model extends HunYuanDenseV1PreTrainedModel {}

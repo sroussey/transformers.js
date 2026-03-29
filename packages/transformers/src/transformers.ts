@@ -13,50 +13,50 @@
  */
 
 // Environment variables
-export { env, LogLevel } from './env.js';
+export { LogLevel, env } from './env';
 
 // Pipelines
-export * from './pipelines.js';
+export * from './pipelines';
 
 // Models
-export * from './models/models.js';
-export * from './models/auto/modeling_auto.js';
+export * from './models/auto/modeling_auto';
+export * from './models/models';
 
 // Tokenizers
-export * from './models/tokenizers.js';
-export * from './models/auto/tokenization_auto.js';
+export * from './models/auto/tokenization_auto';
+export * from './models/tokenizers';
 
 // Feature Extractors
-export * from './models/feature_extractors.js';
-export * from './models/auto/feature_extraction_auto.js';
+export * from './models/auto/feature_extraction_auto';
+export * from './models/feature_extractors';
 
 // Image Processors
-export * from './models/image_processors.js';
-export * from './models/auto/image_processing_auto.js';
+export * from './models/auto/image_processing_auto';
+export * from './models/image_processors';
 
 // Processors
-export * from './models/processors.js';
-export * from './models/auto/processing_auto.js';
+export * from './models/auto/processing_auto';
+export * from './models/processors';
 
 // Configs
-export { PretrainedConfig, AutoConfig } from './configs.js';
+export { AutoConfig, PretrainedConfig } from './configs';
 
 // Additional exports
-export * from './generation/streamers.js';
-export * from './generation/stopping_criteria.js';
-export * from './generation/logits_process.js';
+export * from './generation/logits_process';
+export * from './generation/stopping_criteria';
+export * from './generation/streamers';
 
-export { read_audio, RawAudio } from './utils/audio.js';
-export { load_image, RawImage } from './utils/image.js';
-export { load_video, RawVideo, RawVideoFrame } from './utils/video.js';
-export * from './utils/tensor.js';
-export { softmax, log_softmax, dot, cos_sim } from './utils/maths.js';
-export { random } from './utils/random.js';
+export { RawAudio, read_audio } from './utils/audio';
+export { RawImage, load_image } from './utils/image';
+export { cos_sim, dot, log_softmax, softmax } from './utils/maths';
+export { random } from './utils/random';
+export * from './utils/tensor';
+export { RawVideo, RawVideoFrame, load_video } from './utils/video';
 
-export { DynamicCache } from './cache_utils.js';
+export { DynamicCache } from './cache_utils';
 
 // Cache and file management
-export { ModelRegistry } from './utils/model_registry/ModelRegistry.js';
+export { ModelRegistry } from './utils/model_registry/ModelRegistry';
 
 // Expose common types used across the library for developers to access
 /**

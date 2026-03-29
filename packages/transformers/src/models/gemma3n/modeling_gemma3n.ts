@@ -1,10 +1,10 @@
 import {
     PreTrainedModel,
     decoder_forward,
-    default_merge_input_ids_with_image_features,
     default_merge_input_ids_with_audio_features,
-} from '../modeling_utils.js';
-import { sessionRun } from '../session.js';
+    default_merge_input_ids_with_image_features,
+} from '../modeling_utils';
+import { sessionRun } from '../session';
 
 export class Gemma3nPreTrainedModel extends PreTrainedModel {
     forward_params = [

@@ -1,13 +1,13 @@
 import {
+    MODEL_CLASS_TO_NAME_MAPPING,
+    MODEL_NAME_TO_CLASS_MAPPING,
     MODEL_TYPES,
     MODEL_TYPE_MAPPING,
-    MODEL_NAME_TO_CLASS_MAPPING,
-    MODEL_CLASS_TO_NAME_MAPPING,
     PreTrainedModel,
     registerTaskMappings,
-} from './modeling_utils.js';
+} from './modeling_utils';
 
-import * as ALL_MODEL_FILES from './models.js';
+import * as ALL_MODEL_FILES from './models';
 
 const MODEL_MAPPING_NAMES_ENCODER_ONLY = new Map([
     ['bert', 'BertModel'],

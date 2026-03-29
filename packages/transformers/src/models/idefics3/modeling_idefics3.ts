@@ -1,4 +1,4 @@
-import { LlavaForConditionalGeneration } from '../llava/modeling_llava.js';
+import { LlavaForConditionalGeneration } from '../llava/modeling_llava';
 
 /**
  * The Idefics3 model which consists of a vision backbone and a language model.

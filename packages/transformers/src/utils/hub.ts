@@ -4,16 +4,16 @@
  * @module utils/hub
  */
 
-import { apis, env } from '../env.js';
-import { dispatchCallback } from './core.js';
-import { FileResponse } from './hub/FileResponse.js';
-import { FileCache } from './cache/FileCache.js';
-import { handleError, isValidUrl, pathJoin, isValidHfModelId, readResponse } from './hub/utils.js';
-import { getCache, tryCache } from './cache.js';
-import { get_file_metadata } from './model_registry/get_file_metadata.js';
-import { logger } from './logger.js';
+import { apis, env } from '../env';
+import { getCache, tryCache } from './cache';
+import { FileCache } from './cache/FileCache';
+import { dispatchCallback } from './core';
+import { FileResponse } from './hub/FileResponse';
+import { handleError, isValidHfModelId, isValidUrl, pathJoin, readResponse } from './hub/utils';
+import { logger } from './logger';
+import { get_file_metadata } from './model_registry/get_file_metadata';
 
-export { MAX_EXTERNAL_DATA_CHUNKS } from './hub/constants.js';
+export { MAX_EXTERNAL_DATA_CHUNKS } from './hub/constants';
 
 /**
  * @typedef {boolean|number} ExternalData

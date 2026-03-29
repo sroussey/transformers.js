@@ -1,6 +1,6 @@
-import { Pipeline, prepareImages } from './_base.js';
+import { Pipeline, prepareImages } from './_base';
 
-import { RawImage } from '../utils/image.js';
+import { RawImage } from '../utils/image';
 
 /**
  * @typedef {import('./_base.js').ImagePipelineConstructorArgs} ImagePipelineConstructorArgs

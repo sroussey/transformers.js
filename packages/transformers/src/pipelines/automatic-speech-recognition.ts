@@ -1,8 +1,8 @@
-import { Pipeline, prepareAudios } from './_base.js';
+import { Pipeline, prepareAudios } from './_base';
 
-import { Tensor } from '../utils/tensor.js';
-import { max, round } from '../utils/maths.js';
-import { logger } from '../utils/logger.js';
+import { logger } from '../utils/logger';
+import { max, round } from '../utils/maths';
+import { Tensor } from '../utils/tensor';
 
 /**
  * @typedef {import('./_base.js').TextAudioPipelineConstructorArgs} TextAudioPipelineConstructorArgs

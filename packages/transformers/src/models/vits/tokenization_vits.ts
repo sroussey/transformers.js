@@ -1,6 +1,6 @@
 import { Decoder } from '@huggingface/tokenizers';
 
-import { PreTrainedTokenizer } from '../../tokenization_utils.js';
+import { PreTrainedTokenizer } from '../../tokenization_utils';
 
 class VitsDecoder extends Decoder {
     /** @type {Decoder['decode_chain']} */

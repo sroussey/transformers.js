@@ -1,7 +1,7 @@
-import { apis, env } from '../env.js';
-import { FileCache } from './cache/FileCache.js';
-import { logger } from './logger.js';
-import { CrossOriginStorage } from './cache/CrossOriginStorageCache.js';
+import { apis, env } from '../env';
+import { CrossOriginStorage } from './cache/CrossOriginStorageCache';
+import { FileCache } from './cache/FileCache';
+import { logger } from './logger';
 
 /**
  * @typedef {Object} CacheInterface

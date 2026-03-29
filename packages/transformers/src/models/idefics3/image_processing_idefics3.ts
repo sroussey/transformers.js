@@ -1,5 +1,5 @@
-import { ImageProcessor } from '../../image_processors_utils.js';
-import { cat, full, interpolate_4d, slice, stack } from '../../utils/tensor.js';
+import { ImageProcessor } from '../../image_processors_utils';
+import { cat, full, interpolate_4d, slice, stack } from '../../utils/tensor';
 
 export class Idefics3ImageProcessor extends ImageProcessor {
     do_image_splitting;

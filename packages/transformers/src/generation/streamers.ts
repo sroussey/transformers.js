@@ -2,8 +2,8 @@
  * @module generation/streamers
  */
 
-import { mergeArrays } from '../utils/core.js';
-import { apis } from '../env.js';
+import { apis } from '../env';
+import { mergeArrays } from '../utils/core';
 
 const is_chinese_char = (cp) =>
     (cp >= 0x4e00 && cp <= 0x9fff) ||

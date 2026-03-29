@@ -1,6 +1,6 @@
-import { FEATURE_EXTRACTOR_NAME } from './utils/constants.js';
-import { Callable } from './utils/generic.js';
-import { getModelJSON } from './utils/hub.js';
+import { FEATURE_EXTRACTOR_NAME } from './utils/constants';
+import { Callable } from './utils/generic';
+import { getModelJSON } from './utils/hub';
 
 /**
  * Base class for feature extractors.

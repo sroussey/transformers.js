@@ -1,5 +1,5 @@
-import { PreTrainedModel } from '../modeling_utils.js';
-import { ones, full } from '../../utils/tensor.js';
+import { full, ones } from '../../utils/tensor';
+import { PreTrainedModel } from '../modeling_utils';
 
 export class JinaCLIPPreTrainedModel extends PreTrainedModel {}
 

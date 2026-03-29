@@ -1,5 +1,5 @@
-import { ERROR_MAPPING, REPO_ID_REGEX } from './constants.js';
-import { logger } from '../logger.js';
+import { logger } from '../logger';
+import { ERROR_MAPPING, REPO_ID_REGEX } from './constants';
 
 /**
  * Joins multiple parts of a path into a single path, while handling leading and trailing slashes.

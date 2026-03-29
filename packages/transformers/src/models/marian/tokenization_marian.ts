@@ -1,6 +1,6 @@
-import { PreTrainedTokenizer } from '../../tokenization_utils.js';
-import { mergeArrays } from '../../utils/core.js';
-import { logger } from '../../utils/logger.js';
+import { PreTrainedTokenizer } from '../../tokenization_utils';
+import { mergeArrays } from '../../utils/core';
+import { logger } from '../../utils/logger';
 
 /**
  * @todo This model is not yet supported by Hugging Face's "fast" tokenizers library (https://github.com/huggingface/tokenizers).

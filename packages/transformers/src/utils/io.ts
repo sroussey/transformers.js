@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import { Readable } from 'node:stream';
 import { pipeline as pipe } from 'node:stream/promises';
 
-import { apis } from '../env.js';
+import { apis } from '../env';
 
 /**
  * Save blob file.

@@ -1,4 +1,4 @@
-import { PreTrainedModel } from '../modeling_utils.js';
+import { PreTrainedModel } from '../modeling_utils';
 
 export class AfmoePreTrainedModel extends PreTrainedModel {}
 export class AfmoeModel extends AfmoePreTrainedModel {}

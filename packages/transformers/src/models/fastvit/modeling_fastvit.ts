@@ -1,5 +1,5 @@
-import { PreTrainedModel } from '../modeling_utils.js';
-import { SequenceClassifierOutput } from '../modeling_outputs.js';
+import { SequenceClassifierOutput } from '../modeling_outputs';
+import { PreTrainedModel } from '../modeling_utils';
 
 export class FastViTPreTrainedModel extends PreTrainedModel {}
 export class FastViTModel extends FastViTPreTrainedModel {}

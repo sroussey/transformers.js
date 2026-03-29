@@ -4,16 +4,16 @@
  * @module tokenizers
  */
 
-import { Tokenizer } from '@huggingface/tokenizers';
 import { Template } from '@huggingface/jinja';
-import { Callable } from './utils/generic.js';
+import { Tokenizer } from '@huggingface/tokenizers';
+import { Callable } from './utils/generic';
 
-import { isIntegralNumber, mergeArrays } from './utils/core.js';
-import { getModelJSON } from './utils/hub.js';
-import { max } from './utils/maths.js';
-import { Tensor } from './utils/tensor.js';
-import { logger } from './utils/logger.js';
-import { get_tokenizer_files } from './utils/model_registry/get_tokenizer_files.js';
+import { isIntegralNumber, mergeArrays } from './utils/core';
+import { getModelJSON } from './utils/hub';
+import { logger } from './utils/logger';
+import { max } from './utils/maths';
+import { get_tokenizer_files } from './utils/model_registry/get_tokenizer_files';
+import { Tensor } from './utils/tensor';
 
 /**
  * @typedef {import('./utils/hub.js').PretrainedOptions} PretrainedTokenizerOptions

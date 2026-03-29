@@ -1,5 +1,5 @@
-import { RawImage } from './image.js';
-import { env, apis } from '../env.js';
+import { apis, env } from '../env';
+import { RawImage } from './image';
 
 export class RawVideoFrame {
     image;

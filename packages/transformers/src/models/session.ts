@@ -4,14 +4,14 @@ import {
     isONNXProxy,
     isONNXTensor,
     runInferenceSession,
-} from '../backends/onnx.js';
-import { getCacheShapes } from '../configs.js';
-import { DATA_TYPES, DEFAULT_DTYPE_SUFFIX_MAPPING, isWebGpuFp16Supported, selectDtype } from '../utils/dtypes.js';
-import { selectDevice } from '../utils/devices.js';
-import { apis } from '../env.js';
-import { getCoreModelFile, getModelDataFiles } from '../utils/model-loader.js';
-import { Tensor } from '../utils/tensor.js';
-import { logger } from '../utils/logger.js';
+} from '../backends/onnx';
+import { getCacheShapes } from '../configs';
+import { apis } from '../env';
+import { selectDevice } from '../utils/devices';
+import { DATA_TYPES, DEFAULT_DTYPE_SUFFIX_MAPPING, isWebGpuFp16Supported, selectDtype } from '../utils/dtypes';
+import { logger } from '../utils/logger';
+import { getCoreModelFile, getModelDataFiles } from '../utils/model-loader';
+import { Tensor } from '../utils/tensor';
 
 /**
  * Constructs an InferenceSession using a model file located at the specified path.

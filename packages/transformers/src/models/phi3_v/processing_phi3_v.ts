@@ -1,7 +1,7 @@
-import { Processor } from '../../processing_utils.js';
-import { AutoImageProcessor } from '../auto/image_processing_auto.js';
-import { AutoTokenizer } from '../auto/tokenization_auto.js';
-import { RawImage } from '../../utils/image.js';
+import { Processor } from '../../processing_utils';
+import { RawImage } from '../../utils/image';
+import { AutoImageProcessor } from '../auto/image_processing_auto';
+import { AutoTokenizer } from '../auto/tokenization_auto';
 
 const IMAGE_TOKEN = '<|image|>';
 const IMAGE_TOKEN_PATTERN = /<\|image_\d+\|>/g;

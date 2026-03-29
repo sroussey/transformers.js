@@ -1,3 +1,3 @@
-import { LlavaForConditionalGeneration } from '../llava/modeling_llava.js';
+import { LlavaForConditionalGeneration } from '../llava/modeling_llava';
 
 export class PaliGemmaForConditionalGeneration extends LlavaForConditionalGeneration {}

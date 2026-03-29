@@ -18,9 +18,9 @@
  *
  * @module processors
  */
-import { PROCESSOR_NAME, CHAT_TEMPLATE_NAME } from './utils/constants.js';
-import { Callable } from './utils/generic.js';
-import { getModelJSON, getModelText } from './utils/hub.js';
+import { PROCESSOR_NAME, CHAT_TEMPLATE_NAME } from './utils/constants';
+import { Callable } from './utils/generic';
+import { getModelJSON, getModelText } from './utils/hub';
 
 /**
  * @typedef {Object} ProcessorProperties Additional processor-specific properties.

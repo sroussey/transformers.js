@@ -1,4 +1,4 @@
-import { PreTrainedModel } from '../modeling_utils.js';
+import { PreTrainedModel } from '../modeling_utils';
 
 export class Qwen3NextPreTrainedModel extends PreTrainedModel {}
 export class Qwen3NextModel extends Qwen3NextPreTrainedModel {}

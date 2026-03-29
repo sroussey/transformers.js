@@ -1,7 +1,7 @@
-import { Pipeline, prepareImages } from './_base.js';
+import { Pipeline, prepareImages } from './_base';
 
-import { Tensor, topk } from '../utils/tensor.js';
-import { softmax } from '../utils/maths.js';
+import { softmax } from '../utils/maths';
+import { Tensor, topk } from '../utils/tensor';
 
 /**
  * @typedef {import('./_base.js').ImagePipelineConstructorArgs} ImagePipelineConstructorArgs

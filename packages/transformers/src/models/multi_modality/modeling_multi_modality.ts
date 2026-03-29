@@ -1,8 +1,8 @@
-import { PreTrainedModel, decoder_forward } from '../modeling_utils.js';
-import { sessionRun } from '../session.js';
-import { pick } from '../../utils/core.js';
-import { RawImage } from '../../utils/image.js';
-import { Tensor, cat, full, full_like } from '../../utils/tensor.js';
+import { pick } from '../../utils/core';
+import { RawImage } from '../../utils/image';
+import { Tensor, cat, full, full_like } from '../../utils/tensor';
+import { PreTrainedModel, decoder_forward } from '../modeling_utils';
+import { sessionRun } from '../session';
 
 export class MultiModalityPreTrainedModel extends PreTrainedModel {}
 export class MultiModalityCausalLM extends MultiModalityPreTrainedModel {

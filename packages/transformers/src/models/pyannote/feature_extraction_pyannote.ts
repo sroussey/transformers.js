@@ -1,6 +1,6 @@
-import { FeatureExtractor, validate_audio_inputs } from '../../feature_extraction_utils.js';
-import { Tensor } from '../../utils/tensor.js';
-import { max, softmax } from '../../utils/maths.js';
+import { FeatureExtractor, validate_audio_inputs } from '../../feature_extraction_utils';
+import { Tensor } from '../../utils/tensor';
+import { max, softmax } from '../../utils/maths';
 
 export class PyAnnoteFeatureExtractor extends FeatureExtractor {
     /**

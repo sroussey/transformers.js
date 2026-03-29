@@ -1,5 +1,5 @@
-import { ImageProcessor } from '../../image_processors_utils.js';
-import { cat, interpolate_4d, slice, stack, Tensor } from '../../utils/tensor.js';
+import { ImageProcessor } from '../../image_processors_utils';
+import { cat, interpolate_4d, slice, stack, Tensor } from '../../utils/tensor';
 
 const IMAGE_SIZE = 336;
 const SLICE_AXES = [2, 3]; // axes to slice on

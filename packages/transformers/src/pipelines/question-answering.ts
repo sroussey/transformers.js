@@ -1,7 +1,7 @@
-import { Pipeline } from './_base.js';
+import { Pipeline } from './_base';
 
-import { product } from '../utils/core.js';
-import { softmax } from '../utils/maths.js';
+import { product } from '../utils/core';
+import { softmax } from '../utils/maths';
 
 /**
  * @typedef {import('./_base.js').TextPipelineConstructorArgs} TextPipelineConstructorArgs

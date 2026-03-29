@@ -1,4 +1,4 @@
-import { PreTrainedModel, default_merge_input_ids_with_audio_features } from '../modeling_utils.js';
+import { PreTrainedModel, default_merge_input_ids_with_audio_features } from '../modeling_utils';
 
 export class UltravoxPreTrainedModel extends PreTrainedModel {
     forward_params = ['input_ids', 'attention_mask', 'position_ids', 'audio_values', 'past_key_values'];

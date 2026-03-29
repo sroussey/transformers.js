@@ -1,5 +1,5 @@
-import { PreTrainedModel } from '../modeling_utils.js';
-import { RTDetrObjectDetectionOutput } from '../rt_detr/modeling_rt_detr.js';
+import { PreTrainedModel } from '../modeling_utils';
+import { RTDetrObjectDetectionOutput } from '../rt_detr/modeling_rt_detr';
 
 export class RTDetrV2PreTrainedModel extends PreTrainedModel {}
 export class RTDetrV2Model extends RTDetrV2PreTrainedModel {}

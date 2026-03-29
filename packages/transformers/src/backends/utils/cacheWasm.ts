@@ -1,6 +1,6 @@
-import { apis, env } from '../../env.js';
-import { getCache } from '../../utils/cache.js';
-import { logger } from '../../utils/logger.js';
+import { apis, env } from '../../env';
+import { getCache } from '../../utils/cache';
+import { logger } from '../../utils/logger';
 
 /**
  * Loads and caches a file from the given URL.

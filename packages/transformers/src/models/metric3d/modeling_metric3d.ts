@@ -1,4 +1,4 @@
-import { PreTrainedModel } from '../modeling_utils.js';
+import { PreTrainedModel } from '../modeling_utils';
 
 export class Metric3DPreTrainedModel extends PreTrainedModel {}
 export class Metric3DForDepthEstimation extends Metric3DPreTrainedModel {}

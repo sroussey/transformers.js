@@ -1,6 +1,6 @@
-import { Pipeline } from './_base.js';
+import { Pipeline } from './_base';
 
-import { Tensor, mean_pooling, quantize_embeddings } from '../utils/tensor.js';
+import { Tensor, mean_pooling, quantize_embeddings } from '../utils/tensor';
 
 /**
  * @typedef {import('./_base.js').TextPipelineConstructorArgs} TextPipelineConstructorArgs
