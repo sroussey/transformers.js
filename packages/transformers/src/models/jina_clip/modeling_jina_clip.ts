@@ -1,10 +1,10 @@
-import { full, ones } from '../../utils/tensor';
+import { Tensor, full, ones } from '../../utils/tensor';
 import { PreTrainedModel } from '../modeling_utils';
 
 export class JinaCLIPPreTrainedModel extends PreTrainedModel {}
 
 export class JinaCLIPModel extends JinaCLIPPreTrainedModel {
-    async forward(model_inputs) {
+    async forward(model_inputs: Record<string, unknown>) {
         const missing_text_inputs = !model_inputs.input_ids;
         const missing_image_inputs = !model_inputs.pixel_values;
 
@@ -16,20 +16,19 @@ export class JinaCLIPModel extends JinaCLIPPreTrainedModel {
         if (missing_text_inputs) {
             // NOTE: We cannot pass zero-dimension tensor as input for input_ids.
             // Fortunately, the majority of time is spent in the vision encoder, so this shouldn't significantly impact performance.
-            model_inputs.input_ids = ones([model_inputs.pixel_values.dims[0], 1]);
+            model_inputs.input_ids = ones([(model_inputs.pixel_values as Tensor).dims[0], 1]);
         }
 
         if (missing_image_inputs) {
             // NOTE: Since we create a zero-sized tensor, this does not increase computation time.
-            // @ts-ignore
-            const { image_size } = this.config.vision_config;
+            const { image_size } = this.config.vision_config as Record<string, number>;
             model_inputs.pixel_values = full([0, 3, image_size, image_size], 0.0); // (pass zero-dimension tensor)
         }
 
         const { text_embeddings, image_embeddings, l2norm_text_embeddings, l2norm_image_embeddings } =
             await super.forward(model_inputs);
 
-        const result = {} as any;
+        const result: Record<string, unknown> = {};
         if (!missing_text_inputs) {
             result.text_embeddings = text_embeddings;
             result.l2norm_text_embeddings = l2norm_text_embeddings;
@@ -44,22 +43,22 @@ export class JinaCLIPModel extends JinaCLIPPreTrainedModel {
 
 export class JinaCLIPTextModel extends JinaCLIPPreTrainedModel {
     /** @type {typeof PreTrainedModel.from_pretrained} */
-    static async from_pretrained(pretrained_model_name_or_path, options = {} as any) {
+    static async from_pretrained(pretrained_model_name_or_path: string, options: Record<string, unknown> = {}) {
         return super.from_pretrained(pretrained_model_name_or_path, {
             ...options,
             // Update default model file name if not provided
-            model_file_name: options.model_file_name ?? 'text_model',
+            model_file_name: (options.model_file_name as string) ?? 'text_model',
         });
     }
 }
 
 export class JinaCLIPVisionModel extends JinaCLIPPreTrainedModel {
     /** @type {typeof PreTrainedModel.from_pretrained} */
-    static async from_pretrained(pretrained_model_name_or_path, options = {} as any) {
+    static async from_pretrained(pretrained_model_name_or_path: string, options: Record<string, unknown> = {}) {
         return super.from_pretrained(pretrained_model_name_or_path, {
             ...options,
             // Update default model file name if not provided
-            model_file_name: options.model_file_name ?? 'vision_model',
+            model_file_name: (options.model_file_name as string) ?? 'vision_model',
         });
     }
 }

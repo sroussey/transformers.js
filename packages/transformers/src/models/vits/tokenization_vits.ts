@@ -4,7 +4,7 @@ import { PreTrainedTokenizer } from '../../tokenization_utils';
 
 class VitsDecoder extends Decoder {
     /** @type {Decoder['decode_chain']} */
-    decode_chain(tokens) {
+    decode_chain(tokens: string[]) {
         let decoded = '';
         for (let i = 1; i < tokens.length; i += 2) {
             decoded += tokens[i];
@@ -13,7 +13,7 @@ class VitsDecoder extends Decoder {
     }
 }
 export class VitsTokenizer extends PreTrainedTokenizer {
-    constructor(tokenizerJSON, tokenizerConfig) {
+    constructor(tokenizerJSON: Record<string, unknown>, tokenizerConfig: Record<string, unknown>) {
         super(tokenizerJSON, tokenizerConfig);
 
         // Custom decoder function

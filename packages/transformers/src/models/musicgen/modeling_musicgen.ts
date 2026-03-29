@@ -66,14 +66,15 @@ export class MusicgenForConditionalGeneration extends PreTrainedModel {
      * @param {Tensor} outputs The output tensor from the model.
      * @returns {Tensor} The filtered output tensor.
      */
-    _apply_and_filter_by_delay_pattern_mask(outputs) {
+    _apply_and_filter_by_delay_pattern_mask(outputs: Tensor) {
         const [bs_x_codebooks, seqLength] = outputs.dims;
-        const num_codebooks = this.config.decoder.num_codebooks;
+        const decoder_config = this.config.decoder as Record<string, any>;
+        const num_codebooks: number = decoder_config.num_codebooks;
         const upperBound = seqLength - num_codebooks;
 
         let newDataSize = 0;
         for (let i = 0; i < outputs.size; ++i) {
-            if (outputs.data[i] == this.config.decoder.pad_token_id) {
+            if (outputs.data[i] == decoder_config.pad_token_id) {
                 continue;
             }
 
@@ -92,14 +93,14 @@ export class MusicgenForConditionalGeneration extends PreTrainedModel {
         return new Tensor(outputs.type, outputs.data.slice(0, newDataSize), [batch_size, num_codebooks, inferred]);
     }
 
-    prepare_inputs_for_generation(input_ids, model_inputs, generation_config) {
-        const pad_token_id = BigInt(this.config.decoder.pad_token_id);
+    prepare_inputs_for_generation(input_ids: bigint[][], model_inputs: Record<string, unknown>, generation_config: Record<string, unknown> & { guidance_scale?: number | null }) {
+        const pad_token_id = BigInt((this.config.decoder as Record<string, any>).pad_token_id);
 
         // apply the delay pattern mask
         let clonedInputIds = structuredClone(input_ids);
         for (let i = 0; i < clonedInputIds.length; ++i) {
             for (let j = 0; j < clonedInputIds[i].length; ++j) {
-                if (i % this.config.decoder.num_codebooks >= j) {
+                if (i % (this.config.decoder as Record<string, any>).num_codebooks >= j) {
                     clonedInputIds[i][j] = pad_token_id;
                 }
             }
@@ -111,7 +112,7 @@ export class MusicgenForConditionalGeneration extends PreTrainedModel {
             clonedInputIds = clonedInputIds.concat(clonedInputIds);
         }
 
-        return encoder_decoder_prepare_inputs_for_generation(this, clonedInputIds, model_inputs, generation_config);
+        return encoder_decoder_prepare_inputs_for_generation(this, clonedInputIds, model_inputs, generation_config as unknown as import('../../generation/configuration_utils').GenerationConfig);
     }
 
     /**
@@ -119,12 +120,12 @@ export class MusicgenForConditionalGeneration extends PreTrainedModel {
      * @param {import('../../generation/parameters.js').GenerationFunctionParameters} options
      * @returns {Promise<ModelOutput|Tensor>} The output of the model, which can contain the generated token ids, attentions, and scores.
      */
-    async generate(options) {
+    async generate(options: import('../../generation/parameters.js').GenerationFunctionParameters): Promise<any> {
         const output_ids = await super.generate(options);
 
         // apply the pattern mask to the final ids
         // tensor: int64[1,batch_size,4,chunk_length]
-        const audio_codes = this._apply_and_filter_by_delay_pattern_mask(/** @type {Tensor} */ (output_ids)).unsqueeze_(
+        const audio_codes = this._apply_and_filter_by_delay_pattern_mask(/** @type {Tensor} */ (output_ids as Tensor)).unsqueeze_(
             0,
         ); // append the frame dimension back to the audio codes
 

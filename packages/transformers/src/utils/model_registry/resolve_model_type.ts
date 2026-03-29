@@ -1,6 +1,7 @@
 import { MODEL_MAPPING_NAMES, MODEL_TYPES, MODEL_TYPE_MAPPING } from '../../models/modeling_utils';
 import { GITHUB_ISSUE_URL } from '../constants';
 import { logger } from '../logger';
+import type { PretrainedConfig } from '../../configs';
 
 /**
  * @typedef {import('../../configs.js').PretrainedConfig} PretrainedConfig
@@ -22,9 +23,8 @@ import { logger } from '../logger';
  *   fallback warning (defaults to true).
  * @returns {number} One of the MODEL_TYPES enum values.
  */
-export function resolve_model_type(config, { warn = true } = {}) {
-    // @ts-ignore - architectures is set via Object.assign in PretrainedConfig constructor
-    const architectures = /** @type {string[]} */ (config.architectures || []);
+export function resolve_model_type(config: PretrainedConfig, { warn = true }: { warn?: boolean } = {}): number {
+    const architectures = (config.architectures || []) as string[];
 
     // 1. Try architectures against MODEL_TYPE_MAPPING
     for (const arch of architectures) {
@@ -42,7 +42,7 @@ export function resolve_model_type(config, { warn = true } = {}) {
         }
 
         // 3. Try MODEL_MAPPING_NAMES as a last resort
-        for (const mapping of (Object.values(MODEL_MAPPING_NAMES) as any[])) {
+        for (const mapping of Object.values(MODEL_MAPPING_NAMES as Record<string, Map<string, string>>)) {
             if (mapping.has(config.model_type)) {
                 const resolved = MODEL_TYPE_MAPPING.get(mapping.get(config.model_type));
                 if (resolved !== undefined) {

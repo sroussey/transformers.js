@@ -29,6 +29,8 @@
 import { pick } from './utils/core';
 import { getModelJSON } from './utils/hub';
 
+import type { PretrainedOptions } from './utils/hub';
+
 /**
  * @typedef {import('./utils/hub.js').PretrainedOptions} PretrainedOptions
  */
@@ -47,7 +49,7 @@ import { getModelJSON } from './utils/hub';
  * @param {PretrainedOptions} options Additional options for loading the config.
  * @returns {Promise<Object>} A promise that resolves with information about the loaded config.
  */
-async function loadConfig(pretrained_model_name_or_path, options) {
+async function loadConfig(pretrained_model_name_or_path: string, options: PretrainedOptions): Promise<Record<string, unknown>> {
     return await getModelJSON(pretrained_model_name_or_path, 'config.json', true, options);
 }
 
@@ -56,10 +58,10 @@ async function loadConfig(pretrained_model_name_or_path, options) {
  * @param {PretrainedConfig} config
  * @returns {Object} The normalized configuration.
  */
-function getNormalizedConfig(config) {
-    const mapping = {};
+function getNormalizedConfig(config: Record<string, any>): Record<string, any> {
+    const mapping: Record<string, string> = {};
 
-    let init_normalized_config = {};
+    let init_normalized_config: Record<string, any> = {};
     switch (config.model_type) {
         // Sub-configs
         case 'llava':
@@ -286,7 +288,7 @@ function getNormalizedConfig(config) {
     }
 
     // NOTE: If `num_attention_heads` is not set, it is assumed to be equal to `num_heads`
-    const normalized_config = {
+    const normalized_config: Record<string, any> = {
         ...init_normalized_config,
         ...pick(config, ['model_type', 'multi_query', 'is_encoder_decoder']),
     };
@@ -301,7 +303,7 @@ function getNormalizedConfig(config) {
  * @param {PretrainedConfig} config
  * @returns {Record<string, number[]>}
  */
-export function getCacheShapes(config, options) {
+export function getCacheShapes(config: PretrainedConfig | Record<string, any>, options?: { batch_size?: number; prefix?: string; session_name?: string }): Record<string, number[]> {
     if (!(config instanceof PretrainedConfig)) {
         config = new PretrainedConfig(config);
     }
@@ -312,9 +314,9 @@ export function getCacheShapes(config, options) {
         const conv_prefix = pkv_prefix === 'present' ? 'present' : 'past';
 
         /** @type {Record<string, number[]>} */
-        const cache_values = {};
+        const cache_values: Record<string, number[]> = {};
         const { layer_types, num_attention_heads, num_key_value_heads, hidden_size, conv_L_cache } =
-            /** @type {any} */ (config);
+            config as unknown as { layer_types: string[]; num_attention_heads: number; num_key_value_heads: number; hidden_size: number; conv_L_cache: number };
         const head_dim = hidden_size / num_attention_heads;
         for (let i = 0; i < layer_types.length; ++i) {
             if (layer_types[i] === 'full_attention') {
@@ -349,7 +351,7 @@ export function getCacheShapes(config, options) {
         const conv_d_inner = mamba_d_ssm + 2 * mamba_n_groups * mamba_d_state;
 
         /** @type {Record<string, number[]>} */
-        const cache_values = {};
+        const cache_values: Record<string, number[]> = {};
 
         for (let i = 0; i < num_layers; ++i) {
             if (!layer_types || layer_types[i] === 'mamba') {
@@ -368,7 +370,7 @@ export function getCacheShapes(config, options) {
         const conv_prefix = pkv_prefix === 'present' ? 'present' : 'past';
 
         /** @type {Record<string, number[]>} */
-        const cache_values = {};
+        const cache_values: Record<string, number[]> = {};
         const {
             head_dim,
             layer_types,
@@ -425,9 +427,9 @@ export function getCacheShapes(config, options) {
 }
 
 /** @type {typeof getKeyValueShapes} */
-function getKeyValueShapes(config, { prefix = 'past_key_values', batch_size = 1 } = {}) {
+function getKeyValueShapes(config: PretrainedConfig | Record<string, any>, { prefix = 'past_key_values', batch_size = 1 }: { prefix?: string; batch_size?: number } = {}): Record<string, number[]> {
     /** @type {Record<string, number[]>} */
-    const decoderFeeds = {};
+    const decoderFeeds: Record<string, number[]> = {};
     const normalized_config = config.normalized_config;
 
     if (
@@ -508,25 +510,25 @@ export class PretrainedConfig {
     // NOTE: Typo in original
 
     /** @type {string|null} */
-    model_type = null;
+    model_type: string | null = null;
 
     /** @type {boolean} */
-    is_encoder_decoder = false;
+    is_encoder_decoder: boolean = false;
 
     /** @type {number} */
-    max_position_embeddings;
+    max_position_embeddings: number;
 
     /** @type {TransformersJSConfig} */
-    'transformers.js_config';
+    'transformers.js_config': Record<string, unknown>;
 
-    normalized_config;
+    normalized_config: Record<string, any>;
     [key: string]: any;
 
     /**
      * Create a new PreTrainedTokenizer instance.
      * @param {Object} configJSON The JSON of the config.
      */
-    constructor(configJSON) {
+    constructor(configJSON: Record<string, unknown>) {
         Object.assign(this, configJSON);
         this.normalized_config = getNormalizedConfig(this);
     }
@@ -541,8 +543,8 @@ export class PretrainedConfig {
      * @returns {Promise<PretrainedConfig>} A new instance of the `PretrainedConfig` class.
      */
     static async from_pretrained(
-        pretrained_model_name_or_path,
-        { progress_callback = null, config = null, cache_dir = null, local_files_only = false, revision = 'main' } = {},
+        pretrained_model_name_or_path: string,
+        { progress_callback = null, config = null, cache_dir = null, local_files_only = false, revision = 'main' }: PretrainedOptions = {},
     ) {
         if (config && !(config instanceof PretrainedConfig)) {
             config = new PretrainedConfig(config);
@@ -569,9 +571,8 @@ export class PretrainedConfig {
  */
 export class AutoConfig {
     /** @type {typeof PretrainedConfig.from_pretrained} */
-    static async from_pretrained(...args) {
-        // @ts-ignore
-        return PretrainedConfig.from_pretrained(...args);
+    static async from_pretrained(...args: Parameters<typeof PretrainedConfig.from_pretrained>) {
+        return PretrainedConfig.from_pretrained(...(args as Parameters<typeof PretrainedConfig.from_pretrained>));
     }
 }
 

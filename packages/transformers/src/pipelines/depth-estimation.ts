@@ -1,7 +1,7 @@
 import { RawImage } from '../utils/image';
-import { Pipeline, prepareImages } from './_base';
+import { Pipeline, prepareImages, tensorAt } from './_base';
 
-import { interpolate_4d } from '../utils/tensor';
+import { interpolate_4d, Tensor } from '../utils/tensor';
 
 /**
  * @typedef {import('./_base.js').ImagePipelineConstructorArgs} ImagePipelineConstructorArgs
@@ -56,7 +56,7 @@ import { interpolate_4d } from '../utils/tensor';
 export class DepthEstimationPipeline
     extends /** @type {new (options: ImagePipelineConstructorArgs) => DepthEstimationPipelineType} */ (Pipeline)
 {
-    async _call(images) {
+    async _call(images: import('./_base.js').ImageInput | import('./_base.js').ImageInput[]) {
         const preparedImages = await prepareImages(images);
 
         const inputs = await this.processor(preparedImages);
@@ -64,20 +64,20 @@ export class DepthEstimationPipeline
 
         const toReturn = [];
         for (let i = 0; i < preparedImages.length; ++i) {
-            const batch = predicted_depth[i];
+            const batch = tensorAt(predicted_depth, i);
             const [height, width] = batch.dims.slice(-2);
             const [new_width, new_height] = preparedImages[i].size;
 
             // Interpolate to original size
             const prediction = (
-                await interpolate_4d(batch.view(1, 1, height, width), {
+                (await interpolate_4d(batch.view(1, 1, height, width), {
                     size: [new_height, new_width],
                     mode: 'bilinear',
-                })
+                })) as Tensor
             ).view(new_height, new_width);
 
-            const minval = /** @type {number} */ (prediction.min().item());
-            const maxval = /** @type {number} */ (prediction.max().item());
+            const minval = prediction.min().item() as number;
+            const maxval = prediction.max().item() as number;
             const formatted = prediction
                 .sub(minval)
                 .div_(maxval - minval)

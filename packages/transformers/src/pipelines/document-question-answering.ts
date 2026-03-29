@@ -43,7 +43,7 @@ export class DocumentQuestionAnsweringPipeline
         Pipeline
     )
 {
-    async _call(image, question, generate_kwargs = {}) {
+    async _call(image: import('./_base.js').ImageInput | import('./_base.js').ImageInput[], question: string, generate_kwargs: Record<string, unknown> = {}) {
         if (Array.isArray(image)) {
             if (image.length !== 1) {
                 throw Error('Document Question Answering pipeline currently only supports a batch size of 1.');
@@ -66,13 +66,13 @@ export class DocumentQuestionAnsweringPipeline
         // Run model
         const output = await this.model.generate({
             inputs: pixel_values,
-            max_length: this.model.config.decoder.max_position_embeddings,
+            max_length: (this.model.config.decoder as Record<string, any>).max_position_embeddings,
             decoder_input_ids,
             ...generate_kwargs,
         });
 
         // Decode output
-        const decoded = this.tokenizer.batch_decode(/** @type {Tensor} */ (output))[0];
+        const decoded = this.tokenizer.batch_decode(/** @type {Tensor} */ (output) as Tensor)[0];
 
         // Parse answer
         const match = decoded.match(/<s_answer>(.*?)<\/s_answer>/);

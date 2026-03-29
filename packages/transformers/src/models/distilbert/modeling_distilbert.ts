@@ -19,7 +19,7 @@ export class DistilBertForSequenceClassification extends DistilBertPreTrainedMod
      * @param {Object} model_inputs The inputs to the model.
      * @returns {Promise<SequenceClassifierOutput>} An object containing the model's output logits for sequence classification.
      */
-    async _call(model_inputs) {
+    async _call(model_inputs: Record<string, unknown>) {
         return new SequenceClassifierOutput(await super._call(model_inputs));
     }
 }
@@ -34,7 +34,7 @@ export class DistilBertForTokenClassification extends DistilBertPreTrainedModel 
      * @param {Object} model_inputs The inputs to the model.
      * @returns {Promise<TokenClassifierOutput>} An object containing the model's output logits for token classification.
      */
-    async _call(model_inputs) {
+    async _call(model_inputs: Record<string, unknown>) {
         return new TokenClassifierOutput(await super._call(model_inputs));
     }
 }
@@ -49,7 +49,7 @@ export class DistilBertForQuestionAnswering extends DistilBertPreTrainedModel {
      * @param {Object} model_inputs The inputs to the model.
      * @returns {Promise<QuestionAnsweringModelOutput>} An object containing the model's output logits for question answering.
      */
-    async _call(model_inputs) {
+    async _call(model_inputs: Record<string, unknown>) {
         return new QuestionAnsweringModelOutput(await super._call(model_inputs));
     }
 }
@@ -64,7 +64,7 @@ export class DistilBertForMaskedLM extends DistilBertPreTrainedModel {
      * @param {Object} model_inputs The inputs to the model.
      * @returns {Promise<MaskedLMOutput>} returned object
      */
-    async _call(model_inputs) {
+    async _call(model_inputs: Record<string, unknown>) {
         return new MaskedLMOutput(await super._call(model_inputs));
     }
 }

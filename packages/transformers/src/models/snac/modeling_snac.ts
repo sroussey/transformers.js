@@ -17,7 +17,7 @@ export class SnacModel extends SnacPreTrainedModel {
      * @param {Tensor} [inputs.input_values] Float values of the input audio waveform, of shape `(batch_size, channels, sequence_length)`).
      * @returns {Promise<Record<string, Tensor>>} The output tensors of shape `(batch_size, num_codebooks, sequence_length)`.
      */
-    async encode(inputs) {
+    async encode(inputs: Record<string, Tensor>) {
         return await sessionRun(this.sessions['encoder_model'], inputs);
     }
 
@@ -26,28 +26,28 @@ export class SnacModel extends SnacPreTrainedModel {
      * @param {Record<string, Tensor>} inputs The encoded audio codes.
      * @returns {Promise<{audio_values: Tensor}>} The output tensor of shape `(batch_size, num_channels, sequence_length)`.
      */
-    async decode(inputs) {
+    async decode(inputs: Record<string, Tensor>) {
         return await sessionRun(this.sessions['decoder_model'], inputs);
     }
 }
 
 export class SnacEncoderModel extends SnacPreTrainedModel {
     /** @type {typeof PreTrainedModel.from_pretrained} */
-    static async from_pretrained(pretrained_model_name_or_path, options = {} as any) {
+    static async from_pretrained(pretrained_model_name_or_path: string, options: Record<string, unknown> = {}) {
         return super.from_pretrained(pretrained_model_name_or_path, {
             ...options,
             // Update default model file name if not provided
-            model_file_name: options.model_file_name ?? 'encoder_model',
+            model_file_name: (options.model_file_name as string) ?? 'encoder_model',
         });
     }
 }
 export class SnacDecoderModel extends SnacPreTrainedModel {
     /** @type {typeof PreTrainedModel.from_pretrained} */
-    static async from_pretrained(pretrained_model_name_or_path, options = {} as any) {
+    static async from_pretrained(pretrained_model_name_or_path: string, options: Record<string, unknown> = {}) {
         return super.from_pretrained(pretrained_model_name_or_path, {
             ...options,
             // Update default model file name if not provided
-            model_file_name: options.model_file_name ?? 'decoder_model',
+            model_file_name: (options.model_file_name as string) ?? 'decoder_model',
         });
     }
 }

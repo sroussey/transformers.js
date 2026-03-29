@@ -10,7 +10,7 @@ export class GlmOcrForConditionalGeneration extends Qwen2_5_VLForConditionalGene
      * @param {number} spatial_merge_size
      * @returns {number[]} Flat array of length 3 * seq_len: [temporal..., height..., width...]
      */
-    get_vision_position_ids(start_position, grid_thw, temp_merge_size, spatial_merge_size) {
+    get_vision_position_ids(start_position: number, grid_thw: number[], temp_merge_size: number, spatial_merge_size: number) {
         const llm_grid_t = Math.floor(grid_thw[0] / temp_merge_size);
         const llm_grid_h = Math.floor(grid_thw[1] / spatial_merge_size);
         const llm_grid_w = Math.floor(grid_thw[2] / spatial_merge_size);
@@ -37,9 +37,14 @@ export class GlmOcrForConditionalGeneration extends Qwen2_5_VLForConditionalGene
         video_grid_thw_list,
         spatial_merge_size,
         state,
+    }: {
+        filtered_ids: number[];
+        image_grid_thw_list: number[][];
+        video_grid_thw_list: number[][];
+        spatial_merge_size: number;
+        state: { image_index: number; video_index: number };
     }) {
-        // @ts-ignore
-        const { image_token_id } = this.config;
+        const { image_token_id } = this.config as Record<string, number>;
 
         // Build modality groups: 0=text, 1=image (by image_token_id)
         const groups = [];

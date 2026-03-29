@@ -95,8 +95,8 @@ import { get_file_metadata } from './utils/model_registry/get_file_metadata';
  * @throws {Error} If an unsupported pipeline is requested.
  */
 export async function pipeline(
-    task,
-    model = null,
+    task: string,
+    model: string | null = null,
     {
         progress_callback = null,
         config = null,
@@ -109,14 +109,13 @@ export async function pipeline(
         use_external_data_format = null,
         model_file_name = null,
         session_options = {},
-    } = {},
+    }: import('./utils/hub.js').PretrainedModelOptions = {},
 ) {
     // Apply aliases
-    // @ts-ignore
-    task = TASK_ALIASES[task] ?? task;
+    task = (TASK_ALIASES as Record<string, string>)[task] ?? task;
 
     // Get pipeline info
-    const pipelineInfo = SUPPORTED_TASKS[task.split('_', 1)[0]];
+    const pipelineInfo = SUPPORTED_TASKS[task.split('_', 1)[0] as keyof typeof SUPPORTED_TASKS];
     if (!pipelineInfo) {
         throw Error(`Unsupported pipeline: ${task}. Must be one of [${Object.keys(SUPPORTED_TASKS)}]`);
     }
@@ -125,8 +124,9 @@ export async function pipeline(
     if (!model) {
         model = pipelineInfo.default.model;
         logger.info(`No model specified. Using default model: "${model}".`);
-        if (!dtype && pipelineInfo.default.dtype) {
-            dtype = pipelineInfo.default.dtype;
+        const defaultConfig = pipelineInfo.default as Record<string, unknown>;
+        if (!dtype && defaultConfig.dtype) {
+            dtype = defaultConfig.dtype as string;
         }
     }
 
@@ -137,7 +137,7 @@ export async function pipeline(
     });
 
     /** @type {import('./utils/core.js').FilesLoadingMap} */
-    let files_loading = {};
+    let files_loading: Record<string, { loaded: number; total: number }> = {};
     if (progress_callback) {
         /** @type {Array<{exists: boolean, size?: number, contentType?: string, fromCache?: boolean}>} */
         const metadata = await Promise.all(expected_files.map(async (file) => get_file_metadata(model, file)));
@@ -154,20 +154,21 @@ export async function pipeline(
     const pretrainedOptions = {
         progress_callback: progress_callback
             ? /** @param {import('./utils/core.js').ProgressInfo} info */
-              (info) => {
+              (info: import('./utils/core.js').ProgressInfo) => {
                   if (info.status === 'progress') {
-                      files_loading[info.file] = {
-                          loaded: info.loaded,
-                          total: info.total,
+                      const p = info as { status: 'progress'; name: string; file: string; progress: number; loaded: number; total: number };
+                      files_loading[p.file] = {
+                          loaded: p.loaded,
+                          total: p.total,
                       };
 
-                      const loaded = Object.values(files_loading).reduce((acc, curr) => acc + (curr as any).loaded, 0) as number;
-                      const total = Object.values(files_loading).reduce((acc, curr) => acc + (curr as any).total, 0) as number;
+                      const loaded = Object.values(files_loading).reduce((acc, curr) => acc + curr.loaded, 0);
+                      const total = Object.values(files_loading).reduce((acc, curr) => acc + curr.total, 0);
                       const progress = total > 0 ? (loaded / total) * 100 : 0;
 
                       progress_callback({
                           status: 'progress_total',
-                          name: info.name,
+                          name: p.name,
                           progress,
                           loaded,
                           total,
@@ -218,7 +219,7 @@ export async function pipeline(
         modelPromise,
     ]);
 
-    const results = { task, model: model_loaded } as any;
+    const results: { task: string; model: typeof model_loaded; tokenizer?: typeof tokenizer; processor?: typeof processor } = { task, model: model_loaded };
     if (tokenizer) results.tokenizer = tokenizer;
     if (processor) results.processor = processor;
 

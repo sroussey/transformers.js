@@ -38,7 +38,7 @@ export class Wav2Vec2ForCTC extends Wav2Vec2PreTrainedModel {
      * @param {Tensor} model_inputs.input_values Float values of input raw speech waveform.
      * @param {Tensor} model_inputs.attention_mask Mask to avoid performing convolution and attention on padding token indices. Mask values selected in [0, 1]
      */
-    async _call(model_inputs) {
+    async _call(model_inputs: Record<string, unknown>) {
         return new CausalLMOutput(await super._call(model_inputs));
     }
 }
@@ -49,7 +49,7 @@ export class Wav2Vec2ForSequenceClassification extends Wav2Vec2PreTrainedModel {
      * @param {Object} model_inputs The inputs to the model.
      * @returns {Promise<SequenceClassifierOutput>} An object containing the model's output logits for sequence classification.
      */
-    async _call(model_inputs) {
+    async _call(model_inputs: Record<string, unknown>) {
         return new SequenceClassifierOutput(await super._call(model_inputs));
     }
 }
@@ -63,7 +63,7 @@ export class Wav2Vec2ForAudioFrameClassification extends Wav2Vec2PreTrainedModel
      * @param {Object} model_inputs The inputs to the model.
      * @returns {Promise<TokenClassifierOutput>} An object containing the model's output logits for sequence classification.
      */
-    async _call(model_inputs) {
+    async _call(model_inputs: Record<string, unknown>) {
         return new TokenClassifierOutput(await super._call(model_inputs));
     }
 }

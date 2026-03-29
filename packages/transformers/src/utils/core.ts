@@ -71,12 +71,23 @@
  * @typedef {InitiateProgressInfo | DownloadProgressInfo | ProgressStatusInfo | DoneProgressInfo | ReadyProgressInfo | TotalProgressInfo} ProgressInfo
  */
 
+export type ProgressInfo = InitiateProgressInfo | DownloadProgressInfo | ProgressStatusInfo | DoneProgressInfo | ReadyProgressInfo | TotalProgressInfo;
+
+type InitiateProgressInfo = { status: 'initiate'; name: string; file: string };
+type DownloadProgressInfo = { status: 'download'; name: string; file: string };
+type ProgressStatusInfo = { status: 'progress'; name: string; file: string; progress: number; loaded: number; total: number };
+type FileLoadingProgress = { loaded: number; total: number };
+type TotalProgressInfo = { status: 'progress_total'; name: string; progress: number; loaded: number; total: number; files: Record<string, FileLoadingProgress> };
+type DoneProgressInfo = { status: 'done'; name: string; file: string };
+type ReadyProgressInfo = { status: 'ready'; task: string; model: string };
+
 /**
  * A callback function that is called with progress information.
  * @callback ProgressCallback
  * @param {ProgressInfo} progressInfo
  * @returns {void}
  */
+export type ProgressCallback = (progressInfo: ProgressInfo) => void;
 
 /**
  * Helper function to dispatch progress callbacks.
@@ -86,7 +97,7 @@
  * @returns {void}
  * @private
  */
-export function dispatchCallback(progress_callback, data) {
+export function dispatchCallback(progress_callback: ProgressCallback | null | undefined, data: ProgressInfo): void {
     if (progress_callback) progress_callback(data);
 }
 
@@ -97,7 +108,7 @@ export function dispatchCallback(progress_callback, data) {
  * @returns {Object} The reversed object.
  * @see https://ultimatecourses.com/blog/reverse-object-keys-and-values-in-javascript
  */
-export function reverseDictionary(data) {
+export function reverseDictionary(data: Record<string, unknown>): Record<string, unknown> {
     // https://ultimatecourses.com/blog/reverse-object-keys-and-values-in-javascript
     return Object.fromEntries(Object.entries(data).map(([key, value]) => [value, key]));
 }
@@ -108,7 +119,7 @@ export function reverseDictionary(data) {
  * @param {string} string The string to escape.
  * @returns {string} The escaped string.
  */
-export function escapeRegExp(string) {
+export function escapeRegExp(string: string): string {
     return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // $& means the whole matched string
 }
 
@@ -119,8 +130,8 @@ export function escapeRegExp(string) {
  *
  * Adapted from https://stackoverflow.com/a/71091338/13989043
  */
-export function isTypedArray(val) {
-    return val?.prototype?.__proto__?.constructor?.name === 'TypedArray';
+export function isTypedArray(val: unknown): boolean {
+    return (val as { prototype?: { __proto__?: { constructor?: { name?: string } } } })?.prototype?.__proto__?.constructor?.name === 'TypedArray';
 }
 
 /**
@@ -128,7 +139,7 @@ export function isTypedArray(val) {
  * @param {*} x The value to check.
  * @returns {boolean} True if the value is a string, false otherwise.
  */
-export function isIntegralNumber(x) {
+export function isIntegralNumber(x: unknown): boolean {
     return Number.isInteger(x) || typeof x === 'bigint';
 }
 
@@ -137,7 +148,7 @@ export function isIntegralNumber(x) {
  * @param {*} x The value to check.
  * @returns {boolean} True if the value is `null`, `undefined` or `-1`, false otherwise.
  */
-export function isNullishDimension(x) {
+export function isNullishDimension(x: unknown): boolean {
     return x === null || x === undefined || x === -1;
 }
 
@@ -147,9 +158,9 @@ export function isNullishDimension(x) {
  * @param {any[]} arr The nested array to calculate dimensions for.
  * @returns {number[]} An array containing the dimensions of the input array.
  */
-export function calculateDimensions(arr) {
-    const dimensions = [];
-    let current = arr;
+export function calculateDimensions(arr: unknown[]): number[] {
+    const dimensions: number[] = [];
+    let current: unknown = arr;
     while (Array.isArray(current)) {
         dimensions.push(current.length);
         current = current[0];
@@ -165,7 +176,7 @@ export function calculateDimensions(arr) {
  * @returns {*} The value of the popped key.
  * @throws {Error} If the key does not exist and no default value is provided.
  */
-export function pop(obj, key, defaultValue = undefined) {
+export function pop(obj: Record<string, unknown>, key: string, defaultValue: unknown = undefined): unknown {
     const value = obj[key];
     if (value !== undefined) {
         delete obj[key];
@@ -183,7 +194,7 @@ export function pop(obj, key, defaultValue = undefined) {
  * @param  {any[]} arrs Arrays to merge.
  * @returns {any[]} The merged array.
  */
-export function mergeArrays(...arrs) {
+export function mergeArrays(...arrs: unknown[][]): unknown[] {
     return Array.prototype.concat.apply([], arrs);
 }
 
@@ -193,10 +204,10 @@ export function mergeArrays(...arrs) {
  * @returns {any[]} Returns the computed Cartesian product as an array
  * @private
  */
-export function product(...a) {
+export function product(...a: unknown[][]): unknown[] {
     // Cartesian product of items
     // Adapted from https://stackoverflow.com/a/43053803
-    return a.reduce((a, b) => a.flatMap((d) => b.map((e) => [d, e])));
+    return a.reduce((a: unknown[], b: unknown[]) => a.flatMap((d: unknown) => b.map((e: unknown) => [d, e])));
 }
 
 /**
@@ -205,7 +216,7 @@ export function product(...a) {
  * @param {number} w The window size.
  * @returns {number} The index offset.
  */
-export function calculateReflectOffset(i, w) {
+export function calculateReflectOffset(i: number, w: number): number {
     return Math.abs(((i + w) % (2 * w)) - w);
 }
 
@@ -215,10 +226,10 @@ export function calculateReflectOffset(i, w) {
  * @param {string[]} props
  * @returns {Object}
  */
-export function pick(o, props) {
+export function pick(o: Record<string, unknown>, props: string[]): Record<string, unknown> {
     return Object.assign(
         {},
-        ...props.map((prop) => {
+        ...props.map((prop: string) => {
             if (o[prop] !== undefined) {
                 return { [prop]: o[prop] };
             }
@@ -232,7 +243,7 @@ export function pick(o, props) {
  * @param {string} s The string to calculate the length of.
  * @returns {number} The length of the string.
  */
-export function len(s) {
+export function len(s: string): number {
     let length = 0;
     for (const c of s) ++length;
     return length;
@@ -244,7 +255,7 @@ export function len(s) {
  * @param {any[]|string} arr The array or string to search.
  * @param {any} value The value to count.
  */
-export function count(arr, value) {
+export function count(arr: unknown[] | string, value: unknown): number {
     let count = 0;
     for (const v of arr) {
         if (v === value) ++count;

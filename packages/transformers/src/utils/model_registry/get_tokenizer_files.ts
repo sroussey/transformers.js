@@ -7,7 +7,7 @@ import { get_file_metadata } from './get_file_metadata';
  * @param {string} modelId The model id to check for tokenizer files
  * @returns {Promise<string[]>} An array of file names that will be loaded
  */
-export async function get_tokenizer_files(modelId) {
+export async function get_tokenizer_files(modelId: string): Promise<string[]> {
     if (!modelId) {
         throw new Error('modelId is required for get_tokenizer_files');
     }

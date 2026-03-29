@@ -5,9 +5,9 @@ export class RFDetrPreTrainedModel extends PreTrainedModel {}
 export class RFDetrModel extends RFDetrPreTrainedModel {}
 export class RFDetrForObjectDetection extends RFDetrPreTrainedModel {
     /**
-     * @param {any} model_inputs
+     * @param {Record<string, unknown>} model_inputs
      */
-    async _call(model_inputs) {
+    async _call(model_inputs: Record<string, unknown>) {
         return new RFDetrObjectDetectionOutput(await super._call(model_inputs));
     }
 }

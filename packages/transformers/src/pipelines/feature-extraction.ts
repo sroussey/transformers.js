@@ -77,12 +77,12 @@ export class FeatureExtractionPipeline
 {
     /** @type {FeatureExtractionPipelineCallback} */
     async _call(
-        texts,
+        texts: string | string[],
         {
             pooling = /** @type {'none'} */ ('none'),
             normalize = false,
             quantize = false,
-            precision = /** @type {'binary'} */ ('binary'),
+            precision = 'binary' as 'binary' | 'ubinary',
         } = {},
     ) {
         // Run tokenization

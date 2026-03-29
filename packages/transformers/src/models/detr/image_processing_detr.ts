@@ -20,7 +20,7 @@ export class DetrImageProcessor extends ImageProcessor {
      * @param {import('../../utils/image.js').RawImage[]} images The image(s) to extract features from.
      * @returns {Promise<DetrFeatureExtractorResult>} An object containing the concatenated pixel values of the preprocessed images.
      */
-    async _call(images) {
+    async _call(images: import('../../utils/image.js').RawImage[]) {
         const result = await super._call(images);
 
         // TODO support differently-sized images, for now assume all images are the same size.
@@ -33,21 +33,18 @@ export class DetrImageProcessor extends ImageProcessor {
     }
 
     /** @type {typeof post_process_object_detection} */
-    post_process_object_detection(...args) {
-        // @ts-ignore
-        return post_process_object_detection(...args);
+    post_process_object_detection(...args: Parameters<typeof post_process_object_detection>) {
+        return post_process_object_detection(...(args as Parameters<typeof post_process_object_detection>));
     }
 
     /** @type {typeof post_process_panoptic_segmentation} */
-    post_process_panoptic_segmentation(...args) {
-        // @ts-ignore
-        return post_process_panoptic_segmentation(...args);
+    post_process_panoptic_segmentation(...args: Parameters<typeof post_process_panoptic_segmentation>) {
+        return post_process_panoptic_segmentation(...(args as Parameters<typeof post_process_panoptic_segmentation>));
     }
 
     /** @type {typeof post_process_instance_segmentation} */
-    post_process_instance_segmentation(...args) {
-        // @ts-ignore
-        return post_process_instance_segmentation(...args);
+    post_process_instance_segmentation(...args: Parameters<typeof post_process_instance_segmentation>) {
+        return post_process_instance_segmentation(...(args as Parameters<typeof post_process_instance_segmentation>));
     }
 }
 

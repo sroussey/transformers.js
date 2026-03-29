@@ -26,6 +26,7 @@
     "format:check": "prettier --check . --ignore-path ../../.prettierignore",
     "typegen": "tsgo",
     "dev": "node scripts/dev.mjs",
+    "node:src": "node --import ./scripts/register-ts-resolve.mjs",
     "build": "node scripts/build.mjs && pnpm typegen",
     "test": "node --experimental-vm-modules --expose-gc node_modules/jest/bin/jest.js --verbose --logHeapUsage",
     "readme": "python ./docs/scripts/build_readme.py",

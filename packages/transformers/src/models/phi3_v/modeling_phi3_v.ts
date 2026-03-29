@@ -34,7 +34,7 @@ export class Phi3VForCausalLM extends Phi3VPreTrainedModel {
         ...kwargs
     }) {
         if (!inputs_embeds) {
-            let image_features;
+            let image_features: any;
             if (pixel_values && input_ids.dims[1] !== 1) {
                 if (!image_sizes) {
                     throw new Error('`image_sizes` must be provided when `pixel_values` is provided.');
@@ -46,8 +46,8 @@ export class Phi3VForCausalLM extends Phi3VPreTrainedModel {
                     image_sizes,
                 }));
             } else {
-                const hidden_size = this.config.normalized_config.hidden_size;
-                image_features = new Tensor('float32', [], [0, hidden_size]);
+                const hidden_size = (this.config.normalized_config as Record<string, number>).hidden_size;
+                image_features = new Tensor('float32', new Float32Array(0), [0, hidden_size]);
             }
 
             ({ inputs_embeds } = await sessionRun(this.sessions['prepare_inputs_embeds'], {

@@ -13,9 +13,9 @@ export class ConvNextModel extends ConvNextPreTrainedModel {}
  */
 export class ConvNextForImageClassification extends ConvNextPreTrainedModel {
     /**
-     * @param {any} model_inputs
+     * @param {Object} model_inputs
      */
-    async _call(model_inputs) {
+    async _call(model_inputs: Record<string, unknown>) {
         return new SequenceClassifierOutput(await super._call(model_inputs));
     }
 }

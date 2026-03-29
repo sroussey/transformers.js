@@ -14,7 +14,7 @@ export class Sam2ImageSegmentationOutput extends ModelOutput {
      * @param {Tensor} output.pred_masks Predicted boxes.
      * @param {Tensor} output.object_score_logits Logits for the object score, indicating if an object is present.
      */
-    constructor({ iou_scores, pred_masks, object_score_logits }) {
+    constructor({ iou_scores, pred_masks, object_score_logits }: { iou_scores: Tensor; pred_masks: Tensor; object_score_logits: Tensor }) {
         super();
         this.iou_scores = iou_scores;
         this.pred_masks = pred_masks;
@@ -30,7 +30,7 @@ export class Sam2Model extends Sam2PreTrainedModel {
      * @param {Tensor} model_inputs.pixel_values Pixel values obtained using a `Sam2Processor`.
      * @returns {Promise<Record<String, Tensor>>} The image embeddings.
      */
-    async get_image_embeddings({ pixel_values }) {
+    async get_image_embeddings({ pixel_values }: { pixel_values: Tensor }) {
         // in:
         //  - pixel_values: tensor.float32[batch_size,3,1024,1024]
         //
@@ -41,15 +41,15 @@ export class Sam2Model extends Sam2PreTrainedModel {
         return await encoder_forward(this, { pixel_values });
     }
 
-    async forward(model_inputs) {
-        const { num_feature_levels } = this.config.vision_config;
+    async forward(model_inputs: Record<string, any>) {
+        const { num_feature_levels } = this.config.vision_config as Record<string, number>;
         const image_embeddings_name = Array.from({ length: num_feature_levels }, (_, i) => `image_embeddings.${i}`);
 
         if (image_embeddings_name.some((name) => !model_inputs[name])) {
             // Compute the image embeddings if they are missing
             model_inputs = {
                 ...model_inputs,
-                ...(await this.get_image_embeddings(model_inputs)),
+                ...(await this.get_image_embeddings(model_inputs as { pixel_values: Tensor })),
             };
         } else {
             model_inputs = { ...model_inputs };
@@ -80,7 +80,7 @@ export class Sam2Model extends Sam2PreTrainedModel {
         //  - iou_scores: tensor.float32[batch_size,num_boxes_or_points,3]
         //  - pred_masks: tensor.float32[batch_size,num_boxes_or_points,3,256,256]
         //  - object_score_logits: tensor.float32[batch_size,num_boxes_or_points,1]
-        return await sessionRun(prompt_encoder_mask_decoder_session, decoder_inputs);
+        return await sessionRun(prompt_encoder_mask_decoder_session, decoder_inputs as Record<string, Tensor>);
     }
 
     /**
@@ -88,7 +88,7 @@ export class Sam2Model extends Sam2PreTrainedModel {
      * @param {Object} model_inputs Model inputs
      * @returns {Promise<Sam2ImageSegmentationOutput>} Object containing segmentation outputs
      */
-    async _call(model_inputs) {
+    async _call(model_inputs: Record<string, any>) {
         return new Sam2ImageSegmentationOutput(await super._call(model_inputs));
     }
 }

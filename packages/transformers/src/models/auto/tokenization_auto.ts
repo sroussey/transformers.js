@@ -39,8 +39,8 @@ export class AutoTokenizer {
      * @returns {Promise<PreTrainedTokenizer>} A new instance of the PreTrainedTokenizer class.
      */
     static async from_pretrained(
-        pretrained_model_name_or_path,
-        { progress_callback = null, config = null, cache_dir = null, local_files_only = false, revision = 'main' } = {},
+        pretrained_model_name_or_path: string,
+        { progress_callback = null, config = null, cache_dir = null, local_files_only = false, revision = 'main' }: import('../../utils/hub.js').PretrainedOptions = {},
     ) {
         const [tokenizerJSON, tokenizerConfig] = await loadTokenizer(pretrained_model_name_or_path, {
             progress_callback,
@@ -51,9 +51,9 @@ export class AutoTokenizer {
         });
 
         // Some tokenizers are saved with the "Fast" suffix, so we remove that if present.
-        const tokenizerName = tokenizerConfig.tokenizer_class?.replace(/Fast$/, '') ?? 'PreTrainedTokenizer';
+        const tokenizerName = (tokenizerConfig.tokenizer_class as string | undefined)?.replace(/Fast$/, '') ?? 'PreTrainedTokenizer';
 
-        let cls = AllTokenizers[tokenizerName];
+        let cls = (AllTokenizers as unknown as Record<string, typeof PreTrainedTokenizer>)[tokenizerName];
         if (!cls) {
             logger.warn(`Unknown tokenizer class "${tokenizerName}", attempting to construct from base class.`);
             cls = PreTrainedTokenizer;

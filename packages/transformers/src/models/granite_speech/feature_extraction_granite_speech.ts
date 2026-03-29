@@ -3,9 +3,10 @@ import { mel_filter_bank, spectrogram, window_function } from '../../utils/audio
 import { Tensor } from '../../utils/tensor';
 
 export class GraniteSpeechFeatureExtractor extends FeatureExtractor {
+    declare config: Record<string, any>;
     mel_filters;
     window;
-    constructor(config) {
+    constructor(config: Record<string, any>) {
         super(config);
 
         const { n_fft, win_length, n_mels, sample_rate } = config.melspec_kwargs;
@@ -34,7 +35,7 @@ export class GraniteSpeechFeatureExtractor extends FeatureExtractor {
      * @param {Float32Array|Float64Array} audio The audio waveform.
      * @returns {Promise<{input_features: Tensor}>}
      */
-    async _call(audio) {
+    async _call(audio: Float32Array | Float64Array) {
         validate_audio_inputs(audio, 'GraniteSpeechFeatureExtractor');
 
         const { n_fft, hop_length, n_mels } = this.config.melspec_kwargs;

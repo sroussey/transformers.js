@@ -12,10 +12,7 @@ export class Dinov2WithRegistersModel extends Dinov2WithRegistersPreTrainedModel
  * Dinov2WithRegisters Model transformer with an image classification head on top (a linear layer on top of the final hidden state of the [CLS] token) e.g. for ImageNet.
  */
 export class Dinov2WithRegistersForImageClassification extends Dinov2WithRegistersPreTrainedModel {
-    /**
-     * @param {any} model_inputs
-     */
-    async _call(model_inputs) {
+    async _call(model_inputs: Record<string, any>) {
         return new SequenceClassifierOutput(await super._call(model_inputs));
     }
 }

@@ -10,7 +10,7 @@ export class VitMatteImageProcessor extends ImageProcessor {
      * @param {import("../../utils/image.js").RawImage[]} trimaps The trimaps(s) to extract features from.
      * @returns {Promise<import("../../image_processors_utils.js").ImageProcessorResult>} An object containing the concatenated pixel values of the preprocessed images.
      */
-    async _call(images, trimaps) {
+    async _call(images: import("../../utils/image.js").RawImage | import("../../utils/image.js").RawImage[], trimaps: import("../../utils/image.js").RawImage | import("../../utils/image.js").RawImage[]) {
         if (!Array.isArray(images)) {
             images = [images];
         }
@@ -18,9 +18,9 @@ export class VitMatteImageProcessor extends ImageProcessor {
             trimaps = [trimaps];
         }
 
-        const imageData = await Promise.all(images.map((x) => this.preprocess(x)));
+        const imageData = await Promise.all(images.map((x: import("../../utils/image.js").RawImage) => this.preprocess(x)));
         const trimapData = await Promise.all(
-            trimaps.map((x) =>
+            trimaps.map((x: import("../../utils/image.js").RawImage) =>
                 this.preprocess(x, {
                     do_normalize: false,
                     do_convert_rgb: false,

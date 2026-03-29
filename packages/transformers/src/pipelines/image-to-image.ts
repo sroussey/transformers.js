@@ -42,14 +42,15 @@ import { Pipeline, prepareImages } from './_base';
 export class ImageToImagePipeline
     extends /** @type {new (options: ImagePipelineConstructorArgs) => ImageToImagePipelineType} */ (Pipeline)
 {
-    async _call(images) {
+    async _call(images: import('./_base.js').ImageInput | import('./_base.js').ImageInput[]) {
         const preparedImages = await prepareImages(images);
         const inputs = await this.processor(preparedImages);
         const outputs = await this.model(inputs);
 
         /** @type {RawImage[]} */
         const toReturn = [];
-        for (const batch of outputs.reconstruction) {
+        for (const batch_ of outputs.reconstruction) {
+            const batch = batch_ as import('../utils/tensor.js').Tensor;
             const output = batch.squeeze().clamp_(0, 1).mul_(255).round_().to('uint8');
             toReturn.push(RawImage.fromTensor(output));
         }

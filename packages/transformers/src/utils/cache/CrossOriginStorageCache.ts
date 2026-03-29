@@ -13,7 +13,7 @@ const HASH_CACHE_NAME = 'experimental_transformers-hash-cache';
  * @param {string} value Hex-encoded SHA-256 hash.
  * @returns {{ algorithm: string, value: string }}
  */
-const makeHashDescriptor = (value) => ({ algorithm: HASH_ALGORITHM, value });
+const makeHashDescriptor = (value: string) => ({ algorithm: HASH_ALGORITHM, value });
 
 /**
  * A cache implementation backed by the experimental `navigator.crossOriginStorage` API,
@@ -25,7 +25,7 @@ const makeHashDescriptor = (value) => ({ algorithm: HASH_ALGORITHM, value });
  */
 export class CrossOriginStorage {
     /** @type {Promise<Cache> | null} */
-    #hashCache = null;
+    #hashCache: Promise<Cache> | null = null;
 
     /**
      * Returns (and lazily opens) the hash cache, reusing the same promise across concurrent callers.
@@ -51,7 +51,7 @@ export class CrossOriginStorage {
      * @param {string} request The URL of the resource to look up.
      * @returns {Promise<Response|undefined>} The cached `Response`, or `undefined` if not found.
      */
-    match = async (request) => {
+    match = async (request: string): Promise<Response | undefined> => {
         const hashValue = await this._getFileHash(request);
         if (!hashValue) {
             return undefined;
@@ -87,7 +87,7 @@ export class CrossOriginStorage {
      * @param {Response} response The response whose body will be written to the cache.
      * @returns {Promise<void>}
      */
-    put = async (request, response) => {
+    put = async (request: string, response: Response): Promise<void> => {
         const hashValue = await this._getFileHash(request);
 
         if (hashValue) {
@@ -109,7 +109,7 @@ export class CrossOriginStorage {
      * @param {string} hashHex Hex-encoded SHA-256 hash of `blob`.
      * @returns {Promise<void>}
      */
-    _storeBlobInCOS = async (blob, hashHex) => {
+    _storeBlobInCOS = async (blob: Blob, hashHex: string): Promise<void> => {
         const [handle] = await navigator.crossOriginStorage.requestFileHandles([makeHashDescriptor(hashHex)], {
             create: true,
         });
@@ -131,7 +131,7 @@ export class CrossOriginStorage {
      * @param {ReadableStream} stream The response body stream to consume.
      * @returns {Promise<void>}
      */
-    _processAndStore = async (request, stream) => {
+    _processAndStore = async (request: string, stream: ReadableStream): Promise<void> => {
         try {
             const chunks = [];
             for await (const chunk of stream) {
@@ -167,7 +167,7 @@ export class CrossOriginStorage {
      * @param {string} request
      * @returns {Promise<boolean>} Resolves to `true` if the hash entry was deleted, `false` otherwise.
      */
-    delete = async (request) => {
+    delete = async (request: string): Promise<boolean> => {
         try {
             const hashCache = await this._getHashCache();
             return await hashCache.delete(request);
@@ -188,7 +188,7 @@ export class CrossOriginStorage {
      * @param {string} url The resource URL to resolve a hash for.
      * @returns {Promise<string|null>} The hex-encoded SHA-256 hash, or `null` if unavailable.
      */
-    _getFileHash = async (url) => {
+    _getFileHash = async (url: string): Promise<string | null> => {
         try {
             const hashCache = await this._getHashCache();
             const cached = await hashCache.match(url);
@@ -220,7 +220,7 @@ export class CrossOriginStorage {
      * @param {string} url The resolved Hugging Face URL of the resource.
      * @returns {Promise<string|null>} The hex-encoded SHA-256 hash, or `null` if unavailable.
      */
-    _getLfsFileHash = async (url) => {
+    _getLfsFileHash = async (url: string): Promise<string | null> => {
         if (!url.includes('/resolve/')) {
             return null;
         }
@@ -242,7 +242,7 @@ export class CrossOriginStorage {
      * @param {Blob} blob The blob to hash.
      * @returns {Promise<string>} The lowercase hex-encoded SHA-256 hash.
      */
-    _getBlobHash = async (blob) => {
+    _getBlobHash = async (blob: Blob): Promise<string> => {
         const arrayBuffer = await blob.arrayBuffer();
         const hashBuffer = await crypto.subtle.digest(HASH_ALGORITHM, arrayBuffer);
         const hashArray = Array.from(new Uint8Array(hashBuffer));

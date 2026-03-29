@@ -17,7 +17,7 @@ import { get_tokenizer_files } from './get_tokenizer_files';
  * @returns {Promise<string[]>} Array of file paths that will be loaded
  */
 export async function get_files(
-    modelId,
+    modelId: string,
     {
         config = null,
         dtype = null,
@@ -25,8 +25,15 @@ export async function get_files(
         model_file_name = null,
         include_tokenizer = true,
         include_processor = true,
+    }: {
+        config?: import('../../configs.js').PretrainedConfig | null,
+        dtype?: string | Record<string, string> | null,
+        device?: string | Record<string, string> | null,
+        model_file_name?: string | null,
+        include_tokenizer?: boolean,
+        include_processor?: boolean,
     } = {},
-) {
+): Promise<string[]> {
     const files = await get_model_files(modelId, { config, dtype, device, model_file_name });
 
     if (include_tokenizer) {

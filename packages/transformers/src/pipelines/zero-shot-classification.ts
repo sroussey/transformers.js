@@ -80,15 +80,15 @@ import { softmax } from '../utils/maths';
 export class ZeroShotClassificationPipeline
     extends /** @type {new (options: TextPipelineConstructorArgs) => ZeroShotClassificationPipelineType} */ (Pipeline)
 {
-    label2id;
-    entailment_id;
-    contradiction_id;
+    label2id: Record<string, number>;
+    entailment_id: number;
+    contradiction_id: number;
 
     /**
      * Create a new ZeroShotClassificationPipeline.
      * @param {TextPipelineConstructorArgs} options An object used to instantiate the pipeline.
      */
-    constructor(options) {
+    constructor(options: ConstructorParameters<typeof Pipeline>[0]) {
         super(options);
 
         // Use model config to get label2id mapping
@@ -109,17 +109,17 @@ export class ZeroShotClassificationPipeline
         }
     }
 
-    async _call(texts, candidate_labels, { hypothesis_template = 'This example is {}.', multi_label = false } = {}) {
+    async _call(texts: string | string[], candidate_labels: string | string[], { hypothesis_template = 'This example is {}.', multi_label = false } = {}) {
         const isBatched = Array.isArray(texts);
         if (!isBatched) {
-            texts = [/** @type {string} */ (texts)];
+            texts = [texts as string];
         }
         if (!Array.isArray(candidate_labels)) {
             candidate_labels = [candidate_labels];
         }
 
         // Insert labels into hypothesis template
-        const hypotheses = candidate_labels.map((x) => hypothesis_template.replace('{}', x));
+        const hypotheses = candidate_labels.map((x: string) => hypothesis_template.replace('{}', x));
 
         // How to perform the softmax over the logits:
         //  - true:  softmax over the entailment vs. contradiction dim for each label independently
@@ -150,15 +150,15 @@ export class ZeroShotClassificationPipeline
             }
 
             /** @type {number[]} */
-            const scores = softmaxEach ? entails_logits.map((x) => softmax(x)[1]) : softmax(entails_logits);
+            const scores: number[] = softmaxEach ? entails_logits.map((x: number[]) => softmax(x)[1]) : softmax(entails_logits as number[]);
 
             // Sort by scores (desc) and return scores with indices
-            const scores_sorted = scores.map((x, i) => [x, i]).sort((a, b) => b[0] - a[0]);
+            const scores_sorted = scores.map((x: number, i: number) => [x, i]).sort((a: number[], b: number[]) => b[0] - a[0]);
 
             toReturn.push({
                 sequence: premise,
-                labels: scores_sorted.map((x) => candidate_labels[x[1]]),
-                scores: scores_sorted.map((x) => x[0]),
+                labels: scores_sorted.map((x: number[]) => candidate_labels[x[1]]),
+                scores: scores_sorted.map((x: number[]) => x[0]),
             });
         }
         return isBatched ? toReturn : toReturn[0];

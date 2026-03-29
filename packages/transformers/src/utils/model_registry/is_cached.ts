@@ -14,6 +14,10 @@ import { get_pipeline_files } from './get_pipeline_files';
  * @property {boolean} allCached - Whether all files are cached
  * @property {FileCacheStatus[]} files - Array of files with their cache status
  */
+export interface CacheCheckResult {
+    allCached: boolean;
+    files: { file: string; cached: boolean }[];
+}
 
 /**
  * Internal helper to check cache status for a list of files
@@ -23,17 +27,17 @@ import { get_pipeline_files } from './get_pipeline_files';
  * @param {Object} options - Options including cache_dir
  * @returns {Promise<CacheCheckResult>}
  */
-async function check_files_cache(modelId, files, options = {} as any) {
-    const cache = await getCache(options?.cache_dir);
+async function check_files_cache(modelId: string, files: string[], options: Record<string, unknown> = {}): Promise<CacheCheckResult> {
+    const cache = await getCache((options?.cache_dir as string) ?? null);
 
     if (!cache) {
-        const fileStatuses = files.map((filename) => ({ file: filename, cached: false }));
+        const fileStatuses = files.map((filename: string) => ({ file: filename, cached: false }));
         // No cache available, all files considered not cached
         return { allCached: false, files: fileStatuses };
     }
 
     const fileStatuses = await Promise.all(
-        files.map(async (filename) => {
+        files.map(async (filename: string) => {
             const { localPath, proposedCacheKey } = buildResourcePaths(modelId, filename, options, cache);
             const cached = await checkCachedResource(cache, localPath, proposedCacheKey);
             return { file: filename, cached: !!cached };
@@ -51,8 +55,8 @@ async function check_files_cache(modelId, files, options = {} as any) {
  * @param {Object} options - Options including cache_dir
  * @returns {Promise<boolean>}
  */
-async function is_file_cached(modelId, filename, options = {} as any) {
-    const cache = await getCache(options?.cache_dir);
+async function is_file_cached(modelId: string, filename: string, options: Record<string, unknown> = {}): Promise<boolean> {
+    const cache = await getCache((options?.cache_dir as string) ?? null);
     if (!cache) return false;
     const { localPath, proposedCacheKey } = buildResourcePaths(modelId, filename, options, cache);
     return !!(await checkCachedResource(cache, localPath, proposedCacheKey));
@@ -72,7 +76,7 @@ async function is_file_cached(modelId, filename, options = {} as any) {
  * @param {import('../devices.js').DeviceType|Record<string, import('../devices.js').DeviceType>} [options.device] Override device
  * @returns {Promise<boolean>} Whether all required files are cached
  */
-export async function is_cached(modelId, options = {}) {
+export async function is_cached(modelId: string, options: Record<string, unknown> = {}): Promise<boolean> {
     if (!modelId) {
         throw new Error('modelId is required');
     }
@@ -100,7 +104,7 @@ export async function is_cached(modelId, options = {}) {
  * @param {import('../devices.js').DeviceType|Record<string, import('../devices.js').DeviceType>} [options.device] Override device
  * @returns {Promise<CacheCheckResult>} Object with allCached boolean and files array with cache status
  */
-export async function is_cached_files(modelId, options = {}) {
+export async function is_cached_files(modelId: string, options: Record<string, unknown> = {}): Promise<CacheCheckResult> {
     if (!modelId) {
         throw new Error('modelId is required');
     }
@@ -124,7 +128,7 @@ export async function is_cached_files(modelId, options = {}) {
  * @param {import('../devices.js').DeviceType|Record<string, import('../devices.js').DeviceType>} [options.device] - Override device
  * @returns {Promise<boolean>} Whether all required files are cached
  */
-export async function is_pipeline_cached(task, modelId, options = {}) {
+export async function is_pipeline_cached(task: string, modelId: string, options: Record<string, unknown> = {}): Promise<boolean> {
     if (!task) {
         throw new Error('task is required');
     }
@@ -156,7 +160,7 @@ export async function is_pipeline_cached(task, modelId, options = {}) {
  * @param {import('../devices.js').DeviceType|Record<string, import('../devices.js').DeviceType>} [options.device] - Override device
  * @returns {Promise<CacheCheckResult>} Object with allCached boolean and files array with cache status
  */
-export async function is_pipeline_cached_files(task, modelId, options = {}) {
+export async function is_pipeline_cached_files(task: string, modelId: string, options: Record<string, unknown> = {}): Promise<CacheCheckResult> {
     if (!task) {
         throw new Error('task is required');
     }

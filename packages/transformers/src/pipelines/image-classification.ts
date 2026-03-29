@@ -82,7 +82,7 @@ import { Tensor, topk } from '../utils/tensor';
 export class ImageClassificationPipeline
     extends /** @type {new (options: ImagePipelineConstructorArgs) => ImageClassificationPipelineType} */ (Pipeline)
 {
-    async _call(images, { top_k = 5 } = {}) {
+    async _call(images: import('./_base.js').ImageInput | import('./_base.js').ImageInput[], { top_k = 5 } = {}) {
         const preparedImages = await prepareImages(images);
 
         const { pixel_values } = await this.processor(preparedImages);
@@ -92,14 +92,15 @@ export class ImageClassificationPipeline
 
         /** @type {ImageClassificationOutput[]} */
         const toReturn = [];
-        for (const batch of output.logits) {
-            const scores = await topk(new Tensor('float32', softmax(batch.data), batch.dims), top_k);
+        for (const batch_ of output.logits) {
+            const batch = batch_ as Tensor;
+            const scores = await topk(new Tensor('float32', softmax(batch.data as Float32Array), batch.dims), top_k) as Tensor[];
 
-            const values = scores[0].tolist();
-            const indices = scores[1].tolist();
+            const values = scores[0].tolist() as number[];
+            const indices = scores[1].tolist() as number[];
 
-            const vals = indices.map((x, i) => ({
-                label: /** @type {string} */ (id2label ? id2label[x] : `LABEL_${x}`),
+            const vals = indices.map((x: number, i: number) => ({
+                label: /** @type {string} */ (id2label ? (id2label as Record<number, string>)[x] : `LABEL_${x}`),
                 score: /** @type {number} */ (values[i]),
             }));
             toReturn.push(vals);

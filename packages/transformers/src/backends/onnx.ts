@@ -30,6 +30,7 @@ export { Tensor } from 'onnxruntime-common';
 /**
  * @typedef {import('onnxruntime-common').InferenceSession.ExecutionProviderConfig} ONNXExecutionProviders
  */
+type ONNXExecutionProviders = import('onnxruntime-common').InferenceSession.ExecutionProviderConfig;
 
 /** @type {Record<import("../utils/devices.js").DeviceType, ONNXExecutionProviders>} */
 const DEVICE_TO_EXECUTION_PROVIDER_MAPPING = Object.freeze({
@@ -55,7 +56,7 @@ const DEVICE_TO_EXECUTION_PROVIDER_MAPPING = Object.freeze({
  * @param {number} logLevel - The LogLevel value to convert
  * @returns {number} ONNX Runtime severity level (0-4)
  */
-function getOnnxLogSeverityLevel(logLevel) {
+function getOnnxLogSeverityLevel(logLevel: number): 0 | 1 | 2 | 3 | 4 {
     // ONNX Runtime's log severity levels are defined as follows:
     // (0) ORT_LOGGING_LEVEL_VERBOSE: Print all log messages.
     // (1) ORT_LOGGING_LEVEL_INFO: Print info and higher level log messages.
@@ -95,16 +96,16 @@ const ONNX_LOG_LEVEL_NAMES = {
  * The list of supported devices, sorted by priority/performance.
  * @type {import("../utils/devices.js").DeviceType[]}
  */
-const supportedDevices = [];
+const supportedDevices: string[] = [];
 
 /** @type {ONNXExecutionProviders[]} */
-let defaultDevices;
-let ONNX;
+let defaultDevices: ONNXExecutionProviders[];
+let ONNX: typeof ONNX_NODE | typeof ONNX_WEB | unknown;
 const ORT_SYMBOL = Symbol.for('onnxruntime');
 
 if (ORT_SYMBOL in globalThis) {
     // If the JS runtime exposes their own ONNX runtime, use it
-    ONNX = globalThis[ORT_SYMBOL];
+    ONNX = (globalThis as Record<symbol, unknown>)[ORT_SYMBOL];
 } else if (apis.IS_NODE_ENV) {
     ONNX = ONNX_NODE;
 
@@ -150,15 +151,14 @@ if (ORT_SYMBOL in globalThis) {
     defaultDevices = ['wasm'];
 }
 
-// @ts-ignore
-const InferenceSession = ONNX.InferenceSession;
+const InferenceSession: typeof import('onnxruntime-common').InferenceSession = (ONNX as typeof ONNX_WEB).InferenceSession;
 
 /**
  * Map a device to the execution providers to use for the given device.
  * @param {import("../utils/devices.js").DeviceType|"auto"|null} [device=null] (Optional) The device to run the inference on.
  * @returns {ONNXExecutionProviders[]} The execution providers to use for the given device.
  */
-export function deviceToExecutionProviders(device = null) {
+export function deviceToExecutionProviders(device: string | null = null): ONNXExecutionProviders[] {
     // Use the default execution providers if the user hasn't specified anything
     if (!device) return defaultDevices;
 
@@ -171,7 +171,7 @@ export function deviceToExecutionProviders(device = null) {
     }
 
     if (supportedDevices.includes(device)) {
-        return [DEVICE_TO_EXECUTION_PROVIDER_MAPPING[device] ?? device];
+        return [(DEVICE_TO_EXECUTION_PROVIDER_MAPPING as Record<string, ONNXExecutionProviders>)[device] ?? device];
     }
 
     throw new Error(`Unsupported device: "${device}". Should be one of: ${supportedDevices.join(', ')}.`);
@@ -182,14 +182,14 @@ export function deviceToExecutionProviders(device = null) {
  * For this reason, we need to chain the loading calls.
  * @type {Promise<any>}
  */
-let webInitChain = Promise.resolve();
+let webInitChain: Promise<unknown> = Promise.resolve();
 
 /**
  * Promise that resolves when WASM binary has been loaded (if caching is enabled).
  * This ensures we only attempt to load the WASM binary once.
  * @type {Promise<void>|null}
  */
-let wasmLoadPromise = null;
+let wasmLoadPromise: Promise<void> | null = null;
 
 /**
  * Ensures the WASM binary is loaded and cached before creating an inference session.
@@ -228,7 +228,7 @@ async function ensureWasmLoaded() {
     wasmLoadPromise = (async () => {
         // At this point, we know wasmPaths is an object (not a string) because
         // shouldUseWasmCache checks for wasmPaths.wasm and wasmPaths.mjs
-        const urls = /** @type {{ wasm: string, mjs: string }} */ (ONNX_ENV.wasm.wasmPaths);
+        const urls = ONNX_ENV.wasm.wasmPaths as unknown as { wasm: string, mjs: string };
 
         // Load both in parallel; the .mjs blob URL is only kept if wasmBinary succeeded.
         // ORT only sets locateFile when wasmBinary is provided (onnxruntime PR https://github.com/microsoft/onnxruntime/pull/27411), which
@@ -256,8 +256,7 @@ async function ensureWasmLoaded() {
                       try {
                           const wasmFactoryBlob = await loadWasmFactory(toAbsoluteURL(urls.mjs));
                           if (wasmFactoryBlob) {
-                              // @ts-ignore
-                              ONNX_ENV.wasm.wasmPaths.mjs = wasmFactoryBlob;
+                              (ONNX_ENV.wasm.wasmPaths as Record<string, unknown>).mjs = wasmFactoryBlob;
                           }
                       } catch (err) {
                           logger.warn('Failed to pre-load WASM factory:', err);
@@ -268,8 +267,7 @@ async function ensureWasmLoaded() {
 
         // If wasmBinary failed to load, revert wasmPaths.mjs to the original URL (factory can only be loaded from blob if ONNX_ENV.wasm.wasmBinary is set. @see ORT PR #27411)
         if (!wasmBinaryLoaded) {
-            // @ts-ignore
-            ONNX_ENV.wasm.wasmPaths.mjs = urls.mjs;
+            (ONNX_ENV.wasm.wasmPaths as Record<string, unknown>).mjs = urls.mjs;
         }
     })();
 
@@ -283,16 +281,16 @@ async function ensureWasmLoaded() {
  * @param {Object} session_config ONNX inference session configuration.
  * @returns {Promise<import('onnxruntime-common').InferenceSession & { config: Object }>} The ONNX inference session.
  */
-export async function createInferenceSession(buffer_or_path, session_options, session_config) {
+export async function createInferenceSession(buffer_or_path: Uint8Array | string, session_options: import('onnxruntime-common').InferenceSession.SessionOptions, session_config: Record<string, unknown>): Promise<import('onnxruntime-common').InferenceSession & { config: Record<string, unknown> }> {
     await ensureWasmLoaded();
     const logSeverityLevel = getOnnxLogSeverityLevel(env.logLevel ?? LogLevel.WARNING);
     const load = () =>
-        InferenceSession.create(buffer_or_path, {
+        InferenceSession.create(buffer_or_path as Uint8Array, {
             // Set default log severity level, but allow overriding through session options
             logSeverityLevel,
             ...session_options,
         });
-    const session = await (apis.IS_WEB_ENV ? (webInitChain = webInitChain.then(load)) : load());
+    const session = await (apis.IS_WEB_ENV ? (webInitChain = webInitChain.then(load)) : load()) as import('onnxruntime-common').InferenceSession & { config: Record<string, unknown> };
     session.config = session_config;
     return session;
 }
@@ -302,7 +300,7 @@ export async function createInferenceSession(buffer_or_path, session_options, se
  * For this reason, we need to chain the inference calls (otherwise we get "Error: Session already started").
  * @type {Promise<any>}
  */
-let webInferenceChain = Promise.resolve();
+let webInferenceChain: Promise<unknown> = Promise.resolve();
 
 /**
  * Run an inference session.
@@ -310,9 +308,9 @@ let webInferenceChain = Promise.resolve();
  * @param {Record<string, import('onnxruntime-common').Tensor>} ortFeed The input tensors.
  * @returns {Promise<Record<string, import('onnxruntime-common').Tensor>>} The output tensors.
  */
-export async function runInferenceSession(session, ortFeed) {
+export async function runInferenceSession(session: import('onnxruntime-common').InferenceSession, ortFeed: Record<string, import('onnxruntime-common').Tensor>): Promise<Record<string, import('onnxruntime-common').Tensor>> {
     const run = () => session.run(ortFeed);
-    return apis.IS_WEB_ENV ? (webInferenceChain = webInferenceChain.then(run)) : run();
+    return apis.IS_WEB_ENV ? (webInferenceChain = webInferenceChain.then(run)) as Promise<Record<string, import('onnxruntime-common').Tensor>> : run();
 }
 
 /**
@@ -320,11 +318,11 @@ export async function runInferenceSession(session, ortFeed) {
  * @param {any} x The object to check
  * @returns {boolean} Whether the object is an ONNX tensor.
  */
-export function isONNXTensor(x) {
-    return x instanceof ONNX.Tensor;
+export function isONNXTensor(x: unknown): boolean {
+    return x instanceof (ONNX as typeof ONNX_WEB).Tensor;
 }
 /** @type {import('onnxruntime-common').Env} */
-const ONNX_ENV = ONNX?.env;
+const ONNX_ENV = (ONNX as typeof ONNX_WEB)?.env;
 
 /**
  * Check if ONNX's WASM backend is being proxied.
@@ -342,8 +340,7 @@ if (ONNX_ENV) {
         // (Optional) Set path to wasm files. This will override the default path search behavior of onnxruntime-web.
         // By default, we only do this if we are not in a service worker and the wasmPaths are not already set.
         if (
-            // @ts-ignore Cannot find name 'ServiceWorkerGlobalScope'.ts(2304)
-            !(typeof ServiceWorkerGlobalScope !== 'undefined' && self instanceof ServiceWorkerGlobalScope) &&
+            !(typeof (globalThis as Record<string, unknown>).ServiceWorkerGlobalScope !== 'undefined' && self instanceof ((globalThis as Record<string, unknown>).ServiceWorkerGlobalScope as { new (): EventTarget })) &&
             ONNX_ENV.versions?.web &&
             !ONNX_ENV.wasm.wasmPaths
         ) {
@@ -374,9 +371,9 @@ if (ONNX_ENV) {
      * levels, and set the log level environment variable in ONNX Runtime.
      * @param {number} logLevel The log level to set.
      */
-    function setLogLevel(logLevel) {
-        const severityLevel = getOnnxLogSeverityLevel(logLevel);
-        ONNX_ENV.logLevel = ONNX_LOG_LEVEL_NAMES[severityLevel];
+    function setLogLevel(logLevel: number) {
+        const severityLevel = getOnnxLogSeverityLevel(logLevel) as 0 | 1 | 2 | 3 | 4;
+        ONNX_ENV.logLevel = ONNX_LOG_LEVEL_NAMES[severityLevel] as typeof ONNX_ENV.logLevel;
     }
 
     // Set the initial log level to be the default Transformers.js log level.

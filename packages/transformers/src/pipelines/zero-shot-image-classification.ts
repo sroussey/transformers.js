@@ -61,12 +61,12 @@ export class ZeroShotImageClassificationPipeline
         Pipeline
     )
 {
-    async _call(images, candidate_labels, { hypothesis_template = 'This is a photo of {}' } = {}) {
+    async _call(images: import('./_base.js').ImageInput | import('./_base.js').ImageInput[], candidate_labels: string[], { hypothesis_template = 'This is a photo of {}' } = {}) {
         const isBatched = Array.isArray(images);
         const preparedImages = await prepareImages(images);
 
         // Insert label into hypothesis template
-        const texts = candidate_labels.map((x) => hypothesis_template.replace('{}', x));
+        const texts = candidate_labels.map((x: string) => hypothesis_template.replace('{}', x));
 
         // Run tokenization
         const text_inputs = this.tokenizer(texts, {
@@ -82,20 +82,20 @@ export class ZeroShotImageClassificationPipeline
 
         const function_to_apply =
             this.model.config.model_type === 'siglip'
-                ? (batch) => batch.sigmoid().data
-                : (batch) => softmax(batch.data);
+                ? (batch: import('../utils/tensor.js').Tensor) => batch.sigmoid().data
+                : (batch: import('../utils/tensor.js').Tensor) => softmax(batch.data as import('../utils/maths.js').TypedArray | number[]);
 
         // Compare each image with each candidate label
         const toReturn = [];
-        for (const batch of output.logits_per_image) {
+        for (const batch_ of output.logits_per_image) {
             // Compute softmax per image
-            const probs = function_to_apply(batch);
+            const probs = function_to_apply(batch_ as import('../utils/tensor.js').Tensor);
 
-            const result = [...probs].map((x, i) => ({
+            const result = ([...probs] as number[]).map((x, i) => ({
                 score: x,
                 label: candidate_labels[i],
             }));
-            result.sort((a, b) => b.score - a.score); // sort by score in descending order
+            result.sort((a, b) => (b.score as number) - (a.score as number)); // sort by score in descending order
             toReturn.push(result);
         }
 

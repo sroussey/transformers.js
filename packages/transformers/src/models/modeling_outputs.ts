@@ -1,3 +1,5 @@
+import { Tensor } from '../utils/tensor';
+
 /**
  * @typedef {import('../utils/tensor.js').Tensor} Tensor
  */
@@ -8,16 +10,16 @@ export class ModelOutput {}
  * Base class for model's outputs, with potential hidden states and attentions.
  */
 export class BaseModelOutput extends ModelOutput {
-    last_hidden_state;
-    hidden_states;
-    attentions;
+    last_hidden_state: Tensor;
+    hidden_states: Tensor | null;
+    attentions: Tensor | null;
     /**
      * @param {Object} output The output of the model.
      * @param {Tensor} output.last_hidden_state Sequence of hidden-states at the output of the last layer of the model.
      * @param {Tensor} [output.hidden_states] Hidden-states of the model at the output of each layer plus the optional initial embedding outputs.
      * @param {Tensor} [output.attentions] Attentions weights after the attention softmax, used to compute the weighted average in the self-attention heads.
      */
-    constructor({ last_hidden_state, hidden_states = null, attentions = null }) {
+    constructor({ last_hidden_state, hidden_states = null, attentions = null }: { last_hidden_state: Tensor; hidden_states?: Tensor | null; attentions?: Tensor | null }) {
         super();
         this.last_hidden_state = last_hidden_state;
         this.hidden_states = hidden_states;
@@ -29,15 +31,15 @@ export class BaseModelOutput extends ModelOutput {
  * Base class for outputs of sentence classification models.
  */
 export class SequenceClassifierOutput extends ModelOutput {
-    logits;
-    attentions;
+    logits: Tensor;
+    attentions: Tensor[] | undefined;
     /**
      * @param {Object} output The output of the model.
      * @param {Tensor} output.logits classification (or regression if config.num_labels==1) scores (before SoftMax).
      * @param {Record<string, Tensor>} [output.attentions] Object of `torch.FloatTensor` (one for each layer) of shape `(batch_size, num_heads, sequence_length, sequence_length)`.
      * Attentions weights after the attention softmax, used to compute the weighted average in the self-attention heads.
      */
-    constructor({ logits, ...attentions }) {
+    constructor({ logits, ...attentions }: { logits: Tensor; [key: string]: Tensor }) {
         super();
         this.logits = logits;
         const attentions_list = Object.values(attentions);
@@ -52,12 +54,12 @@ export class SequenceClassifierOutput extends ModelOutput {
  * Base class for outputs of token classification models.
  */
 export class TokenClassifierOutput extends ModelOutput {
-    logits;
+    logits: Tensor;
     /**
      * @param {Object} output The output of the model.
      * @param {Tensor} output.logits Classification scores (before SoftMax).
      */
-    constructor({ logits }) {
+    constructor({ logits }: { logits: Tensor }) {
         super();
         this.logits = logits;
     }
@@ -67,12 +69,12 @@ export class TokenClassifierOutput extends ModelOutput {
  * Base class for masked language models outputs.
  */
 export class MaskedLMOutput extends ModelOutput {
-    logits;
+    logits: Tensor;
     /**
      * @param {Object} output The output of the model.
      * @param {Tensor} output.logits Prediction scores of the language modeling head (scores for each vocabulary token before SoftMax).
      */
-    constructor({ logits }) {
+    constructor({ logits }: { logits: Tensor }) {
         super();
         this.logits = logits;
     }
@@ -82,14 +84,14 @@ export class MaskedLMOutput extends ModelOutput {
  * Base class for outputs of question answering models.
  */
 export class QuestionAnsweringModelOutput extends ModelOutput {
-    start_logits;
-    end_logits;
+    start_logits: Tensor;
+    end_logits: Tensor;
     /**
      * @param {Object} output The output of the model.
      * @param {Tensor} output.start_logits Span-start scores (before SoftMax).
      * @param {Tensor} output.end_logits Span-end scores (before SoftMax).
      */
-    constructor({ start_logits, end_logits }) {
+    constructor({ start_logits, end_logits }: { start_logits: Tensor; end_logits: Tensor }) {
         super();
         this.start_logits = start_logits;
         this.end_logits = end_logits;
@@ -100,12 +102,12 @@ export class QuestionAnsweringModelOutput extends ModelOutput {
  * Base class for causal language model (or autoregressive) outputs.
  */
 export class CausalLMOutput extends ModelOutput {
-    logits;
+    logits: Tensor;
     /**
      * @param {Object} output The output of the model.
      * @param {Tensor} output.logits Prediction scores of the language modeling head (scores for each vocabulary token before softmax).
      */
-    constructor({ logits }) {
+    constructor({ logits }: { logits: Tensor }) {
         super();
         this.logits = logits;
     }
@@ -115,15 +117,15 @@ export class CausalLMOutput extends ModelOutput {
  * Base class for causal language model (or autoregressive) outputs.
  */
 export class CausalLMOutputWithPast extends ModelOutput {
-    logits;
-    past_key_values;
+    logits: Tensor;
+    past_key_values: Tensor;
     /**
      * @param {Object} output The output of the model.
      * @param {Tensor} output.logits Prediction scores of the language modeling head (scores for each vocabulary token before softmax).
      * @param {Tensor} output.past_key_values Contains pre-computed hidden-states (key and values in the self-attention blocks)
      * that can be used (see `past_key_values` input) to speed up sequential decoding.
      */
-    constructor({ logits, past_key_values }) {
+    constructor({ logits, past_key_values }: { logits: Tensor; past_key_values: Tensor }) {
         super();
         this.logits = logits;
         this.past_key_values = past_key_values;
@@ -131,11 +133,11 @@ export class CausalLMOutputWithPast extends ModelOutput {
 }
 
 export class Seq2SeqLMOutput extends ModelOutput {
-    logits;
-    past_key_values;
-    encoder_outputs;
-    decoder_attentions;
-    cross_attentions;
+    logits: Tensor;
+    past_key_values: Tensor;
+    encoder_outputs: Tensor;
+    decoder_attentions: Tensor | null;
+    cross_attentions: Tensor | null;
     /**
      * @param {Object} output The output of the model.
      * @param {Tensor} output.logits The output logits of the model.
@@ -144,7 +146,7 @@ export class Seq2SeqLMOutput extends ModelOutput {
      * @param {Tensor} [output.decoder_attentions] Attentions weights of the decoder, after the attention softmax, used to compute the weighted average in the self-attention heads.
      * @param {Tensor} [output.cross_attentions] Attentions weights of the decoder's cross-attention layer, after the attention softmax, used to compute the weighted average in the cross-attention heads.
      */
-    constructor({ logits, past_key_values, encoder_outputs, decoder_attentions = null, cross_attentions = null }) {
+    constructor({ logits, past_key_values, encoder_outputs, decoder_attentions = null, cross_attentions = null }: { logits: Tensor; past_key_values: Tensor; encoder_outputs: Tensor; decoder_attentions?: Tensor | null; cross_attentions?: Tensor | null }) {
         super();
         this.logits = logits;
         this.past_key_values = past_key_values;
@@ -155,12 +157,12 @@ export class Seq2SeqLMOutput extends ModelOutput {
 }
 
 export class ImageMattingOutput extends ModelOutput {
-    alphas;
+    alphas: Tensor;
     /**
      * @param {Object} output The output of the model.
      * @param {Tensor} output.alphas Estimated alpha values, of shape `(batch_size, num_channels, height, width)`.
      */
-    constructor({ alphas }) {
+    constructor({ alphas }: { alphas: Tensor }) {
         super();
         this.alphas = alphas;
     }

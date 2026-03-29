@@ -76,11 +76,11 @@ export class SiglipModel extends SiglipPreTrainedModel {}
  */
 export class SiglipTextModel extends SiglipPreTrainedModel {
     /** @type {typeof PreTrainedModel.from_pretrained} */
-    static async from_pretrained(pretrained_model_name_or_path, options = {} as any) {
+    static async from_pretrained(pretrained_model_name_or_path: string, options: Record<string, unknown> = {}) {
         return super.from_pretrained(pretrained_model_name_or_path, {
             ...options,
             // Update default model file name if not provided
-            model_file_name: options.model_file_name ?? 'text_model',
+            model_file_name: (options.model_file_name as string) ?? 'text_model',
         });
     }
 }
@@ -113,11 +113,11 @@ export class SiglipTextModel extends SiglipPreTrainedModel {
  */
 export class SiglipVisionModel extends CLIPPreTrainedModel {
     /** @type {typeof PreTrainedModel.from_pretrained} */
-    static async from_pretrained(pretrained_model_name_or_path, options = {} as any) {
+    static async from_pretrained(pretrained_model_name_or_path: string, options: Record<string, unknown> = {}) {
         return super.from_pretrained(pretrained_model_name_or_path, {
             ...options,
             // Update default model file name if not provided
-            model_file_name: options.model_file_name ?? 'vision_model',
+            model_file_name: (options.model_file_name as string) ?? 'vision_model',
         });
     }
 }

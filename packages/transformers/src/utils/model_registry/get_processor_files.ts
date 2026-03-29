@@ -8,7 +8,7 @@ import { get_file_metadata } from './get_file_metadata';
  * @param {string} modelId The model id (e.g., "Xenova/detr-resnet-50")
  * @returns {Promise<string[]>} Array of processor file names (empty if no processor)
  */
-export async function get_processor_files(modelId) {
+export async function get_processor_files(modelId: string): Promise<string[]> {
     if (!modelId) {
         throw new Error('modelId is required');
     }

@@ -1,7 +1,7 @@
 import { ImageProcessor } from '../../image_processors_utils';
 
 export class Swin2SRImageProcessor extends ImageProcessor {
-    pad_image(pixelData, imgDims, padSize, options = {}) {
+    pad_image(pixelData: Float32Array, imgDims: number[], padSize: any, options = {}) {
         // NOTE: In this case, `padSize` represents the size of the sliding window for the local attention.
         // In other words, the image is padded so that its width and height are multiples of `padSize`.
         const [imageHeight, imageWidth, imageChannels] = imgDims;

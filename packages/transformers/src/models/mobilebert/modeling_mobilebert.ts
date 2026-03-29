@@ -14,7 +14,7 @@ export class MobileBertForMaskedLM extends MobileBertPreTrainedModel {
      * @param {Object} model_inputs The inputs to the model.
      * @returns {Promise<MaskedLMOutput>} returned object
      */
-    async _call(model_inputs) {
+    async _call(model_inputs: Record<string, unknown>) {
         return new MaskedLMOutput(await super._call(model_inputs));
     }
 }
@@ -29,7 +29,7 @@ export class MobileBertForSequenceClassification extends MobileBertPreTrainedMod
      * @param {Object} model_inputs The inputs to the model.
      * @returns {Promise<SequenceClassifierOutput>} returned object
      */
-    async _call(model_inputs) {
+    async _call(model_inputs: Record<string, unknown>) {
         return new SequenceClassifierOutput(await super._call(model_inputs));
     }
 }
@@ -44,7 +44,7 @@ export class MobileBertForQuestionAnswering extends MobileBertPreTrainedModel {
      * @param {Object} model_inputs The inputs to the model.
      * @returns {Promise<QuestionAnsweringModelOutput>} returned object
      */
-    async _call(model_inputs) {
+    async _call(model_inputs: Record<string, unknown>) {
         return new QuestionAnsweringModelOutput(await super._call(model_inputs));
     }
 }

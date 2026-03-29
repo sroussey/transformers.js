@@ -3,9 +3,10 @@ import { mel_filter_bank, spectrogram, window_function } from '../../utils/audio
 import { Tensor } from '../../utils/tensor';
 
 export class SeamlessM4TFeatureExtractor extends FeatureExtractor {
+    declare config: Record<string, any>;
     mel_filters;
     window;
-    constructor(config) {
+    constructor(config: Record<string, any>) {
         super(config);
 
         const sampling_rate = this.config.sampling_rate;
@@ -32,12 +33,12 @@ export class SeamlessM4TFeatureExtractor extends FeatureExtractor {
      * @param {number} max_length The maximum number of frames to return.
      * @returns {Promise<Tensor>} An object containing the log-Mel spectrogram data as a Float32Array and its dimensions as an array of numbers.
      */
-    async _extract_fbank_features(waveform, max_length) {
+    async _extract_fbank_features(waveform: Float32Array | Float64Array, max_length: number) {
         // NOTE: We don't pad/truncate since that is passed in as `max_num_frames`
 
         // Kaldi compliance: 16-bit signed integers
         // 32768 == 2 ** 15
-        waveform = waveform.map((/** @type {number} */ x) => x * 32768);
+        waveform = waveform.map((x: number) => x * 32768);
 
         return spectrogram(
             waveform,
@@ -72,7 +73,7 @@ export class SeamlessM4TFeatureExtractor extends FeatureExtractor {
      * @returns {Promise<{ input_features: Tensor, attention_mask?: Tensor }>} A Promise resolving to an object containing the extracted input features and attention masks as Tensors.
      */
     async _call(
-        audio,
+        audio: Float32Array | Float64Array,
         { padding = true, pad_to_multiple_of = 2, do_normalize_per_mel_bins = true, return_attention_mask = true } = {},
     ) {
         validate_audio_inputs(audio, 'SeamlessM4TFeatureExtractor');
@@ -81,7 +82,7 @@ export class SeamlessM4TFeatureExtractor extends FeatureExtractor {
 
         if (do_normalize_per_mel_bins) {
             const [num_features, feature_size] = features.dims;
-            const data = features.data;
+            const data = features.data as Float32Array;
             for (let i = 0; i < feature_size; ++i) {
                 let sum = 0;
                 for (let j = 0; j < num_features; ++j) {
@@ -112,7 +113,7 @@ export class SeamlessM4TFeatureExtractor extends FeatureExtractor {
             const pad_size = num_frames % pad_to_multiple_of;
             if (pad_size > 0) {
                 const padded_data = new Float32Array(num_channels * (num_frames + pad_size));
-                padded_data.set(data);
+                padded_data.set(data as Float32Array);
                 padded_data.fill(this.config.padding_value, data.length);
 
                 const numPaddedFrames = num_frames + pad_size;
@@ -123,7 +124,7 @@ export class SeamlessM4TFeatureExtractor extends FeatureExtractor {
                         1,
                         numPaddedFrames,
                     ]);
-                    /** @type {BigInt64Array} */ (padded_attention_mask.data).fill(1n, 0, num_frames);
+                    /** @type {BigInt64Array} */ ((padded_attention_mask.data) as BigInt64Array).fill(1n, 0, num_frames);
                 }
             }
         }
@@ -146,7 +147,7 @@ export class SeamlessM4TFeatureExtractor extends FeatureExtractor {
             const attention_mask_data = new BigInt64Array(reshapedNumFrames);
 
             if (padded_attention_mask) {
-                const padded_attention_mask_data = padded_attention_mask.data;
+                const padded_attention_mask_data = padded_attention_mask.data as BigInt64Array;
                 for (let i = 1, j = 0; i < num_frames; i += stride, ++j) {
                     attention_mask_data[j] = padded_attention_mask_data[i];
                 }

@@ -44,10 +44,10 @@ import { apis } from '../env';
 export class Random {
     _mt;
     _idx;
-    _gauss_next;
-    _random_fn;
+    _gauss_next: number | null;
+    _random_fn: () => number;
 
-    constructor(seed = undefined) {
+    constructor(seed: number | undefined = undefined) {
         this._mt = new Uint32Array(624);
         this._idx = 625;
         this._gauss_next = null;
@@ -64,7 +64,7 @@ export class Random {
      *
      * @param {number} [n] The seed value. Omit to seed from OS entropy.
      */
-    seed(n = undefined) {
+    seed(n: number | undefined | null = undefined) {
         if (n === undefined || n === null) {
             if (apis.IS_CRYPTO_AVAILABLE) {
                 const buf = new Uint32Array(1);
@@ -75,7 +75,7 @@ export class Random {
             }
         }
         const mt = this._mt;
-        const u = (a, b) => Math.imul(a, b) >>> 0,
+        const u = (a: number, b: number) => Math.imul(a, b) >>> 0,
             key = [];
         for (let v = n || 0; v > 0; v = Math.floor(v / 0x100000000)) key.push(v & 0xffffffff);
         if (!key.length) key.push(0);
@@ -171,7 +171,7 @@ export class Random {
      *
      * @param {any[]} arr The array to shuffle in-place.
      */
-    shuffle(arr) {
+    shuffle(arr: unknown[]): void {
         for (let i = arr.length - 1; i > 0; --i) {
             const k = 32 - Math.clz32(i + 1);
             let r = this._int32() >>> (32 - k);
@@ -191,7 +191,7 @@ export class Random {
      * @param {number[]} weights An array of non-negative weights, one per population element.
      * @returns {*} A single randomly selected element from the population.
      */
-    choices(population, weights) {
+    choices(population: unknown[], weights: number[]): unknown {
         return population[_weightedIndexWith(this._random_fn, weights)];
     }
 }
@@ -204,7 +204,7 @@ export class Random {
  * @param {ArrayLike<number>} weights Non-negative weights.
  * @returns {number} A randomly selected index in `[0, weights.length)`.
  */
-function _weightedIndexWith(randomFn, weights) {
+function _weightedIndexWith(randomFn: () => number, weights: ArrayLike<number>): number {
     let sum = 0;
     for (let i = 0; i < weights.length; ++i) sum += weights[i];
     let x = randomFn() * sum;
@@ -227,4 +227,4 @@ export const random = Object.freeze({
 });
 
 // Private helper function, used by LogitsSampler, but not exported as part of the public API.
-export const _weightedIndex = (weights) => _weightedIndexWith(random.random, weights);
+export const _weightedIndex = (weights: ArrayLike<number>) => _weightedIndexWith(random.random, weights);

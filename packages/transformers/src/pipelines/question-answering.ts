@@ -1,4 +1,4 @@
-import { Pipeline } from './_base';
+import { Pipeline, tensorAt } from './_base';
 
 import { product } from '../utils/core';
 import { softmax } from '../utils/maths';
@@ -67,7 +67,7 @@ import { softmax } from '../utils/maths';
 export class QuestionAnsweringPipeline
     extends /** @type {new (options: TextPipelineConstructorArgs) => QuestionAnsweringPipelineType} */ (Pipeline)
 {
-    async _call(question, context, { top_k = 1 } = {}) {
+    async _call(question: string | string[], context: string | string[], { top_k = 1 } = {}) {
         // Run tokenization
         const inputs = this.tokenizer(question, {
             text_pair: context,
@@ -77,8 +77,9 @@ export class QuestionAnsweringPipeline
         const isBatched = Array.isArray(question);
 
         const { start_logits, end_logits } = await this.model(inputs);
-        const input_ids = inputs.input_ids.tolist();
-        const attention_mask = inputs.attention_mask.tolist();
+        const input_ids = inputs.input_ids.tolist() as bigint[][];
+        // attention_mask[j] is compared loosely to 0 — it may be a sub-array (batched) or a number
+        const attention_mask = inputs.attention_mask.tolist() as unknown[];
 
         // TODO: add support for `return_special_tokens_mask`
         const { all_special_ids, sep_token_id } = this.tokenizer;
@@ -87,14 +88,13 @@ export class QuestionAnsweringPipeline
         for (let j = 0; j < start_logits.dims[0]; ++j) {
             const ids = input_ids[j];
             const sepIndex = ids.findIndex(
-                (x) =>
+                (x: bigint) =>
                     // We use == to match bigint with number
-                    // @ts-ignore
-                    x == sep_token_id,
+                    x == (sep_token_id as unknown as bigint),
             );
 
-            const start = start_logits[j].tolist();
-            const end = end_logits[j].tolist();
+            const start = tensorAt(start_logits, j).tolist() as number[];
+            const end = tensorAt(end_logits, j).tolist() as number[];
 
             // Now, we mask out values that can't be in the answer
             // NOTE: We keep the cls_token unmasked (some models use it to indicate unanswerable questions)
@@ -102,7 +102,7 @@ export class QuestionAnsweringPipeline
                 if (
                     attention_mask[j] == 0 || // is part of padding
                     i <= sepIndex || // is before the sep_token
-                    all_special_ids.findIndex((x) => x == ids[i]) !== -1 // Is a special token
+                    all_special_ids.findIndex((x: number) => x == Number(ids[i])) !== -1 // Is a special token
                 ) {
                     // Make sure non-context indexes in the tensor cannot contribute to the softmax
                     start[i] = -Infinity;
@@ -111,8 +111,8 @@ export class QuestionAnsweringPipeline
             }
 
             // Normalize logits and spans to retrieve the answer
-            const start_scores = softmax(start).map((x, i) => [x, i]);
-            const end_scores = softmax(end).map((x, i) => [x, i]);
+            const start_scores = softmax(start).map((x: number, i: number) => [x, i]);
+            const end_scores = softmax(end).map((x: number, i: number) => [x, i]);
 
             // Mask CLS
             start_scores[0][0] = 0;
@@ -120,9 +120,9 @@ export class QuestionAnsweringPipeline
 
             // Generate all valid spans and select best ones
             const options = product(start_scores, end_scores)
-                .filter((x) => x[0][1] <= x[1][1])
-                .map((x) => [x[0][1], x[1][1], x[0][0] * x[1][0]])
-                .sort((a, b) => b[2] - a[2]);
+                .filter((x: number[][]) => x[0][1] <= x[1][1])
+                .map((x: number[][]) => [x[0][1], x[1][1], x[0][0] * x[1][0]])
+                .sort((a: number[], b: number[]) => b[2] - a[2]);
 
             const sampleResults = [];
             for (let k = 0; k < Math.min(options.length, top_k); ++k) {

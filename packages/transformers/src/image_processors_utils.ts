@@ -29,7 +29,7 @@ import { logger } from './utils/logger';
  * @returns {number} The constrained value.
  * @private
  */
-function constraint_to_multiple_of(val, multiple, minVal = 0, maxVal = null) {
+function constraint_to_multiple_of(val: number, multiple: number, minVal: number = 0, maxVal: number | null = null) {
     const a = val / multiple;
     let x = bankers_round(a) * multiple;
 
@@ -50,7 +50,7 @@ function constraint_to_multiple_of(val, multiple, minVal = 0, maxVal = null) {
  * @param {number} divisor The divisor to use.
  * @returns {[number, number]} The rounded size.
  */
-function enforce_size_divisibility([width, height], divisor) {
+function enforce_size_divisibility([width, height]: [number, number], divisor: number): [number, number] {
     return [Math.max(Math.floor(width / divisor), 1) * divisor, Math.max(Math.floor(height / divisor), 1) * divisor];
 }
 
@@ -62,7 +62,7 @@ function enforce_size_divisibility([width, height], divisor) {
  * @param {number[]} arr The coordinate for the center of the box and its width, height dimensions (center_x, center_y, width, height)
  * @returns {number[]} The coodinates for the top-left and bottom-right corners of the box (top_left_x, top_left_y, bottom_right_x, bottom_right_y)
  */
-export function center_to_corners_format([centerX, centerY, width, height]) {
+export function center_to_corners_format([centerX, centerY, width, height]: [number, number, number, number]) {
     return [centerX - width / 2, centerY - height / 2, centerX + width / 2, centerY + height / 2];
 }
 
@@ -76,7 +76,7 @@ export function center_to_corners_format([centerX, centerY, width, height]) {
  * @param {boolean} [is_zero_shot=false] Whether zero-shot object detection was performed.
  * @return {Object[]} An array of objects containing the post-processed outputs.
  */
-export function post_process_object_detection(outputs, threshold = 0.5, target_sizes = null, is_zero_shot = false) {
+export function post_process_object_detection(outputs: { logits: Tensor; pred_boxes: Tensor }, threshold: number = 0.5, target_sizes: [number, number][] | null = null, is_zero_shot: boolean = false) {
     const out_logits = outputs.logits;
     const out_bbox = outputs.pred_boxes;
     const [batch_size, num_boxes, num_classes] = out_logits.dims;
@@ -87,22 +87,22 @@ export function post_process_object_detection(outputs, threshold = 0.5, target_s
     let toReturn = [];
     for (let i = 0; i < batch_size; ++i) {
         let target_size = target_sizes !== null ? target_sizes[i] : null;
-        let info = {
+        let info: { boxes: number[][]; classes: number[]; scores: number[] } = {
             boxes: [],
             classes: [],
             scores: [],
         };
-        let logits = out_logits[i];
-        let bbox = out_bbox[i];
+        let logits = out_logits._getitem(i);
+        let bbox = out_bbox._getitem(i);
 
         for (let j = 0; j < num_boxes; ++j) {
-            let logit = logits[j];
+            let logit = logits._getitem(j);
 
             let indices = [];
             let probs;
             if (is_zero_shot) {
                 // Get indices of classes with high enough probability
-                probs = logit.sigmoid().data;
+                probs = logit.sigmoid().data as Float32Array;
                 for (let k = 0; k < probs.length; ++k) {
                     if (probs[k] > threshold) {
                         indices.push(k);
@@ -110,14 +110,14 @@ export function post_process_object_detection(outputs, threshold = 0.5, target_s
                 }
             } else {
                 // Get most probable class
-                let maxIndex = max(logit.data)[1];
+                let maxIndex = max(logit.data as Float32Array)[1];
 
                 if (maxIndex === num_classes - 1) {
                     // This is the background class, skip it
                     continue;
                 }
                 // Compute softmax over classes
-                probs = softmax(logit.data);
+                probs = softmax(logit.data as Float32Array);
 
                 if (probs[maxIndex] < threshold) {
                     continue;
@@ -128,10 +128,10 @@ export function post_process_object_detection(outputs, threshold = 0.5, target_s
             for (const index of indices) {
                 // Some class has a high enough probability
                 /** @type {number[]} */
-                let box = bbox[j].data;
+                let box: number[] = [...(bbox._getitem(j).data as Float32Array)];
 
                 // convert to [x0, y0, x1, y1] format
-                box = center_to_corners_format(box);
+                box = center_to_corners_format(box as [number, number, number, number]);
                 if (target_size !== null) {
                     box = box.map((x, i) => x * target_size[(i + 1) % 2]);
                 }
@@ -153,7 +153,7 @@ export function post_process_object_detection(outputs, threshold = 0.5, target_s
  * (height, width) of each prediction. If unset, predictions will not be resized.
  * @returns {{segmentation: Tensor; labels: number[]}[]} The semantic segmentation maps.
  */
-export function post_process_semantic_segmentation(outputs, target_sizes = null) {
+export function post_process_semantic_segmentation(outputs: { logits: Tensor }, target_sizes: [number, number][] | null = null) {
     const logits = outputs.logits;
     const batch_size = logits.dims[0];
 
@@ -165,7 +165,7 @@ export function post_process_semantic_segmentation(outputs, target_sizes = null)
     for (let i = 0; i < batch_size; ++i) {
         const target_size = target_sizes !== null ? target_sizes[i] : null;
 
-        let data = logits[i];
+        let data = logits._getitem(i);
 
         // 1. If target_size is not null, we need to resize the masks to the target size
         if (target_size !== null) {
@@ -177,10 +177,10 @@ export function post_process_semantic_segmentation(outputs, target_sizes = null)
         const segmentation = new Tensor('int32', new Int32Array(height * width), [height, width]);
 
         // Buffer to store current largest value
-        const buffer = data[0].data;
-        const segmentation_data = segmentation.data;
+        const buffer = data._getitem(0).data as Float32Array;
+        const segmentation_data = segmentation.data as Int32Array;
         for (let j = 1; j < data.dims[0]; ++j) {
-            const row = data[j].data;
+            const row = data._getitem(j).data as Float32Array;
             for (let k = 0; k < row.length; ++k) {
                 if (row[k] > buffer[k]) {
                     buffer[k] = row[k];
@@ -193,7 +193,7 @@ export function post_process_semantic_segmentation(outputs, target_sizes = null)
         // This is much more efficient that creating a set of the final values
         const hasLabel = new Array(data.dims[0]);
         for (let j = 0; j < segmentation_data.length; ++j) {
-            const index = segmentation_data[j];
+            const index = segmentation_data[j] as number;
             hasLabel[index] = index;
         }
         /**
@@ -216,23 +216,23 @@ export function post_process_semantic_segmentation(outputs, target_sizes = null)
  * @returns {[Tensor[], number[], number[]]} The binarized masks, the scores, and the labels.
  * @private
  */
-function remove_low_and_no_objects(class_logits, mask_logits, object_mask_threshold, num_labels) {
+function remove_low_and_no_objects(class_logits: Tensor, mask_logits: Tensor, object_mask_threshold: number, num_labels: number): [Tensor[], number[], number[]] {
     const mask_probs_item = [];
     const pred_scores_item = [];
     const pred_labels_item = [];
 
     for (let j = 0; j < class_logits.dims[0]; ++j) {
-        const cls = class_logits[j];
-        const mask = mask_logits[j];
+        const cls = class_logits._getitem(j);
+        const mask = mask_logits._getitem(j);
 
-        const pred_label = max(cls.data)[1];
+        const pred_label = max(cls.data as Float32Array)[1];
         if (pred_label === num_labels) {
             // Is the background, so we ignore it
             continue;
         }
 
-        const scores = softmax(cls.data);
-        const pred_score = scores[pred_label];
+        const scores = softmax(cls.data as Float32Array);
+        const pred_score = scores[pred_label] as number;
         if (pred_score > object_mask_threshold) {
             mask_probs_item.push(mask);
             pred_scores_item.push(pred_score);
@@ -253,13 +253,13 @@ function remove_low_and_no_objects(class_logits, mask_logits, object_mask_thresh
  * @returns {[boolean, number[]]} Whether the segment is valid or not, and the indices of the valid labels.
  * @private
  */
-function check_segment_validity(mask_labels, mask_probs, k, mask_threshold = 0.5, overlap_mask_area_threshold = 0.8) {
+function check_segment_validity(mask_labels: Int32Array, mask_probs: Tensor[], k: number, mask_threshold: number = 0.5, overlap_mask_area_threshold: number = 0.8): [boolean, number[]] {
     // mask_k is a 1D array of indices, indicating where the mask is equal to k
     const mask_k = [];
     let mask_k_area = 0;
     let original_area = 0;
 
-    const mask_probs_k_data = mask_probs[k].data;
+    const mask_probs_k_data: Float32Array = mask_probs[k].data as Float32Array;
 
     // Compute the area of all the stuff in query k
     for (let i = 0; i < mask_labels.length; ++i) {
@@ -297,14 +297,14 @@ function check_segment_validity(mask_labels, mask_probs, k, mask_threshold = 0.5
  * @private
  */
 function compute_segments(
-    mask_probs,
-    pred_scores,
-    pred_labels,
-    mask_threshold,
-    overlap_mask_area_threshold,
-    label_ids_to_fuse = null,
-    target_size = null,
-) {
+    mask_probs: Tensor[],
+    pred_scores: number[],
+    pred_labels: number[],
+    mask_threshold: number,
+    overlap_mask_area_threshold: number,
+    label_ids_to_fuse: Set<number> | null = null,
+    target_size: number[] | null = null,
+): [Tensor, Array<{ id: number; label_id: number; score: number }>] {
     const [height, width] = target_size ?? mask_probs[0].dims;
 
     const segmentation = new Tensor('int32', new Int32Array(height * width), [height, width]);
@@ -314,7 +314,7 @@ function compute_segments(
     if (target_size !== null) {
         // resize the masks to the target size
         for (let i = 0; i < mask_probs.length; ++i) {
-            mask_probs[i] = interpolate(mask_probs[i], target_size, 'bilinear', false);
+            mask_probs[i] = interpolate(mask_probs[i], target_size as [number, number], 'bilinear', false);
         }
     }
 
@@ -328,7 +328,7 @@ function compute_segments(
     for (let i = 0; i < mask_probs.length; ++i) {
         let score = pred_scores[i];
 
-        const mask_probs_i_data = mask_probs[i].data;
+        const mask_probs_i_data: Float32Array = mask_probs[i].data as Float32Array;
 
         for (let j = 0; j < mask_probs_i_data.length; ++j) {
             mask_probs_i_data[j] *= score;
@@ -409,13 +409,13 @@ function compute_segments(
  * @throws {Error} If the height or width is smaller than the factor.
  */
 export function smart_resize(
-    height,
-    width,
-    factor = 28,
-    min_pixels = 56 * 56,
-    max_pixels = 14 * 14 * 4 * 1280,
-    temporal_factor = 1,
-) {
+    height: number,
+    width: number,
+    factor: number = 28,
+    min_pixels: number = 56 * 56,
+    max_pixels: number = 14 * 14 * 4 * 1280,
+    temporal_factor: number = 1,
+): [number, number] {
     if (height < factor || width < factor) {
         const scale = Math.max(factor / height, factor / width);
         height = Math.round(height * scale);
@@ -454,12 +454,12 @@ export function smart_resize(
  * @returns {Array<{ segmentation: Tensor, segments_info: Array<{id: number, label_id: number, score: number}>}>}
  */
 export function post_process_panoptic_segmentation(
-    outputs,
-    threshold = 0.5,
-    mask_threshold = 0.5,
-    overlap_mask_area_threshold = 0.8,
-    label_ids_to_fuse = null,
-    target_sizes = null,
+    outputs: { class_queries_logits?: Tensor; logits?: Tensor; masks_queries_logits?: Tensor; pred_masks?: Tensor },
+    threshold: number = 0.5,
+    mask_threshold: number = 0.5,
+    overlap_mask_area_threshold: number = 0.8,
+    label_ids_to_fuse: Set<number> | null = null,
+    target_sizes: [number, number][] | null = null,
 ) {
     if (label_ids_to_fuse === null) {
         logger.warn('`label_ids_to_fuse` unset. No instance will be fused.');
@@ -482,8 +482,8 @@ export function post_process_panoptic_segmentation(
     for (let i = 0; i < batch_size; ++i) {
         let target_size = target_sizes !== null ? target_sizes[i] : null;
 
-        let class_logits = class_queries_logits[i];
-        let mask_logits = mask_probs[i];
+        let class_logits = class_queries_logits._getitem(i);
+        let mask_logits = mask_probs._getitem(i);
 
         let [mask_probs_item, pred_scores_item, pred_labels_item] = remove_low_and_no_objects(
             class_logits,
@@ -532,7 +532,7 @@ export function post_process_panoptic_segmentation(
  * (height, width) of each prediction. If unset, predictions will not be resized.
  * @returns {Array<{ segmentation: Tensor, segments_info: Array<{id: number, label_id: number, score: number}>}>}
  */
-export function post_process_instance_segmentation(outputs, threshold = 0.5, target_sizes = null) {
+export function post_process_instance_segmentation(outputs: { logits: Tensor }, threshold: number = 0.5, target_sizes: [number, number][] | null = null) {
     throw new Error('`post_process_instance_segmentation` is not yet implemented.');
 }
 
@@ -563,32 +563,32 @@ export function post_process_instance_segmentation(outputs, threshold = 0.5, tar
  */
 
 export class ImageProcessor extends Callable {
-    image_mean;
-    image_std;
-    resample;
-    do_rescale;
-    rescale_factor;
-    do_normalize;
-    do_thumbnail;
-    size;
-    do_resize;
-    size_divisibility;
-    do_center_crop;
-    crop_size;
-    do_convert_rgb;
-    do_crop_margin;
-    pad_size;
-    do_pad;
-    min_pixels;
-    max_pixels;
-    do_flip_channel_order;
-    config;
+    image_mean: unknown;
+    image_std: unknown;
+    resample: unknown;
+    do_rescale: unknown;
+    rescale_factor: number;
+    do_normalize: unknown;
+    do_thumbnail: unknown;
+    size: Record<string, number> | number | undefined;
+    do_resize: unknown;
+    size_divisibility: number | undefined;
+    do_center_crop: unknown;
+    crop_size: Record<string, number> | number | undefined;
+    do_convert_rgb: unknown;
+    do_crop_margin: unknown;
+    pad_size: Record<string, number> | number | 'square' | undefined;
+    do_pad: unknown;
+    min_pixels: unknown;
+    max_pixels: unknown;
+    do_flip_channel_order: unknown;
+    config: Record<string, unknown>;
 
     /**
      * Constructs a new `ImageProcessor`.
      * @param {ImageProcessorConfig} config The configuration object.
      */
-    constructor(config) {
+    constructor(config: Record<string, unknown>) {
         super();
 
         this.image_mean = config.image_mean ?? config.mean;
@@ -596,20 +596,20 @@ export class ImageProcessor extends Callable {
 
         this.resample = config.resample ?? 2; // 2 => bilinear
         this.do_rescale = config.do_rescale ?? true;
-        this.rescale_factor = config.rescale_factor ?? 1 / 255;
+        this.rescale_factor = (config.rescale_factor as number) ?? 1 / 255;
         this.do_normalize = config.do_normalize;
 
         this.do_thumbnail = config.do_thumbnail;
-        this.size = config.size ?? config.image_size;
+        this.size = (config.size ?? config.image_size) as Record<string, number> | number | undefined;
         this.do_resize = config.do_resize ?? this.size !== undefined;
-        this.size_divisibility = config.size_divisibility ?? config.size_divisor;
+        this.size_divisibility = (config.size_divisibility ?? config.size_divisor) as number | undefined;
 
         this.do_center_crop = config.do_center_crop;
-        this.crop_size = config.crop_size;
+        this.crop_size = config.crop_size as Record<string, number> | number | undefined;
         this.do_convert_rgb = config.do_convert_rgb ?? true;
         this.do_crop_margin = config.do_crop_margin;
 
-        this.pad_size = config.pad_size;
+        this.pad_size = config.pad_size as Record<string, number> | number | 'square' | undefined;
         this.do_pad = config.do_pad;
         this.min_pixels = config.min_pixels;
         this.max_pixels = config.max_pixels;
@@ -619,6 +619,7 @@ export class ImageProcessor extends Callable {
             !this.pad_size &&
             !this.size_divisibility &&
             this.size &&
+            typeof this.size === 'object' &&
             this.size.width !== undefined &&
             this.size.height !== undefined
         ) {
@@ -640,7 +641,7 @@ export class ImageProcessor extends Callable {
      * @param {string | 0 | 1 | 2 | 3 | 4 | 5} [resample=2] The resampling filter to use.
      * @returns {Promise<RawImage>} The resized image.
      */
-    async thumbnail(image, size, resample = 2) {
+    async thumbnail(image: RawImage, size: { height: number; width: number }, resample: string | number = 2) {
         const input_height = image.height;
         const input_width = image.width;
 
@@ -659,7 +660,7 @@ export class ImageProcessor extends Callable {
         } else if (input_width > input_height) {
             height = Math.floor((input_height * width) / input_width);
         }
-        return await image.resize(width, height, { resample });
+        return await image.resize(width, height, { resample: resample as 0 | 1 | 2 | 3 | 4 | 5 | string });
     }
 
     /**
@@ -668,7 +669,7 @@ export class ImageProcessor extends Callable {
      * @param {number} gray_threshold Value below which pixels are considered to be gray.
      * @returns {Promise<RawImage>} The cropped image.
      */
-    async crop_margin(image, gray_threshold = 200) {
+    async crop_margin(image: RawImage, gray_threshold: number = 200) {
         const gray_image = image.clone().grayscale();
 
         const minValue = min(gray_image.data)[0];
@@ -714,7 +715,7 @@ export class ImageProcessor extends Callable {
      * @param {number|number[]} [options.constant_values=0] The constant value to use for padding.
      * @returns {[Float32Array, number[]]} The padded pixel data and image dimensions.
      */
-    pad_image(pixelData, imgDims, padSize, { mode = 'constant', center = false, constant_values = 0 } = {}) {
+    pad_image(pixelData: Float32Array, imgDims: number[], padSize: { width: number; height: number } | number | 'square', { mode = 'constant', center = false, constant_values = 0 }: { mode?: 'constant' | 'symmetric'; center?: boolean; constant_values?: number | number[] } = {}): [Float32Array, number[]] {
         const [imageHeight, imageWidth, imageChannels] = imgDims;
 
         let paddedImageWidth, paddedImageHeight;
@@ -793,7 +794,7 @@ export class ImageProcessor extends Callable {
      * @param {Float32Array} pixelData The pixel data to rescale.
      * @returns {void}
      */
-    rescale(pixelData) {
+    rescale(pixelData: Float32Array) {
         for (let i = 0; i < pixelData.length; ++i) {
             pixelData[i] = this.rescale_factor * pixelData[i];
         }
@@ -806,7 +807,7 @@ export class ImageProcessor extends Callable {
      * @param {any} size The size to use for resizing the image.
      * @returns {[number, number]} The target (width, height) dimension of the output image after resizing.
      */
-    get_resize_output_image_size(image, size) {
+    get_resize_output_image_size(image: RawImage, size: Record<string, number> | number | undefined): [number, number] {
         // `size` comes in many forms, so we need to handle them all here:
         // 1. `size` is an integer, in which case we resize the image to be a square
 
@@ -817,17 +818,19 @@ export class ImageProcessor extends Callable {
 
         if (this.do_thumbnail) {
             // NOTE: custom logic for `Donut` models
-            const { height, width } = size;
+            const sizeObj = size as Record<string, number>;
+            const { height, width } = sizeObj;
             shortest_edge = Math.min(height, width);
         }
         // Support both formats for backwards compatibility
         else if (Number.isInteger(size)) {
-            shortest_edge = size;
-            longest_edge = (this.config as any).max_size ?? shortest_edge;
+            shortest_edge = size as number;
+            longest_edge = (this.config.max_size as number | undefined) ?? shortest_edge;
         } else if (size !== undefined) {
             // Extract known properties from `size`
-            shortest_edge = size.shortest_edge;
-            longest_edge = size.longest_edge;
+            const sizeObj = size as Record<string, number>;
+            shortest_edge = sizeObj.shortest_edge;
+            longest_edge = sizeObj.longest_edge;
         }
 
         // If `longest_edge` and `shortest_edge` are set, maintain aspect ratio and resize to `shortest_edge`
@@ -861,7 +864,7 @@ export class ImageProcessor extends Callable {
                 );
             }
             return [finalWidth, finalHeight];
-        } else if (size !== undefined && size.width !== undefined && size.height !== undefined) {
+        } else if (size !== undefined && typeof size === 'object' && size.width !== undefined && size.height !== undefined) {
             // If `width` and `height` are set, resize to those dimensions
 
             let newWidth = size.width;
@@ -882,8 +885,8 @@ export class ImageProcessor extends Callable {
                     scale_width = scale_height;
                 }
 
-                newHeight = constraint_to_multiple_of(scale_height * srcHeight, this.config.ensure_multiple_of);
-                newWidth = constraint_to_multiple_of(scale_width * srcWidth, this.config.ensure_multiple_of);
+                newHeight = constraint_to_multiple_of(scale_height * srcHeight, this.config.ensure_multiple_of as number);
+                newWidth = constraint_to_multiple_of(scale_width * srcWidth, this.config.ensure_multiple_of as number);
             }
 
             return [newWidth, newHeight];
@@ -901,10 +904,10 @@ export class ImageProcessor extends Callable {
      * @param {RawImage} image The image to resize.
      * @returns {Promise<RawImage>} The resized image.
      */
-    async resize(image) {
+    async resize(image: RawImage) {
         const [newWidth, newHeight] = this.get_resize_output_image_size(image, this.size);
         return await image.resize(newWidth, newHeight, {
-            resample: this.resample as any,
+            resample: this.resample as 0 | 1 | 2 | 3 | 4 | 5 | string,
         });
     }
 
@@ -923,13 +926,19 @@ export class ImageProcessor extends Callable {
      * @returns {Promise<PreprocessedImage>} The preprocessed image.
      */
     async preprocess(
-        image,
+        image: RawImage,
         {
             do_normalize = null,
             do_pad = null,
             do_convert_rgb = null,
             do_convert_grayscale = null,
             do_flip_channel_order = null,
+        }: {
+            do_normalize?: boolean | null;
+            do_pad?: boolean | null;
+            do_convert_rgb?: boolean | null;
+            do_convert_grayscale?: boolean | null;
+            do_flip_channel_order?: boolean | null;
         } = {},
     ) {
         if (this.do_crop_margin) {
@@ -957,18 +966,18 @@ export class ImageProcessor extends Callable {
 
         // Resize the image using thumbnail method.
         if (this.do_thumbnail) {
-            image = await this.thumbnail(image, this.size, this.resample as any);
+            image = await this.thumbnail(image, this.size as { height: number; width: number }, this.resample as string | number);
         }
 
         if (this.do_center_crop) {
             let crop_width;
             let crop_height;
             if (Number.isInteger(this.crop_size)) {
-                crop_width = this.crop_size;
-                crop_height = this.crop_size;
+                crop_width = this.crop_size as number;
+                crop_height = this.crop_size as number;
             } else {
-                crop_width = this.crop_size.width;
-                crop_height = this.crop_size.height;
+                crop_width = (this.crop_size as Record<string, number>).width;
+                crop_height = (this.crop_size as Record<string, number>).height;
             }
 
             image = await image.center_crop(crop_width, crop_height);
@@ -981,7 +990,7 @@ export class ImageProcessor extends Callable {
         // occurs with data in the hwc format (height, width, channels),
         // to emulate the behavior of the original Python code (w/ numpy).
         /** @type {Float32Array} */
-        let pixelData = Float32Array.from(image.data);
+        let pixelData: Float32Array = Float32Array.from(image.data);
         let imgDims = [image.height, image.width, image.channels];
 
         if (this.do_rescale) {
@@ -989,15 +998,13 @@ export class ImageProcessor extends Callable {
         }
 
         if (do_normalize ?? this.do_normalize) {
-            let image_mean = this.image_mean;
-            if (!Array.isArray(this.image_mean)) {
-                image_mean = new Array(image.channels).fill(image_mean);
-            }
+            let image_mean: number[] = Array.isArray(this.image_mean)
+                ? this.image_mean as number[]
+                : new Array(image.channels).fill(this.image_mean);
 
-            let image_std = this.image_std;
-            if (!Array.isArray(this.image_std)) {
-                image_std = new Array(image.channels).fill(image_std);
-            }
+            let image_std: number[] = Array.isArray(this.image_std)
+                ? this.image_std as number[]
+                : new Array(image.channels).fill(this.image_std);
 
             if (image_mean.length !== image.channels || image_std.length !== image.channels) {
                 throw new Error(
@@ -1015,7 +1022,7 @@ export class ImageProcessor extends Callable {
         // do padding after rescaling/normalizing
         if (do_pad ?? this.do_pad) {
             if (this.pad_size) {
-                const padded = this.pad_image(pixelData, [image.height, image.width, image.channels], this.pad_size);
+                const padded = this.pad_image(pixelData, [image.height, image.width, image.channels], this.pad_size as { width: number; height: number } | number | 'square');
                 [pixelData, imgDims] = padded; // Update pixel data and image dimensions
             } else if (this.size_divisibility) {
                 const paddedWidth = Math.ceil(imgDims[1] / this.size_divisibility) * this.size_divisibility;
@@ -1053,12 +1060,12 @@ export class ImageProcessor extends Callable {
      * @param {...any} args Additional arguments.
      * @returns {Promise<ImageProcessorResult>} An object containing the concatenated pixel values (and other metadata) of the preprocessed images.
      */
-    async _call(images, ...args) {
+    async _call(images: RawImage | RawImage[], ...args: unknown[]) {
         if (!Array.isArray(images)) {
             images = [images];
         }
         /** @type {PreprocessedImage[]} */
-        const imageData = await Promise.all(images.map((x) => this.preprocess(x)));
+        const imageData = await Promise.all(images.map((x: RawImage) => this.preprocess(x)));
 
         // Stack pixel values
         const pixel_values = stack(
@@ -1092,7 +1099,7 @@ export class ImageProcessor extends Callable {
      *
      * @returns {Promise<ImageProcessor>} A new instance of the Processor class.
      */
-    static async from_pretrained(pretrained_model_name_or_path, options = {}) {
+    static async from_pretrained(pretrained_model_name_or_path: string, options: Record<string, unknown> = {}) {
         const preprocessorConfig = await getModelJSON(
             pretrained_model_name_or_path,
             IMAGE_PROCESSOR_NAME,

@@ -14,34 +14,34 @@ export class UltravoxProcessor extends Processor {
      * @param {string} text The text input to process.
      * @param {Float32Array} audio The audio input to process.
      */
-    async _call(text, audio = null, kwargs = {}) {
+    async _call(text: string, audio: Float32Array | null = null, kwargs: Record<string, unknown> = {}) {
         // TODO: Support batched inputs
         if (Array.isArray(text)) {
             throw new Error('Batched inputs are not supported yet.');
         }
 
-        let audio_inputs = {};
+        let audio_inputs: Record<string, unknown> = {};
         if (audio) {
             const audio_len = audio.length;
-            const { input_features } = await this.feature_extractor(audio, {
+            const { input_features } = await this.feature_extractor!(audio, {
                 ...kwargs,
                 max_length: audio_len,
             });
-            const nb_encoder_frames = Math.round(audio_len / this.config.encoder_ds_factor + 1e-4);
+            const nb_encoder_frames = Math.round(audio_len / (this.config.encoder_ds_factor as number) + 1e-4);
 
             // NOTE: The python version appears to have an off-by-one error.
-            const audio_embed_frames = 1 + Math.ceil(nb_encoder_frames / this.config.stack_factor);
+            const audio_embed_frames = 1 + Math.ceil(nb_encoder_frames / (this.config.stack_factor as number));
             audio_inputs['audio_token_len'] = [audio_embed_frames];
             audio_inputs['audio_values'] = input_features;
 
-            const image_token = this.config.audio_placeholder;
+            const image_token = this.config.audio_placeholder as string;
             if (!text.includes(image_token)) {
                 throw new Error(`The input text does not contain the image token ${image_token}.`);
             }
             text = text.replaceAll(image_token, image_token.repeat(audio_embed_frames));
         }
 
-        const text_inputs = this.tokenizer(text, {
+        const text_inputs = this.tokenizer!(text, {
             add_special_tokens: false,
             ...kwargs,
         });

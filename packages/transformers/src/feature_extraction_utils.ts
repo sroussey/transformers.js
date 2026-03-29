@@ -13,7 +13,7 @@ export class FeatureExtractor extends Callable {
      *
      * @param {Object} config The configuration for the feature extractor.
      */
-    constructor(config) {
+    constructor(config: Record<string, unknown>) {
         super();
         this.config = config;
     }
@@ -33,7 +33,7 @@ export class FeatureExtractor extends Callable {
      *
      * @returns {Promise<FeatureExtractor>} A new instance of the Feature Extractor class.
      */
-    static async from_pretrained(pretrained_model_name_or_path, options = {}) {
+    static async from_pretrained(pretrained_model_name_or_path: string, options: Record<string, unknown> = {}) {
         const config = await getModelJSON(pretrained_model_name_or_path, FEATURE_EXTRACTOR_NAME, true, options);
         return new this(config);
     }
@@ -45,7 +45,7 @@ export class FeatureExtractor extends Callable {
  * @param {string} feature_extractor The name of the feature extractor.
  * @private
  */
-export function validate_audio_inputs(audio, feature_extractor) {
+export function validate_audio_inputs(audio: unknown, feature_extractor: string) {
     if (!(audio instanceof Float32Array || audio instanceof Float64Array)) {
         throw new Error(
             `${feature_extractor} expects input to be a Float32Array or a Float64Array, but got ${audio?.constructor?.name ?? typeof audio} instead. ` +

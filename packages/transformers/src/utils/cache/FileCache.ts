@@ -18,7 +18,7 @@ export class FileCache {
      * Instantiate a `FileCache` object.
      * @param {string} path
      */
-    constructor(path) {
+    constructor(path: string) {
         this.path = path;
     }
 
@@ -27,7 +27,7 @@ export class FileCache {
      * @param {string} request
      * @returns {Promise<FileResponse | undefined>}
      */
-    async match(request) {
+    async match(request: string): Promise<FileResponse | undefined> {
         let filePath = path.join(this.path, request);
         let file = new FileResponse(filePath);
 
@@ -46,7 +46,7 @@ export class FileCache {
      * The function to call with progress updates
      * @returns {Promise<void>}
      */
-    async put(request, response, progress_callback = undefined) {
+    async put(request: string, response: Response, progress_callback?: (data: {progress: number, loaded: number, total: number}) => void): Promise<void> {
         const filePath = path.join(this.path, request);
 
         // Include both PID and a random suffix so that concurrent put() call within the same process
@@ -109,7 +109,7 @@ export class FileCache {
      * @param {string} request
      * @returns {Promise<boolean>} A Promise that resolves to `true` if the cache entry was deleted, `false` otherwise.
      */
-    async delete(request) {
+    async delete(request: string): Promise<boolean> {
         let filePath = path.join(this.path, request);
 
         try {

@@ -60,7 +60,7 @@ import { get_bounding_box, Pipeline, prepareImages } from './_base';
 export class ObjectDetectionPipeline
     extends /** @type {new (options: ImagePipelineConstructorArgs) => ObjectDetectionPipelineType} */ (Pipeline)
 {
-    async _call(images, { threshold = 0.9, percentage = false } = {}) {
+    async _call(images: import('./_base.js').ImageInput | import('./_base.js').ImageInput[], { threshold = 0.9, percentage = false } = {}) {
         const isBatched = Array.isArray(images);
 
         if (isBatched && images.length !== 1) {
@@ -73,18 +73,17 @@ export class ObjectDetectionPipeline
         const { pixel_values, pixel_mask } = await this.processor(preparedImages);
         const output = await this.model({ pixel_values, pixel_mask });
 
-        // @ts-ignore
-        const processed = this.processor.image_processor.post_process_object_detection(output, threshold, imageSizes);
+        const processed = (this.processor!.image_processor as unknown as { post_process_object_detection: (...args: unknown[]) => { boxes: number[][]; scores: number[]; classes: number[] }[] }).post_process_object_detection(output, threshold, imageSizes);
 
         // Add labels
         const { id2label } = this.model.config;
 
         // Format output
         /** @type {ObjectDetectionOutput[]} */
-        const result = processed.map((batch) =>
-            batch.boxes.map((box, i) => ({
+        const result = processed.map((batch: { boxes: number[][]; scores: number[]; classes: number[] }) =>
+            batch.boxes.map((box: number[], i: number) => ({
                 score: batch.scores[i],
-                label: id2label[batch.classes[i]],
+                label: (id2label as Record<number, string>)[batch.classes[i]],
                 box: get_bounding_box(box, !percentage),
             })),
         );

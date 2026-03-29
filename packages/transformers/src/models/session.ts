@@ -12,6 +12,38 @@ import { DATA_TYPES, DEFAULT_DTYPE_SUFFIX_MAPPING, isWebGpuFp16Supported, select
 import { logger } from '../utils/logger';
 import { getCoreModelFile, getModelDataFiles } from '../utils/model-loader';
 import { Tensor } from '../utils/tensor';
+import { Tensor as ONNXTensor } from 'onnxruntime-common';
+
+/** Options for loading a pretrained model (mirrors PretrainedModelOptions from hub.ts) */
+interface ModelLoadOptions {
+    progress_callback?: unknown;
+    config?: Record<string, unknown> | null;
+    cache_dir?: string | null;
+    local_files_only?: boolean;
+    revision?: string;
+    subfolder?: string;
+    model_file_name?: string | null;
+    device?: string | Record<string, string> | null;
+    dtype?: string | Record<string, string> | null;
+    use_external_data_format?: boolean | number | Record<string, boolean | number> | null;
+    session_options?: Record<string, unknown>;
+    [key: string]: unknown;
+}
+
+/** Session config returned by getSession */
+interface SessionConfig {
+    dtype: string;
+    kv_cache_dtype: string | undefined;
+    device: string;
+}
+
+/** InferenceSession-like object with inputNames */
+export interface InferenceSessionLike {
+    inputNames: string[];
+    release?: () => Promise<void>;
+    config?: SessionConfig;
+    [key: string]: unknown;
+}
 
 /**
  * Constructs an InferenceSession using a model file located at the specified path.
@@ -24,18 +56,19 @@ import { Tensor } from '../utils/tensor';
  * @private
  */
 async function getSession(
-    pretrained_model_name_or_path,
-    fileName,
-    options,
-    cache_config = false,
-    session_name = undefined,
+    pretrained_model_name_or_path: string,
+    fileName: string,
+    options: ModelLoadOptions,
+    cache_config: boolean = false,
+    session_name: string | undefined = undefined,
 ) {
-    let custom_config = options.config?.['transformers.js_config'] ?? {};
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let custom_config: Record<string, any> = (options.config?.['transformers.js_config'] as Record<string, any>) ?? {};
 
     // If the device is not specified, we use the default (supported) execution providers.
     const selectedDevice = /** @type {import("../utils/devices.js").DeviceType} */ (
         selectDevice(options.device ?? custom_config.device, fileName, {
-            warn: (msg) => logger.info(msg),
+            warn: (msg: string) => logger.info(msg),
         })
     );
 
@@ -52,12 +85,12 @@ async function getSession(
 
     // If options.dtype is specified, we use it to choose the suffix for the model file.
     // Otherwise, we use the default dtype for the device.
-    const selectedDtype = /** @type {import("../utils/dtypes.js").DataType} */ (
+    const selectedDtype: string = /** @type {import("../utils/dtypes.js").DataType} */ (
         selectDtype(options.dtype ?? custom_config.dtype, fileName, selectedDevice, {
             configDtype: custom_config.dtype,
-            warn: (msg) => logger.info(msg),
+            warn: (msg: string) => logger.info(msg),
         })
-    );
+    ) as string;
 
     if (!DEFAULT_DTYPE_SUFFIX_MAPPING.hasOwnProperty(selectedDtype)) {
         throw new Error(`Invalid dtype: ${selectedDtype}. Should be one of: ${Object.keys(DATA_TYPES).join(', ')}`);
@@ -84,7 +117,7 @@ async function getSession(
     }
 
     // Construct the model file suffix
-    const suffix = DEFAULT_DTYPE_SUFFIX_MAPPING[selectedDtype];
+    const suffix = (DEFAULT_DTYPE_SUFFIX_MAPPING as Record<string, string>)[selectedDtype];
 
     const session_options = { ...options.session_options };
 
@@ -102,7 +135,7 @@ async function getSession(
         );
     }
 
-    const bufferOrPathPromise = getCoreModelFile(pretrained_model_name_or_path, fileName, options, suffix);
+    const bufferOrPathPromise = getCoreModelFile(pretrained_model_name_or_path, fileName, options as unknown as Parameters<typeof getCoreModelFile>[2], suffix);
 
     // Handle onnx external data files
     const use_external_data_format = options.use_external_data_format ?? custom_config.use_external_data_format;
@@ -110,7 +143,7 @@ async function getSession(
         pretrained_model_name_or_path,
         fileName,
         suffix,
-        options,
+        options as unknown as Parameters<typeof getModelDataFiles>[3],
         use_external_data_format,
         session_options,
     );
@@ -127,7 +160,7 @@ async function getSession(
         if (Object.keys(shapes).length > 0 && !isONNXProxy()) {
             // Only set preferredOutputLocation if shapes are present and we aren't proxying ONNX
             /** @type {Record<string, import('onnxruntime-common').Tensor.DataLocation>} */
-            const preferredOutputLocation = {};
+            const preferredOutputLocation: Record<string, import('onnxruntime-common').Tensor.DataLocation> = {};
             for (const key in shapes) {
                 preferredOutputLocation[key] = 'gpu-buffer';
             }
@@ -155,7 +188,7 @@ async function getSession(
  * @returns {Promise<Record<string, any>>} A Promise that resolves to a dictionary of InferenceSession objects.
  * @private
  */
-export async function constructSessions(pretrained_model_name_or_path, names, options, cache_sessions = undefined) {
+export async function constructSessions(pretrained_model_name_or_path: string, names: Record<string, string>, options: ModelLoadOptions, cache_sessions: Record<string, true> | undefined = undefined) {
     return Object.fromEntries(
         await Promise.all(
             Object.keys(names).map(async (name) => {
@@ -180,12 +213,12 @@ export async function constructSessions(pretrained_model_name_or_path, names, op
  * @returns {Object} The object with tensor objects replaced by custom Tensor objects.
  * @private
  */
-function replaceTensors(obj) {
+function replaceTensors(obj: Record<string, unknown>) {
     for (let prop in obj) {
         if (isONNXTensor(obj[prop])) {
-            obj[prop] = new Tensor(obj[prop]);
-        } else if (typeof obj[prop] === 'object') {
-            replaceTensors(obj[prop]);
+            obj[prop] = new Tensor(obj[prop] as ONNXTensor);
+        } else if (typeof obj[prop] === 'object' && obj[prop] !== null) {
+            replaceTensors(obj[prop] as Record<string, unknown>);
         }
     }
     return obj;
@@ -202,13 +235,13 @@ function replaceTensors(obj) {
  * @returns {Promise<Object>} A Promise that resolves to an object that maps output names to output tensors.
  * @private
  */
-export async function sessionRun(session, inputs) {
+export async function sessionRun(session: InferenceSessionLike, inputs: Record<string, Tensor>) {
     const checkedInputs = validateInputs(session, inputs);
     try {
         // pass the original ort tensor
         const ortFeed = Object.fromEntries(
             Object.entries(checkedInputs).map(([k, v]) => {
-                const tensor = (v as any).ort_tensor;
+                const tensor = v.ort_tensor as ONNXTensor & { cpuData?: ArrayBufferView };
                 if (apis.IS_NODE_ENV) {
                     // In recent versions of Node.js, which support Float16Array, we need to convert
                     // the Float16Array to Uint16Array for ONNX Runtime to accept it.
@@ -220,23 +253,22 @@ export async function sessionRun(session, inputs) {
             }),
         );
 
-        const output = await runInferenceSession(session, ortFeed);
+        const output = await runInferenceSession(session as unknown as Parameters<typeof runInferenceSession>[0], ortFeed);
         return replaceTensors(output);
     } catch (e) {
         // Error messages can be long (nested) and uninformative. For this reason,
         // we apply minor formatting to show the most important information
         const formatted = Object.fromEntries(
             Object.entries(checkedInputs).map(([k, tensor]) => {
-                const t = tensor as any;
                 // Extract these properties from the underlying ORT tensor
-                const unpacked: any = {
-                    type: t.type,
-                    dims: t.dims,
-                    location: t.location,
+                const unpacked: { type: string; dims: number[]; location: string; data?: unknown } = {
+                    type: tensor.type,
+                    dims: tensor.dims,
+                    location: tensor.location,
                 };
                 if (unpacked.location !== 'gpu-buffer') {
                     // Only return the data if it's not a GPU buffer
-                    unpacked.data = t.data;
+                    unpacked.data = tensor.data;
                 }
                 return [k, unpacked];
             }),
@@ -257,12 +289,11 @@ export async function sessionRun(session, inputs) {
  * @throws {Error} If any inputs are missing.
  * @private
  */
-function validateInputs(session, inputs) {
+function validateInputs(session: InferenceSessionLike, inputs: Record<string, Tensor>) {
     /**
      * NOTE: Create either a shallow or deep copy based on `onnx.wasm.proxy`
-     * @type {Record<string, Tensor>}
      */
-    const checkedInputs = Object.create(null);
+    const checkedInputs: Record<string, Tensor> = Object.create(null);
     const missingInputs = [];
     for (const inputName of session.inputNames) {
         const tensor = inputs[inputName];

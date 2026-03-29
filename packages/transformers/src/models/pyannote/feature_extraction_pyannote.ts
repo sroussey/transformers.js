@@ -8,7 +8,7 @@ export class PyAnnoteFeatureExtractor extends FeatureExtractor {
      * @param {Float32Array|Float64Array} audio The audio data as a Float32Array/Float64Array.
      * @returns {Promise<{ input_values: Tensor; }>} The extracted input features.
      */
-    async _call(audio) {
+    async _call(audio: Float32Array | Float64Array) {
         validate_audio_inputs(audio, 'PyAnnoteFeatureExtractor');
 
         if (audio instanceof Float64Array) {
@@ -26,8 +26,8 @@ export class PyAnnoteFeatureExtractor extends FeatureExtractor {
      * @param {number} samples The number of frames in the audio.
      * @returns {number} The number of frames in the audio.
      */
-    samples_to_frames(samples) {
-        return (samples - this.config.offset) / this.config.step;
+    samples_to_frames(samples: number) {
+        return (samples - (this.config.offset as number)) / (this.config.step as number);
     }
 
     /**
@@ -36,18 +36,18 @@ export class PyAnnoteFeatureExtractor extends FeatureExtractor {
      * @param {number} num_samples Number of samples in the input audio.
      * @returns {Array<Array<{ id: number, start: number, end: number, confidence: number }>>} The post-processed speaker diarization results.
      */
-    post_process_speaker_diarization(logits, num_samples) {
-        const ratio = num_samples / this.samples_to_frames(num_samples) / this.config.sampling_rate;
+    post_process_speaker_diarization(logits: import('../../utils/tensor.js').Tensor, num_samples: number) {
+        const ratio = num_samples / this.samples_to_frames(num_samples) / (this.config.sampling_rate as number);
 
         const results = [];
-        for (const scores of logits.tolist()) {
+        for (const scores of logits.tolist() as number[][][]) {
             const accumulated_segments = [];
 
             let current_speaker = -1;
             for (let i = 0; i < scores.length; ++i) {
                 /** @type {number[]} */
-                const probabilities = softmax(scores[i]);
-                const [score, id] = max(probabilities);
+                const probabilities = softmax(scores[i]) as number[];
+                const [score, id] = max(probabilities) as [number, number];
                 const [start, end] = [i, i + 1];
 
                 if (id !== current_speaker) {
@@ -56,8 +56,8 @@ export class PyAnnoteFeatureExtractor extends FeatureExtractor {
                     accumulated_segments.push({ id, start, end, score });
                 } else {
                     // Continue the current segment
-                    accumulated_segments.at(-1).end = end;
-                    accumulated_segments.at(-1).score += score;
+                    accumulated_segments.at(-1)!.end = end;
+                    accumulated_segments.at(-1)!.score += score;
                 }
             }
 
@@ -65,7 +65,7 @@ export class PyAnnoteFeatureExtractor extends FeatureExtractor {
                 accumulated_segments.map(
                     // Convert frame-space to time-space
                     // and compute the confidence
-                    ({ id, start, end, score }) => ({
+                    ({ id, start, end, score }: { id: number; start: number; end: number; score: number }) => ({
                         id,
                         start: start * ratio,
                         end: end * ratio,

@@ -5,7 +5,7 @@ import { AutoTokenizer } from '../auto/tokenization_auto';
 
 const IMAGE_TOKEN = '<image>';
 
-function build_string_from_input(prompt, bos_token, image_seq_len, image_token, num_images) {
+function build_string_from_input(prompt: string, bos_token: string, image_seq_len: number, image_token: string, num_images: number) {
     return `${image_token.repeat(image_seq_len * num_images)}${bos_token}${prompt}\n`;
 }
 
@@ -19,7 +19,7 @@ export class PaliGemmaProcessor extends Processor {
      */
 
     // `images` is required, `text` is optional
-    async _call(/** @type {RawImage|RawImage[]} */ images, text = null, kwargs = {}) {
+    async _call(/** @type {RawImage|RawImage[]} */ images: import('../../utils/image.js').RawImage | import('../../utils/image.js').RawImage[], text: string | string[] | null = null, kwargs: Record<string, unknown> = {}) {
         if (!text) {
             logger.warn(
                 'You are using PaliGemma without a text prefix. It will perform as a picture-captioning model.',
@@ -35,11 +35,11 @@ export class PaliGemmaProcessor extends Processor {
             text = [text];
         }
 
-        const bos_token = this.tokenizer.bos_token;
-        const image_seq_length = this.image_processor.config.image_seq_length;
+        const bos_token = this.tokenizer.bos_token as string;
+        const image_seq_length = this.image_processor.config.image_seq_length as number;
         let input_strings;
-        if (text.some((t) => t.includes(IMAGE_TOKEN))) {
-            input_strings = text.map((sample) => {
+        if ((text as string[]).some((t: string) => t.includes(IMAGE_TOKEN))) {
+            input_strings = (text as string[]).map((sample: string) => {
                 const expanded_sample = sample.replaceAll(IMAGE_TOKEN, IMAGE_TOKEN.repeat(image_seq_length));
                 const bos_rfind_index = expanded_sample.lastIndexOf(IMAGE_TOKEN);
                 const bos_index = bos_rfind_index === -1 ? 0 : bos_rfind_index + IMAGE_TOKEN.length;
@@ -53,13 +53,13 @@ export class PaliGemmaProcessor extends Processor {
                     'each text has and add special tokens.',
             );
 
-            input_strings = text.map((sample) =>
-                build_string_from_input(sample, bos_token, image_seq_length, IMAGE_TOKEN, images.length),
+            input_strings = (text as string[]).map((sample: string) =>
+                build_string_from_input(sample, bos_token, image_seq_length, IMAGE_TOKEN, (images as import('../../utils/image.js').RawImage[]).length),
             );
         }
 
-        const text_inputs = this.tokenizer(input_strings, kwargs);
-        const image_inputs = await this.image_processor(images, kwargs);
+        const text_inputs = this.tokenizer!(input_strings, kwargs);
+        const image_inputs = await this.image_processor!(images, kwargs);
 
         return {
             ...image_inputs,

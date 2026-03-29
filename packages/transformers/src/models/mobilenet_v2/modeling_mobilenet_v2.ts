@@ -14,9 +14,9 @@ export class MobileNetV2Model extends MobileNetV2PreTrainedModel {}
  */
 export class MobileNetV2ForImageClassification extends MobileNetV2PreTrainedModel {
     /**
-     * @param {any} model_inputs
+     * @param {Record<string, unknown>} model_inputs
      */
-    async _call(model_inputs) {
+    async _call(model_inputs: Record<string, unknown>) {
         return new SequenceClassifierOutput(await super._call(model_inputs));
     }
 }

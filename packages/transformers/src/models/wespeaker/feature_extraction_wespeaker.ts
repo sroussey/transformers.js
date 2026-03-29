@@ -3,10 +3,11 @@ import { mel_filter_bank, spectrogram, window_function } from '../../utils/audio
 import { Tensor } from '../../utils/tensor';
 
 export class WeSpeakerFeatureExtractor extends FeatureExtractor {
+    declare config: Record<string, any>;
     mel_filters;
     window;
     min_num_frames;
-    constructor(config) {
+    constructor(config: Record<string, any>) {
         super(config);
 
         const sampling_rate = this.config.sampling_rate;
@@ -33,10 +34,10 @@ export class WeSpeakerFeatureExtractor extends FeatureExtractor {
      * @param {Float32Array|Float64Array} waveform The audio waveform to process.
      * @returns {Promise<Tensor>} An object containing the log-Mel spectrogram data as a Float32Array and its dimensions as an array of numbers.
      */
-    async _extract_fbank_features(waveform) {
+    async _extract_fbank_features(waveform: Float32Array | Float64Array) {
         // Kaldi compliance: 16-bit signed integers
         // 32768 == 2 ** 15
-        waveform = waveform.map((/** @type {number} */ x) => x * 32768);
+        waveform = waveform.map((x: number) => x * 32768);
 
         return spectrogram(
             waveform,
@@ -65,7 +66,7 @@ export class WeSpeakerFeatureExtractor extends FeatureExtractor {
      * @param {Float32Array|Float64Array} audio The audio data as a Float32Array/Float64Array.
      * @returns {Promise<{ input_features: Tensor }>} A Promise resolving to an object containing the extracted input features as a Tensor.
      */
-    async _call(audio) {
+    async _call(audio: Float32Array | Float64Array) {
         validate_audio_inputs(audio, 'WeSpeakerFeatureExtractor');
 
         const features = (await this._extract_fbank_features(audio)).unsqueeze_(0);
@@ -82,7 +83,7 @@ export class WeSpeakerFeatureExtractor extends FeatureExtractor {
                 for (let j = 0; j < num_frames; ++j) {
                     const offset3 = offset1 + j * feature_size;
                     for (let k = 0; k < feature_size; ++k) {
-                        featuresData[offset3 + k] -= meanData[offset2 + k];
+                        (featuresData as Float32Array)[offset3 + k] -= (meanData as Float32Array)[offset2 + k];
                     }
                 }
             }

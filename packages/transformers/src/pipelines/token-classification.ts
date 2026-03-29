@@ -1,4 +1,4 @@
-import { Pipeline } from './_base';
+import { Pipeline, tensorAt } from './_base';
 
 import { max, softmax } from '../utils/maths';
 
@@ -71,7 +71,7 @@ import { max, softmax } from '../utils/maths';
 export class TokenClassificationPipeline
     extends /** @type {new (options: TextPipelineConstructorArgs) => TokenClassificationPipelineType} */ (Pipeline)
 {
-    async _call(texts, { ignore_labels = ['O'] } = {}) {
+    async _call(texts: string | string[], { ignore_labels = ['O'] } = {}) {
         const isBatched = Array.isArray(texts);
 
         // Run tokenization
@@ -88,29 +88,29 @@ export class TokenClassificationPipeline
 
         const toReturn = [];
         for (let i = 0; i < logits.dims[0]; ++i) {
-            const ids = model_inputs.input_ids[i];
-            const batch = logits[i];
+            const ids = tensorAt(model_inputs.input_ids, i);
+            const batch = tensorAt(logits, i);
 
             // List of tokens that aren't ignored
             const tokens = [];
             for (let j = 0; j < batch.dims[0]; ++j) {
-                const tokenData = batch[j];
-                const topScoreIndex = max(tokenData.data)[1];
+                const tokenData = tensorAt(batch, j);
+                const topScoreIndex = max(tokenData.data as Float32Array)[1];
 
-                const entity = id2label ? id2label[topScoreIndex] : `LABEL_${topScoreIndex}`;
+                const entity = id2label ? (id2label as Record<number, string>)[topScoreIndex] : `LABEL_${topScoreIndex}`;
                 if (ignore_labels.includes(entity)) {
                     // We predicted a token that should be ignored. So, we skip it.
                     continue;
                 }
 
                 // TODO add option to keep special tokens?
-                const word = this.tokenizer.decode([ids[j].item()], { skip_special_tokens: true });
+                const word = this.tokenizer.decode([tensorAt(ids, j).item() as bigint], { skip_special_tokens: true });
                 if (word === '') {
                     // Was a special token. So, we skip it.
                     continue;
                 }
 
-                const scores = softmax(tokenData.data);
+                const scores = softmax(tokenData.data as Float32Array);
 
                 tokens.push({
                     entity: entity,

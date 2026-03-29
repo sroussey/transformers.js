@@ -8,7 +8,7 @@ import { getModelFile, MAX_EXTERNAL_DATA_CHUNKS } from './hub';
  * @param {string} fileName The base file name (e.g., "model").
  * @returns {number} The number of external data chunks (0 if none).
  */
-export function resolveExternalDataFormat(config, fullName, fileName) {
+export function resolveExternalDataFormat(config: import('./hub.js').ExternalData | Record<string, import('./hub.js').ExternalData> | null | undefined, fullName: string, fileName: string): number {
     if (!config) return 0;
     if (typeof config === 'object' && config !== null) {
         if (config.hasOwnProperty(fullName)) return +config[fullName];
@@ -24,7 +24,7 @@ export function resolveExternalDataFormat(config, fullName, fileName) {
  * @param {number} numChunks The number of external data chunks.
  * @returns {string[]} Array of external data file names.
  */
-export function getExternalDataChunkNames(fullName, numChunks) {
+export function getExternalDataChunkNames(fullName: string, numChunks: number): string[] {
     const names = [];
     for (let i = 0; i < numChunks; ++i) {
         names.push(`${fullName}_data${i === 0 ? '' : '_' + i}`);
@@ -41,7 +41,7 @@ export function getExternalDataChunkNames(fullName, numChunks) {
  * @param {string} suffix The suffix to append to the file name (e.g., '_q4', '_quantized').
  * @returns {Promise<string|Uint8Array>} A Promise that resolves to the model file buffer or path.
  */
-export async function getCoreModelFile(pretrained_model_name_or_path, fileName, options, suffix) {
+export async function getCoreModelFile(pretrained_model_name_or_path: string, fileName: string, options: import('./hub.js').PretrainedModelOptions, suffix: string): Promise<string | Uint8Array> {
     const baseName = `${fileName}${suffix}.onnx`;
     const fullPath = `${options.subfolder ?? ''}/${baseName}`;
 
@@ -60,18 +60,18 @@ export async function getCoreModelFile(pretrained_model_name_or_path, fileName, 
  * @returns {Promise<Array<string|{path: string, data: Uint8Array}>>} A Promise that resolves to an array of external data files.
  */
 export async function getModelDataFiles(
-    pretrained_model_name_or_path,
-    fileName,
-    suffix,
-    options,
-    use_external_data_format,
-    session_options = {} as any,
-) {
+    pretrained_model_name_or_path: string,
+    fileName: string,
+    suffix: string,
+    options: import('./hub.js').PretrainedModelOptions,
+    use_external_data_format: import('./hub.js').ExternalData | Record<string, import('./hub.js').ExternalData> | undefined,
+    session_options: Record<string, unknown> = {},
+): Promise<Array<string | { path: string; data: Uint8Array }>> {
     const baseName = `${fileName}${suffix}.onnx`;
     const return_path = apis.IS_NODE_ENV;
 
     /** @type {Promise<string|{path: string, data: Uint8Array}>[]} */
-    let externalDataPromises = [];
+    let externalDataPromises: Promise<string | { path: string; data: Uint8Array }>[] = [];
 
     const num_chunks = resolveExternalDataFormat(use_external_data_format, baseName, fileName);
     if (num_chunks > 0) {
@@ -96,14 +96,14 @@ export async function getModelDataFiles(
                 }),
             );
         }
-    } else if (session_options.externalData !== undefined) {
-        externalDataPromises = session_options.externalData.map(async (ext) => {
+    } else if ((session_options as Record<string, unknown>).externalData !== undefined) {
+        externalDataPromises = ((session_options as Record<string, unknown>).externalData as Array<{path: string, data: string | Uint8Array}>).map(async (ext: {path: string, data: string | Uint8Array}): Promise<{path: string, data: Uint8Array}> => {
             // if the external data is a string, fetch the file and replace the string with its content
             if (typeof ext.data === 'string') {
                 const ext_buffer = await getModelFile(pretrained_model_name_or_path, ext.data, true, options);
-                return { ...ext, data: ext_buffer };
+                return { path: ext.path, data: ext_buffer as Uint8Array };
             }
-            return ext;
+            return ext as {path: string, data: Uint8Array};
         });
     }
 

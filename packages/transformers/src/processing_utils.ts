@@ -21,6 +21,9 @@
 import { PROCESSOR_NAME, CHAT_TEMPLATE_NAME } from './utils/constants';
 import { Callable } from './utils/generic';
 import { getModelJSON, getModelText } from './utils/hub';
+import type { PreTrainedTokenizer } from './tokenization_utils';
+import type { ImageProcessor } from './image_processors_utils';
+import type { FeatureExtractor } from './feature_extraction_utils';
 
 /**
  * @typedef {Object} ProcessorProperties Additional processor-specific properties.
@@ -46,7 +49,7 @@ export class Processor extends Callable {
      * @param {Record<string, Object>} components
      * @param {string} chat_template
      */
-    constructor(config, components, chat_template) {
+    constructor(config: Record<string, unknown>, components: Record<string, object>, chat_template: string | null) {
         super();
         this.config = config;
         this.components = components;
@@ -56,22 +59,22 @@ export class Processor extends Callable {
     /**
      * @returns {import('./image_processors_utils.js').ImageProcessor|undefined} The image processor of the processor, if it exists.
      */
-    get image_processor() {
-        return this.components.image_processor;
+    get image_processor(): ImageProcessor | undefined {
+        return this.components.image_processor as ImageProcessor | undefined;
     }
 
     /**
      * @returns {PreTrainedTokenizer|undefined} The tokenizer of the processor, if it exists.
      */
-    get tokenizer() {
-        return this.components.tokenizer;
+    get tokenizer(): PreTrainedTokenizer | undefined {
+        return this.components.tokenizer as PreTrainedTokenizer | undefined;
     }
 
     /**
      * @returns {import('./feature_extraction_utils.js').FeatureExtractor|undefined} The feature extractor of the processor, if it exists.
      */
-    get feature_extractor() {
-        return this.components.feature_extractor;
+    get feature_extractor(): FeatureExtractor | undefined {
+        return this.components.feature_extractor as FeatureExtractor | undefined;
     }
 
     /**
@@ -79,7 +82,7 @@ export class Processor extends Callable {
      * @param {Parameters<PreTrainedTokenizer['apply_chat_template']>[1]} options
      * @returns {ReturnType<PreTrainedTokenizer['apply_chat_template']>}
      */
-    apply_chat_template(messages, options = {}) {
+    apply_chat_template(messages: Parameters<PreTrainedTokenizer['apply_chat_template']>[0], options: Parameters<PreTrainedTokenizer['apply_chat_template']>[1] = {}) {
         if (!this.tokenizer) {
             throw new Error('Unable to apply chat template without a tokenizer.');
         }
@@ -94,7 +97,7 @@ export class Processor extends Callable {
      * @param {Parameters<PreTrainedTokenizer['batch_decode']>} args
      * @returns {ReturnType<PreTrainedTokenizer['batch_decode']>}
      */
-    batch_decode(...args) {
+    batch_decode(...args: Parameters<PreTrainedTokenizer['batch_decode']>) {
         if (!this.tokenizer) {
             throw new Error('Unable to decode without a tokenizer.');
         }
@@ -105,7 +108,7 @@ export class Processor extends Callable {
      * @param {Parameters<PreTrainedTokenizer['decode']>} args
      * @returns {ReturnType<PreTrainedTokenizer['decode']>}
      */
-    decode(...args) {
+    decode(...args: Parameters<PreTrainedTokenizer['decode']>) {
         if (!this.tokenizer) {
             throw new Error('Unable to decode without a tokenizer.');
         }
@@ -118,7 +121,7 @@ export class Processor extends Callable {
      * @param {...any} args Additional arguments.
      * @returns {Promise<any>} A Promise that resolves with the extracted features.
      */
-    async _call(input, ...args) {
+    async _call(input: unknown, ...args: unknown[]) {
         for (const item of [this.image_processor, this.feature_extractor, this.tokenizer]) {
             if (item) {
                 return item(input, ...args);
@@ -142,7 +145,7 @@ export class Processor extends Callable {
      *
      * @returns {Promise<Processor>} A new instance of the Processor class.
      */
-    static async from_pretrained(pretrained_model_name_or_path, options = {}) {
+    static async from_pretrained(pretrained_model_name_or_path: string, options: Record<string, unknown> = {}) {
         const [config, components, chat_template] = await Promise.all([
             // TODO:
             this.uses_processor_config
@@ -152,7 +155,7 @@ export class Processor extends Callable {
                 this.classes
                     .filter((cls) => cls in this)
                     .map(async (cls) => {
-                        const component = await this[cls].from_pretrained(pretrained_model_name_or_path, options);
+                        const component = await (this as unknown as Record<string, { from_pretrained: (name: string, options: Record<string, unknown>) => Promise<object> }>)[cls].from_pretrained(pretrained_model_name_or_path, options);
                         return [cls.replace(/_class$/, ''), component];
                     }),
             ).then(Object.fromEntries),

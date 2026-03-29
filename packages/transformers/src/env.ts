@@ -35,8 +35,8 @@ const IS_PATH_AVAILABLE = !isEmpty(path);
 const IS_WEB_CACHE_AVAILABLE = HAS_SELF && 'caches' in self;
 
 // Runtime detection
-const IS_DENO_RUNTIME = typeof globalThis.Deno !== 'undefined';
-const IS_BUN_RUNTIME = typeof globalThis.Bun !== 'undefined';
+const IS_DENO_RUNTIME = typeof (globalThis as Record<string, unknown>).Deno !== 'undefined';
+const IS_BUN_RUNTIME = typeof (globalThis as Record<string, unknown>).Bun !== 'undefined';
 
 const IS_DENO_WEB_RUNTIME = IS_DENO_RUNTIME && IS_WEB_CACHE_AVAILABLE && !IS_FS_AVAILABLE;
 
@@ -57,12 +57,10 @@ const IS_WEBNN_AVAILABLE = typeof navigator !== 'undefined' && 'ml' in navigator
 const IS_CRYPTO_AVAILABLE = typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function';
 
 const IS_CHROME_AVAILABLE =
-    // @ts-ignore - chrome may not exist in all environments
-    typeof chrome !== 'undefined' && typeof chrome.runtime !== 'undefined' && typeof chrome.runtime.id === 'string';
+    typeof (globalThis as Record<string, unknown>).chrome !== 'undefined' && typeof ((globalThis as Record<string, unknown>).chrome as Record<string, unknown>)?.runtime !== 'undefined' && typeof (((globalThis as Record<string, unknown>).chrome as Record<string, unknown>)?.runtime as Record<string, unknown>)?.id === 'string';
 
 const IS_SERVICE_WORKER_ENV =
-    // @ts-ignore - ServiceWorkerGlobalScope may not exist in all environments
-    typeof ServiceWorkerGlobalScope !== 'undefined' && HAS_SELF && self instanceof ServiceWorkerGlobalScope;
+    typeof (globalThis as Record<string, unknown>).ServiceWorkerGlobalScope !== 'undefined' && HAS_SELF && self instanceof ((globalThis as Record<string, unknown>).ServiceWorkerGlobalScope as { new (): EventTarget });
 
 /**
  * Check if the current environment is Safari browser.
@@ -241,7 +239,7 @@ export const env = {
     // NOTE: These will be populated later by the backends themselves.
     backends: {
         // onnxruntime-web/onnxruntime-node
-        onnx: {} as any,
+        onnx: {} as Partial<import('onnxruntime-common').Env> & { setLogLevel?: (logLevel: number) => void },
     },
 
     /////////////////// Logging settings ///////////////////
@@ -252,7 +250,7 @@ export const env = {
         logLevel = level;
 
         // invoke hook to set ONNX Runtime log level when Transformers.js log level changes
-        (env.backends.onnx as any)?.setLogLevel?.(level);
+        env.backends.onnx?.setLogLevel?.(level);
     },
     /////////////////// Model settings ///////////////////
     allowRemoteModels: true,
@@ -270,7 +268,11 @@ export const env = {
     cacheDir: DEFAULT_CACHE_DIR,
 
     useCustomCache: false,
-    customCache: null,
+    customCache: null as {
+        match: (request: string) => Promise<Response | undefined | string>;
+        put: (request: string, response: Response, progress_callback?: (data: { progress: number; loaded: number; total: number }) => void) => Promise<void>;
+        delete?: (request: string) => Promise<boolean>;
+    } | null,
 
     useWasmCache: IS_WEB_CACHE_AVAILABLE || IS_FS_AVAILABLE,
     cacheKey: 'transformers-cache',
@@ -287,6 +289,6 @@ export const env = {
  * @param {Object} obj
  * @private
  */
-function isEmpty(obj) {
+function isEmpty(obj: object) {
     return Object.keys(obj).length === 0;
 }

@@ -8,7 +8,7 @@ import { Tensor } from '../utils/tensor';
  * @typedef {import('../tokenization_utils.js').Message[]} Chat
  */
 
-function isChat(x) {
+function isChat(x: unknown): x is import('../tokenization_utils.js').Message[] {
     return Array.isArray(x) && x.every((x) => 'role' in x && 'content' in x);
 }
 
@@ -104,8 +104,8 @@ export class TextGenerationPipeline
      * @param {string | string[] | import('../tokenization_utils.js').Message[] | import('../tokenization_utils.js').Message[][]} texts
      * @param {Partial<TextGenerationConfig>} generate_kwargs
      */
-    async _call(texts, generate_kwargs = {}) {
-        const gen_kwargs = generate_kwargs as any;
+    async _call(texts: string | string[] | import('../tokenization_utils.js').Message[] | import('../tokenization_utils.js').Message[][], generate_kwargs: Record<string, unknown> = {}) {
+        const gen_kwargs = generate_kwargs as Record<string, unknown>;
         let isBatched = false;
         let isChatInput = false;
 
@@ -115,7 +115,7 @@ export class TextGenerationPipeline
             (this.tokenizer.add_bos_token || this.tokenizer.add_eos_token) ??
             false;
 
-        let tokenizer_kwargs = gen_kwargs.tokenizer_encode_kwargs;
+        let tokenizer_kwargs = gen_kwargs.tokenizer_encode_kwargs as Record<string, unknown> | undefined;
 
         // Normalize inputs
         /** @type {string[]} */
@@ -137,11 +137,11 @@ export class TextGenerationPipeline
 
             // If the input is a chat, we need to apply the chat template
             inputs = /** @type {string[]} */ (
-                /** @type {Chat[]} */ (texts).map((x) =>
+                /** @type {Chat[]} */ (texts as import('../tokenization_utils.js').Message[][]).map((x: import('../tokenization_utils.js').Message[]) =>
                     this.tokenizer.apply_chat_template(x, {
                         tokenize: false,
                         add_generation_prompt: true,
-                        ...tokenizer_kwargs,
+                        ...(tokenizer_kwargs ?? {}),
                     }),
                 )
             );
@@ -158,15 +158,15 @@ export class TextGenerationPipeline
             add_special_tokens,
             padding: true,
             truncation: true,
-            ...tokenizer_kwargs,
+            ...(tokenizer_kwargs ?? {}),
         });
 
-        const outputTokenIds = /** @type {Tensor} */ (
+        const outputTokenIds = (
             await this.model.generate({
                 ...text_inputs,
                 ...generate_kwargs,
             })
-        );
+        ) as import('../utils/tensor.js').Tensor;
 
         const decoded = this.tokenizer.batch_decode(outputTokenIds, {
             skip_special_tokens: true,
@@ -178,11 +178,11 @@ export class TextGenerationPipeline
                 .batch_decode(text_inputs.input_ids, {
                     skip_special_tokens: true,
                 })
-                .map((x) => x.length);
+                .map((x: string) => x.length);
         }
 
         /** @type {TextGenerationOutput[]} */
-        const toReturn = Array.from({ length: texts.length }, (_) => []);
+        const toReturn: { generated_text: string | import('../tokenization_utils.js').Message[] }[][] = Array.from({ length: texts.length }, (_): { generated_text: string | import('../tokenization_utils.js').Message[] }[] => []);
         for (let i = 0; i < decoded.length; ++i) {
             const textIndex = Math.floor((i / outputTokenIds.dims[0]) * texts.length);
 
@@ -193,7 +193,7 @@ export class TextGenerationPipeline
             toReturn[textIndex].push(
                 /** @type {TextGenerationSingle} */ ({
                     generated_text: isChatInput
-                        ? [.../** @type {Chat[]} */ (texts)[textIndex], { role: 'assistant', content: decoded[i] }]
+                        ? ([...(texts as import('../tokenization_utils.js').Message[][])[textIndex], { role: 'assistant', content: decoded[i] }] as import('../tokenization_utils.js').Message[])
                         : decoded[i],
                 }),
             );

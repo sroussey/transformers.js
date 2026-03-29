@@ -100,11 +100,9 @@ const WHISPER_LANGUAGES = [
     ['su', 'sundanese'],
 ];
 
-// @ts-ignore
-export const WHISPER_LANGUAGE_MAPPING = new Map(WHISPER_LANGUAGES);
-// @ts-ignore
-export const WHISPER_TO_LANGUAGE_CODE_MAPPING = new Map([
-    ...(WHISPER_LANGUAGES.map(([k, v]) => [v, k]) as any),
+export const WHISPER_LANGUAGE_MAPPING = new Map<string, string>(WHISPER_LANGUAGES as [string, string][]);
+export const WHISPER_TO_LANGUAGE_CODE_MAPPING = new Map<string, string>([
+    ...(WHISPER_LANGUAGES.map(([k, v]) => [v, k]) as [string, string][]),
     ...([
         ['burmese', 'my'],
         ['valencian', 'ca'],
@@ -117,14 +115,14 @@ export const WHISPER_TO_LANGUAGE_CODE_MAPPING = new Map([
         ['moldovan', 'ro'],
         ['sinhalese', 'si'],
         ['castilian', 'es'],
-    ] as any),
+    ] as [string, string][]),
 ]);
 
 /**
  * @param {string} language The language name or code
  * @returns {string} The language code
  */
-export function whisper_language_to_code(language) {
+export function whisper_language_to_code(language: string) {
     language = language.toLowerCase();
 
     // Map to code from user-friendly name (e.g., "english" -> "en")

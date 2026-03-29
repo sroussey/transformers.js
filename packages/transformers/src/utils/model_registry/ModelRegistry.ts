@@ -133,7 +133,7 @@ export class ModelRegistry {
      * const files = await ModelRegistry.get_files('onnx-community/gpt2-ONNX');
      * console.log(files); // ['config.json', 'tokenizer.json', 'onnx/model_q4.onnx', ...]
      */
-    static async get_files(modelId, options = {}) {
+    static async get_files(modelId: string, options: Record<string, unknown> = {}): Promise<string[]> {
         return get_files(modelId, options);
     }
 
@@ -154,7 +154,7 @@ export class ModelRegistry {
      * const files = await ModelRegistry.get_pipeline_files('text-generation', 'onnx-community/gpt2-ONNX');
      * console.log(files); // ['config.json', 'tokenizer.json', 'onnx/model_q4.onnx', ...]
      */
-    static async get_pipeline_files(task, modelId, options = {}) {
+    static async get_pipeline_files(task: string, modelId: string, options: Record<string, unknown> = {}): Promise<string[]> {
         return get_pipeline_files(task, modelId, options);
     }
 
@@ -173,7 +173,7 @@ export class ModelRegistry {
      * const files = await ModelRegistry.get_model_files('onnx-community/bert-base-uncased-ONNX');
      * console.log(files); // ['config.json', 'onnx/model_q4.onnx', 'generation_config.json']
      */
-    static async get_model_files(modelId, options = {}) {
+    static async get_model_files(modelId: string, options: Record<string, unknown> = {}): Promise<string[]> {
         return get_model_files(modelId, options);
     }
 
@@ -187,7 +187,7 @@ export class ModelRegistry {
      * const files = await ModelRegistry.get_tokenizer_files('onnx-community/gpt2-ONNX');
      * console.log(files); // ['tokenizer.json', 'tokenizer_config.json']
      */
-    static async get_tokenizer_files(modelId) {
+    static async get_tokenizer_files(modelId: string): Promise<string[]> {
         return get_tokenizer_files(modelId);
     }
 
@@ -201,7 +201,7 @@ export class ModelRegistry {
      * const files = await ModelRegistry.get_processor_files('onnx-community/vit-base-patch16-224-ONNX');
      * console.log(files); // ['preprocessor_config.json']
      */
-    static async get_processor_files(modelId) {
+    static async get_processor_files(modelId: string): Promise<string[]> {
         return get_processor_files(modelId);
     }
 
@@ -225,7 +225,7 @@ export class ModelRegistry {
      * const dtypes = await ModelRegistry.get_available_dtypes('onnx-community/all-MiniLM-L6-v2-ONNX');
      * console.log(dtypes); // ['fp32', 'fp16', 'int8', 'uint8', 'q8', 'q4']
      */
-    static async get_available_dtypes(modelId, options = {}) {
+    static async get_available_dtypes(modelId: string, options: Record<string, unknown> = {}): Promise<string[]> {
         return get_available_dtypes(modelId, options);
     }
 
@@ -247,7 +247,7 @@ export class ModelRegistry {
      * const cached = await ModelRegistry.is_cached('onnx-community/bert-base-uncased-ONNX');
      * console.log(cached); // true or false
      */
-    static async is_cached(modelId, options = {}) {
+    static async is_cached(modelId: string, options: Record<string, unknown> = {}): Promise<boolean> {
         return is_cached(modelId, options);
     }
 
@@ -262,14 +262,14 @@ export class ModelRegistry {
      * @param {import('../../configs.js').PretrainedConfig} [options.config] - Pre-loaded config
      * @param {import('../dtypes.js').DataType|Record<string, import('../dtypes.js').DataType>} [options.dtype=null] - Override dtype
      * @param {import('../devices.js').DeviceType|Record<string, import('../devices.js').DeviceType>} [options.device=null] - Override device
-     * @returns {Promise<import('./is_cached.js').CacheCheckResult>} Object with allCached boolean and files array with cache status
+     * @returns {Promise<import('./is_cached').CacheCheckResult>} Object with allCached boolean and files array with cache status
      *
      * @example
      * const status = await ModelRegistry.is_cached_files('onnx-community/bert-base-uncased-ONNX');
      * console.log(status.allCached); // true or false
      * console.log(status.files); // [{ file: 'config.json', cached: true }, ...]
      */
-    static async is_cached_files(modelId, options = {}) {
+    static async is_cached_files(modelId: string, options: Record<string, unknown> = {}): Promise<import('./is_cached').CacheCheckResult> {
         return is_cached_files(modelId, options);
     }
 
@@ -292,7 +292,7 @@ export class ModelRegistry {
      * const cached = await ModelRegistry.is_pipeline_cached('text-generation', 'onnx-community/gpt2-ONNX');
      * console.log(cached); // true or false
      */
-    static async is_pipeline_cached(task, modelId, options = {}) {
+    static async is_pipeline_cached(task: string, modelId: string, options: Record<string, unknown> = {}): Promise<boolean> {
         return is_pipeline_cached(task, modelId, options);
     }
 
@@ -308,14 +308,14 @@ export class ModelRegistry {
      * @param {import('../../configs.js').PretrainedConfig} [options.config] - Pre-loaded config
      * @param {import('../dtypes.js').DataType|Record<string, import('../dtypes.js').DataType>} [options.dtype=null] - Override dtype
      * @param {import('../devices.js').DeviceType|Record<string, import('../devices.js').DeviceType>} [options.device=null] - Override device
-     * @returns {Promise<import('./is_cached.js').CacheCheckResult>} Object with allCached boolean and files array with cache status
+     * @returns {Promise<import('./is_cached').CacheCheckResult>} Object with allCached boolean and files array with cache status
      *
      * @example
      * const status = await ModelRegistry.is_pipeline_cached_files('text-generation', 'onnx-community/gpt2-ONNX');
      * console.log(status.allCached); // true or false
      * console.log(status.files); // [{ file: 'config.json', cached: true }, ...]
      */
-    static async is_pipeline_cached_files(task, modelId, options = {}) {
+    static async is_pipeline_cached_files(task: string, modelId: string, options: Record<string, unknown> = {}): Promise<import('./is_cached').CacheCheckResult> {
         return is_pipeline_cached_files(task, modelId, options);
     }
 
@@ -331,7 +331,7 @@ export class ModelRegistry {
      * const metadata = await ModelRegistry.get_file_metadata('onnx-community/gpt2-ONNX', 'config.json');
      * console.log(metadata.exists, metadata.size); // true, 665
      */
-    static async get_file_metadata(path_or_repo_id, filename, options = {}) {
+    static async get_file_metadata(path_or_repo_id: string, filename: string, options: Record<string, unknown> = {}): Promise<{exists: boolean, size?: number, contentType?: string, fromCache?: boolean}> {
         return get_file_metadata(path_or_repo_id, filename, options);
     }
 
@@ -348,13 +348,13 @@ export class ModelRegistry {
      * @param {import('../devices.js').DeviceType|Record<string, import('../devices.js').DeviceType>} [options.device] - Override device
      * @param {boolean} [options.include_tokenizer=true] - Whether to clear tokenizer files
      * @param {boolean} [options.include_processor=true] - Whether to clear processor files
-     * @returns {Promise<import('./clear_cache.js').CacheClearResult>} Object with deletion statistics and file status
+     * @returns {Promise<import('./clear_cache').CacheClearResult>} Object with deletion statistics and file status
      *
      * @example
      * const result = await ModelRegistry.clear_cache('onnx-community/bert-base-uncased-ONNX');
      * console.log(`Deleted ${result.filesDeleted} of ${result.filesCached} cached files`);
      */
-    static async clear_cache(modelId, options = {}) {
+    static async clear_cache(modelId: string, options: Record<string, unknown> = {}): Promise<import('./clear_cache').CacheClearResult> {
         return clear_cache(modelId, options);
     }
 
@@ -370,13 +370,13 @@ export class ModelRegistry {
      * @param {import('../../configs.js').PretrainedConfig} [options.config] - Pre-loaded config
      * @param {import('../dtypes.js').DataType|Record<string, import('../dtypes.js').DataType>} [options.dtype] - Override dtype
      * @param {import('../devices.js').DeviceType|Record<string, import('../devices.js').DeviceType>} [options.device] - Override device
-     * @returns {Promise<import('./clear_cache.js').CacheClearResult>} Object with deletion statistics and file status
+     * @returns {Promise<import('./clear_cache').CacheClearResult>} Object with deletion statistics and file status
      *
      * @example
      * const result = await ModelRegistry.clear_pipeline_cache('text-generation', 'onnx-community/gpt2-ONNX');
      * console.log(`Deleted ${result.filesDeleted} of ${result.filesCached} cached files`);
      */
-    static async clear_pipeline_cache(task, modelId, options = {}) {
+    static async clear_pipeline_cache(task: string, modelId: string, options: Record<string, unknown> = {}): Promise<import('./clear_cache').CacheClearResult> {
         return clear_pipeline_cache(task, modelId, options);
     }
 }

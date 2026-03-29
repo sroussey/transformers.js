@@ -15,21 +15,21 @@ export class MgpstrProcessor extends Processor {
     /**
      * @returns {import('./tokenization_mgp_str.js').MgpstrTokenizer} The character tokenizer.
      */
-    get char_tokenizer() {
+    get char_tokenizer(): any {
         return this.components.char_tokenizer;
     }
 
     /**
      * @returns {import('../gpt2/tokenization_gpt2.js').GPT2Tokenizer} The BPE tokenizer.
      */
-    get bpe_tokenizer() {
+    get bpe_tokenizer(): any {
         return this.components.bpe_tokenizer;
     }
 
     /**
      * @returns {import('../bert/tokenization_bert.js').BertTokenizer} The WordPiece tokenizer.
      */
-    get wp_tokenizer() {
+    get wp_tokenizer(): any {
         return this.components.wp_tokenizer;
     }
 
@@ -39,20 +39,19 @@ export class MgpstrProcessor extends Processor {
      * @param {string} format Type of model prediction. Must be one of ['char', 'bpe', 'wp'].
      * @returns {[string[], number[]]} The decoded sentences and their confidence scores.
      */
-    _decode_helper(pred_logits, format) {
+    _decode_helper(pred_logits: import('../../utils/tensor.js').Tensor, format: 'char' | 'bpe' | 'wp') {
         if (!DECODE_TYPE_MAPPING.hasOwnProperty(format)) {
             throw new Error(`Format ${format} is not supported.`);
         }
 
         const [decoder_name, eos_token] = DECODE_TYPE_MAPPING[format];
-        const decoder = this[decoder_name].bind(this);
+        const decoder = (this as unknown as Record<string, Function>)[decoder_name as string].bind(this);
 
         const [batch_size, batch_max_length] = pred_logits.dims;
         const conf_scores = [];
         const all_ids = [];
 
-        /** @type {number[][][]} */
-        const pred_logits_list = pred_logits.tolist();
+        const pred_logits_list = pred_logits.tolist() as number[][][];
         for (let i = 0; i < batch_size; ++i) {
             const logits = pred_logits_list[i];
             const ids = [];
@@ -84,8 +83,8 @@ export class MgpstrProcessor extends Processor {
      * @param {number[][]} sequences List of tokenized input ids.
      * @returns {string[]} The list of char decoded sentences.
      */
-    char_decode(sequences) {
-        return this.char_tokenizer.batch_decode(sequences).map((str) => str.replaceAll(' ', ''));
+    char_decode(sequences: number[][]) {
+        return this.char_tokenizer.batch_decode(sequences).map((str: string) => str.replaceAll(' ', ''));
     }
 
     /**
@@ -93,7 +92,7 @@ export class MgpstrProcessor extends Processor {
      * @param {number[][]} sequences List of tokenized input ids.
      * @returns {string[]} The list of BPE decoded sentences.
      */
-    bpe_decode(sequences) {
+    bpe_decode(sequences: number[][]) {
         return this.bpe_tokenizer.batch_decode(sequences);
     }
 
@@ -102,8 +101,8 @@ export class MgpstrProcessor extends Processor {
      * @param {number[][]} sequences List of tokenized input ids.
      * @returns {string[]} The list of wp decoded sentences.
      */
-    wp_decode(sequences) {
-        return this.wp_tokenizer.batch_decode(sequences).map((str) => str.replaceAll(' ', ''));
+    wp_decode(sequences: number[][]) {
+        return this.wp_tokenizer.batch_decode(sequences).map((str: string) => str.replaceAll(' ', ''));
     }
 
     /**
@@ -117,7 +116,8 @@ export class MgpstrProcessor extends Processor {
      * - bpe_preds: The list of BPE decoded sentences.
      * - wp_preds: The list of wp decoded sentences.
      */
-    batch_decode([char_logits, bpe_logits, wp_logits]) {
+    batch_decode(...args: any[]): any {
+        const [char_logits, bpe_logits, wp_logits] = args[0] as [import('../../utils/tensor.js').Tensor, import('../../utils/tensor.js').Tensor, import('../../utils/tensor.js').Tensor];
         const [char_preds, char_scores] = this._decode_helper(char_logits, 'char');
         const [bpe_preds, bpe_scores] = this._decode_helper(bpe_logits, 'bpe');
         const [wp_preds, wp_scores] = this._decode_helper(wp_logits, 'wp');
@@ -139,9 +139,8 @@ export class MgpstrProcessor extends Processor {
         };
     }
     /** @type {typeof Processor.from_pretrained} */
-    static async from_pretrained(...args) {
-        // @ts-ignore
-        const base = await super.from_pretrained(...args);
+    static async from_pretrained(...args: Parameters<typeof Processor.from_pretrained>) {
+        const base = await (super.from_pretrained as typeof Processor.from_pretrained)(...args);
 
         // Load Transformers.js-compatible versions of the BPE and WordPiece tokenizers
         const bpe_tokenizer = await AutoTokenizer.from_pretrained('Xenova/gpt2'); // openai-community/gpt2
@@ -157,11 +156,11 @@ export class MgpstrProcessor extends Processor {
         return base;
     }
 
-    async _call(images, text = null) {
-        const result = await this.image_processor(images);
+    async _call(images: import('../../utils/image.js').RawImage | import('../../utils/image.js').RawImage[], text: string | string[] | null = null) {
+        const result = await this.image_processor!(images);
 
         if (text) {
-            result.labels = this.tokenizer(text).input_ids;
+            result.labels = this.tokenizer!(text).input_ids;
         }
 
         return result;

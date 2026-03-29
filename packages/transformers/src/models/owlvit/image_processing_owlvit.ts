@@ -2,8 +2,7 @@ import { ImageProcessor, post_process_object_detection } from '../../image_proce
 
 export class OwlViTImageProcessor extends ImageProcessor {
     /** @type {typeof post_process_object_detection} */
-    post_process_object_detection(...args) {
-        // @ts-ignore
+    post_process_object_detection(...args: Parameters<typeof post_process_object_detection>) {
         return post_process_object_detection(...args);
     }
 }

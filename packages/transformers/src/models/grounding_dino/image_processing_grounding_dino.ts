@@ -14,7 +14,7 @@ export class GroundingDinoImageProcessor extends ImageProcessor {
      * @param {import('../../utils/image.js').RawImage[]} images The image(s) to extract features from.
      * @returns {Promise<GroundingDinoFeatureExtractorResult>} An object containing the concatenated pixel values of the preprocessed images.
      */
-    async _call(images) {
+    async _call(images: import('../../utils/image.js').RawImage[]) {
         const result = await super._call(images);
 
         const dims = result.pixel_values.dims;

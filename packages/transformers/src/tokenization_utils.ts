@@ -25,10 +25,10 @@ import { Tensor } from './utils/tensor';
  * @param {PretrainedTokenizerOptions} options Additional options for loading the tokenizer.
  * @returns {Promise<any[]>} A promise that resolves with information about the loaded tokenizer.
  */
-export async function loadTokenizer(pretrained_model_name_or_path, options) {
+export async function loadTokenizer(pretrained_model_name_or_path: string, options: { progress_callback?: ((data: Record<string, unknown>) => void) | null; config?: Record<string, unknown> | null; cache_dir?: string | null; local_files_only?: boolean; revision?: string }) {
     const tokenizerFiles = await get_tokenizer_files(pretrained_model_name_or_path);
     return await Promise.all(
-        tokenizerFiles.map((file) => getModelJSON(pretrained_model_name_or_path, file, true, options)),
+        tokenizerFiles.map((file) => getModelJSON(pretrained_model_name_or_path, file, true, options as Record<string, unknown>)),
     );
 }
 
@@ -37,18 +37,18 @@ export async function loadTokenizer(pretrained_model_name_or_path, options) {
  * @param {Tensor} tensor The tensor to convert.
  * @returns {number[]} The tensor as a list.
  */
-export function prepareTensorForDecode(tensor) {
+export function prepareTensorForDecode(tensor: Tensor): number[] {
     const dims = tensor.dims;
     switch (dims.length) {
         case 1:
-            return tensor.tolist();
+            return tensor.tolist() as number[];
         case 2:
             if (dims[0] !== 1) {
                 throw new Error(
                     'Unable to decode tensor with `batch size !== 1`. Use `tokenizer.batch_decode(...)` for batched inputs.',
                 );
             }
-            return tensor.tolist()[0];
+            return (tensor.tolist() as number[][])[0];
         default:
             throw new Error(`Expected tensor to have 1-2 dimensions, got ${dims.length}.`);
     }
@@ -90,6 +90,10 @@ const SPECIAL_TOKEN_ATTRIBUTES = [
  * @property {'user' | 'assistant' | 'system' | (string & {})} role The role of the message.
  * @property {string | MessageContent[]} content The content of the message. Can be a simple string or an array of content objects.
  */
+export interface Message {
+    role: 'user' | 'assistant' | 'system' | (string & {});
+    content: string | { type: string; [key: string]: unknown }[];
+}
 
 /**
  *
@@ -101,7 +105,7 @@ const SPECIAL_TOKEN_ATTRIBUTES = [
  * @param {string} side Which side to pad the array.
  * @private
  */
-function padHelper(item, length, value_fn, side) {
+function padHelper(item: Record<string, unknown[]>, length: number, value_fn: (key: string) => unknown, side: string) {
     for (const key of Object.keys(item)) {
         const diff = length - item[key].length;
         const value = value_fn(key);
@@ -118,7 +122,7 @@ function padHelper(item, length, value_fn, side) {
  * @param {number} length The length to truncate to.
  * @private
  */
-function truncateHelper(item, length) {
+function truncateHelper(item: Record<string, unknown[]>, length: number) {
     // Setting .length to a lower value truncates the array in-place:
     // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/length
     for (const key of Object.keys(item)) {
@@ -134,15 +138,15 @@ function truncateHelper(item, length) {
  * @throws {Error} If an object is found for a matching key and its __type property is not "AddedToken".
  * @private
  */
-function getTokenFromConfig(config, ...keys) {
+function getTokenFromConfig(config: Record<string, unknown>, ...keys: string[]) {
     for (const key of keys) {
         if (!Object.hasOwn(config, key)) continue;
         const item = config[key];
         if (!item) continue;
 
         if (typeof item === 'object') {
-            if (item.__type === 'AddedToken') {
-                return item.content;
+            if ((item as Record<string, unknown>).__type === 'AddedToken') {
+                return (item as Record<string, unknown>).content as string;
             } else {
                 throw Error(`Unknown token: ${item}`);
             }
@@ -159,7 +163,7 @@ function getTokenFromConfig(config, ...keys) {
  * @returns {import('@huggingface/tokenizers').AddedToken[]}
  * @private
  */
-function getSpecialTokens(tokenizer) {
+function getSpecialTokens(tokenizer: import('@huggingface/tokenizers').Tokenizer) {
     const special = [];
     for (const value of tokenizer.get_added_tokens_decoder().values()) {
         if (value.special) special.push(value);
@@ -198,7 +202,7 @@ export class PreTrainedTokenizer extends Callable {
      * @param {Object} tokenizerJSON The JSON of the tokenizer.
      * @param {Object} tokenizerConfig The config of the tokenizer.
      */
-    constructor(tokenizerJSON, tokenizerConfig) {
+    constructor(tokenizerJSON: Record<string, unknown>, tokenizerConfig: Record<string, unknown>) {
         super();
 
         this._tokenizerJSON = tokenizerJSON;
@@ -207,26 +211,26 @@ export class PreTrainedTokenizer extends Callable {
 
         this.config = tokenizerConfig;
 
-        this.padding_side = tokenizerConfig.padding_side ?? this.padding_side;
+        this.padding_side = (tokenizerConfig.padding_side as string) ?? this.padding_side;
 
         // Set mask token if present (otherwise will be undefined, which is fine)
         this.mask_token = getTokenFromConfig(tokenizerConfig, 'mask_token');
-        this.mask_token_id = this._tokenizer.token_to_id(this.mask_token);
+        this.mask_token_id = this._tokenizer.token_to_id(this.mask_token as string);
 
         this.pad_token = getTokenFromConfig(tokenizerConfig, 'pad_token', 'eos_token');
-        this.pad_token_id = this._tokenizer.token_to_id(this.pad_token);
+        this.pad_token_id = this._tokenizer.token_to_id(this.pad_token as string);
 
         this.sep_token = getTokenFromConfig(tokenizerConfig, 'sep_token');
-        this.sep_token_id = this._tokenizer.token_to_id(this.sep_token);
+        this.sep_token_id = this._tokenizer.token_to_id(this.sep_token as string);
 
         this.unk_token = getTokenFromConfig(tokenizerConfig, 'unk_token');
-        this.unk_token_id = this._tokenizer.token_to_id(this.unk_token);
+        this.unk_token_id = this._tokenizer.token_to_id(this.unk_token as string);
 
         this.bos_token = getTokenFromConfig(tokenizerConfig, 'bos_token');
-        this.bos_token_id = this._tokenizer.token_to_id(this.bos_token);
+        this.bos_token_id = this._tokenizer.token_to_id(this.bos_token as string);
 
         this.eos_token = getTokenFromConfig(tokenizerConfig, 'eos_token');
-        this.eos_token_id = this._tokenizer.token_to_id(this.eos_token);
+        this.eos_token_id = this._tokenizer.token_to_id(this.eos_token as string);
 
         this.chat_template = tokenizerConfig.chat_template ?? null;
         if (Array.isArray(this.chat_template)) {
@@ -258,8 +262,8 @@ export class PreTrainedTokenizer extends Callable {
      * @returns {Promise<PreTrainedTokenizer>} A new instance of the `PreTrainedTokenizer` class.
      */
     static async from_pretrained(
-        pretrained_model_name_or_path,
-        { progress_callback = null, config = null, cache_dir = null, local_files_only = false, revision = 'main' } = {},
+        pretrained_model_name_or_path: string,
+        { progress_callback = null as ((data: Record<string, unknown>) => void) | null, config = null as Record<string, unknown> | null, cache_dir = null as string | null, local_files_only = false, revision = 'main' } = {},
     ) {
         const info = await loadTokenizer(pretrained_model_name_or_path, {
             progress_callback,
@@ -269,16 +273,15 @@ export class PreTrainedTokenizer extends Callable {
             revision,
         });
 
-        // @ts-ignore
-        return new this(...info);
+        return new (this as unknown as new (...args: unknown[]) => PreTrainedTokenizer)(...info);
     }
 
     get_vocab() {
         return this._tokenizer.get_vocab();
     }
 
-    get model_max_length() {
-        return this._tokenizerConfig.model_max_length ?? Infinity;
+    get model_max_length(): number {
+        return (this._tokenizerConfig.model_max_length as number) ?? Infinity;
     }
 
     get add_eos_token() {
@@ -295,11 +298,11 @@ export class PreTrainedTokenizer extends Callable {
      * @param {T} tokens One or several token(s) to convert to token id(s).
      * @returns {T extends string ? number : number[]} The token id or list of token ids.
      */
-    convert_tokens_to_ids(tokens) {
+    convert_tokens_to_ids(tokens: string | string[]) {
         if (typeof tokens === 'string') {
             return /** @type {any} */ (this._tokenizer.token_to_id(tokens));
         } else {
-            return /** @type {any} */ (tokens.map((token) => this._tokenizer.token_to_id(token)));
+            return /** @type {any} */ (tokens.map((token: string) => this._tokenizer.token_to_id(token)));
         }
     }
 
@@ -327,17 +330,17 @@ export class PreTrainedTokenizer extends Callable {
      */
     _call(
         // Required positional arguments
-        text,
+        text: string | string[],
 
         // Optional keyword arguments
         {
-            text_pair = null,
+            text_pair = null as string | string[] | null,
             add_special_tokens = true,
             padding = false,
-            truncation = null,
-            max_length = null,
+            truncation = null as boolean | null,
+            max_length = null as number | null,
             return_tensor = true, // Different to HF
-            return_token_type_ids = null,
+            return_token_type_ids = null as boolean | null,
         } = {},
     ) {
         const isBatched = Array.isArray(text);
@@ -429,7 +432,7 @@ export class PreTrainedTokenizer extends Callable {
             }
         }
 
-        const result = {};
+        const result: Record<string, Tensor | number[] | number[][]> = {};
 
         if (return_tensor) {
             if (!(padding && truncation)) {
@@ -438,8 +441,8 @@ export class PreTrainedTokenizer extends Callable {
 
                 if (
                     encodedTokens.some((x) => {
-                        for (const key of Object.keys(x)) {
-                            if (x[key].length !== encodedTokens[0][key]?.length) {
+                        for (const key of Object.keys(x) as string[]) {
+                            if ((x as Record<string, number[]>)[key].length !== (encodedTokens[0] as Record<string, number[]>)[key]?.length) {
                                 return true;
                             }
                         }
@@ -461,20 +464,20 @@ export class PreTrainedTokenizer extends Callable {
             for (const key of Object.keys(encodedTokens[0])) {
                 result[key] = new Tensor(
                     'int64',
-                    BigInt64Array.from(encodedTokens.flatMap((x) => x[key]).map(BigInt)),
+                    BigInt64Array.from(encodedTokens.flatMap((x) => (x as Record<string, number[]>)[key]).map(BigInt)),
                     dims,
                 );
             }
         } else {
             for (const key of Object.keys(encodedTokens[0])) {
-                result[key] = encodedTokens.map((x) => x[key]);
+                result[key] = encodedTokens.map((x) => (x as Record<string, number[]>)[key]);
             }
 
             // If not returning a tensor, we match the input type
             if (!isBatched) {
                 // Input was not batched, so we unwrap
                 for (const key of Object.keys(result)) {
-                    result[key] = result[key][0];
+                    result[key] = (result[key] as number[][])[0];
                 }
             }
         }
@@ -488,7 +491,7 @@ export class PreTrainedTokenizer extends Callable {
      * @param {string|null} text The text to encode.
      * @returns {string[]|null} The encoded tokens.
      */
-    _encode_text(text) {
+    _encode_text(text: string | null) {
         if (text === null) return null;
         return this._tokenizer.encode(text).tokens;
     }
@@ -504,7 +507,7 @@ export class PreTrainedTokenizer extends Callable {
      * @returns {{input_ids: number[], attention_mask: number[], token_type_ids?: number[]}} An object containing the encoded text.
      * @private
      */
-    _encode_plus(text, { text_pair = null, add_special_tokens = true, return_token_type_ids = null } = {}) {
+    _encode_plus(text: string, { text_pair = null as string | null, add_special_tokens = true, return_token_type_ids = null as boolean | null } = {}) {
         const { ids, attention_mask, token_type_ids } = this._tokenizer.encode(text, {
             text_pair,
             add_special_tokens,
@@ -525,7 +528,7 @@ export class PreTrainedTokenizer extends Callable {
      * @param {boolean} [options.add_special_tokens=false] Whether or not to add the special tokens associated with the corresponding model.
      * @returns {string[]} The list of tokens.
      */
-    tokenize(text, { pair = null, add_special_tokens = false } = {}) {
+    tokenize(text: string, { pair = null as string | null, add_special_tokens = false } = {}) {
         return this._tokenizer.tokenize(text, { text_pair: pair, add_special_tokens });
     }
 
@@ -539,7 +542,7 @@ export class PreTrainedTokenizer extends Callable {
      * @param {boolean|null} [options.return_token_type_ids=null] Whether to return token_type_ids.
      * @returns {number[]} An array of token IDs representing the encoded text(s).
      */
-    encode(text, { text_pair = null, add_special_tokens = true, return_token_type_ids = null } = {}) {
+    encode(text: string, { text_pair = null as string | null, add_special_tokens = true, return_token_type_ids = null as boolean | null } = {}) {
         return this._tokenizer.encode(text, {
             text_pair,
             add_special_tokens,
@@ -553,11 +556,11 @@ export class PreTrainedTokenizer extends Callable {
      * @param {Object} decode_args (Optional) Object with decoding arguments.
      * @returns {string[]} List of decoded sequences.
      */
-    batch_decode(batch, decode_args = {}) {
+    batch_decode(batch: number[][] | Tensor, decode_args = {}) {
         if (batch instanceof Tensor) {
-            batch = batch.tolist();
+            batch = batch.tolist() as number[][];
         }
-        return batch.map((x) => this.decode(x, decode_args));
+        return (batch as number[][]).map((x: number[]) => this.decode(x, decode_args));
     }
 
     /**
@@ -571,7 +574,7 @@ export class PreTrainedTokenizer extends Callable {
      * @returns {string} The decoded string.
      * @throws {Error} If `token_ids` is not a non-empty array of integers.
      */
-    decode(token_ids, decode_args = {}) {
+    decode(token_ids: number[] | bigint[] | Tensor, decode_args = {}) {
         if (token_ids instanceof Tensor) {
             token_ids = prepareTensorForDecode(token_ids);
         }
@@ -592,7 +595,7 @@ export class PreTrainedTokenizer extends Callable {
      * If null, the value is set to `this.decoder.cleanup` if it exists, falling back to `this.clean_up_tokenization_spaces` if it exists, falling back to `true`.
      * @returns {string} The decoded string
      */
-    decode_single(token_ids, { skip_special_tokens = false, clean_up_tokenization_spaces = null }) {
+    decode_single(token_ids: number[] | bigint[], { skip_special_tokens = false, clean_up_tokenization_spaces = null as boolean | null }) {
         return this._tokenizer.decode(token_ids, {
             skip_special_tokens,
             clean_up_tokenization_spaces,
@@ -617,7 +620,7 @@ export class PreTrainedTokenizer extends Callable {
      * for more information.
      * @returns {string} The chat template string.
      */
-    get_chat_template({ chat_template = null, tools = null } = {}) {
+    get_chat_template({ chat_template = null as string | null, tools = null as object[] | null } = {}) {
         // First, handle the cases when the model has a dict of multiple templates
         if (this.chat_template && typeof this.chat_template === 'object') {
             const template_dict = this.chat_template;
@@ -714,16 +717,16 @@ export class PreTrainedTokenizer extends Callable {
      * @returns {string | Tensor | number[]| number[][]|BatchEncoding} The tokenized output.
      */
     apply_chat_template(
-        conversation,
+        conversation: Message[],
         {
-            tools = null,
-            documents = null,
-            chat_template = null,
+            tools = null as object[] | null,
+            documents = null as Record<string, string>[] | null,
+            chat_template = null as string | null,
             add_generation_prompt = false,
             tokenize = true,
             padding = false,
             truncation = false,
-            max_length = null,
+            max_length = null as number | null,
             return_tensor = true,
             return_dict = true,
             tokenizer_kwargs = {},
@@ -770,7 +773,7 @@ export class PreTrainedTokenizer extends Callable {
                 return_tensor,
                 ...tokenizer_kwargs,
             });
-            return return_dict ? out : (out as any).input_ids;
+            return return_dict ? out : (out as { input_ids: unknown }).input_ids;
         }
 
         return rendered;
@@ -785,7 +788,7 @@ export class PreTrainedTokenizer extends Callable {
  * @param {Object} generate_kwargs Generation options.
  * @returns {Object} Object to be passed to the model.
  */
-export function _build_translation_inputs(self, raw_inputs, tokenizer_options, generate_kwargs) {
+export function _build_translation_inputs(self: PreTrainedTokenizer, raw_inputs: string | string[], tokenizer_options: Record<string, unknown>, generate_kwargs: Record<string, unknown>) {
     if (!('language_codes' in self) || !Array.isArray(self.language_codes)) {
         throw new Error(
             'Tokenizer must have `language_codes` attribute set and it should be an array of language ids.',

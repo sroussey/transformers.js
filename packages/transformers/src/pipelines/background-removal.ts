@@ -45,7 +45,7 @@ export class BackgroundRemovalPipeline
         /** @type {any} */ (ImageSegmentationPipeline)
     )
 {
-    async _call(images, options = {}) {
+    async _call(images: import('./_base.js').ImageInput | import('./_base.js').ImageInput[], options: Record<string, unknown> = {}): Promise<any> {
         const preparedImages = await prepareImages(images);
 
         const masks = await super._call(images, options);

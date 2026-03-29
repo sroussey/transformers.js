@@ -13,7 +13,7 @@ export class XVectorOutput extends ModelOutput {
      * @param {Tensor} output.logits Classification hidden states before AMSoftmax, of shape `(batch_size, config.xvector_output_dim)`.
      * @param {Tensor} output.embeddings Utterance embeddings used for vector similarity-based retrieval, of shape `(batch_size, config.xvector_output_dim)`.
      */
-    constructor({ logits, embeddings }) {
+    constructor({ logits, embeddings }: { logits: Tensor; embeddings: Tensor }) {
         super();
         this.logits = logits;
         this.embeddings = embeddings;
@@ -62,7 +62,7 @@ export class WavLMForCTC extends WavLMPreTrainedModel {
      * @param {Tensor} model_inputs.input_values Float values of input raw speech waveform.
      * @param {Tensor} model_inputs.attention_mask Mask to avoid performing convolution and attention on padding token indices. Mask values selected in [0, 1]
      */
-    async _call(model_inputs) {
+    async _call(model_inputs: Record<string, unknown>) {
         return new CausalLMOutput(await super._call(model_inputs));
     }
 }
@@ -76,7 +76,7 @@ export class WavLMForSequenceClassification extends WavLMPreTrainedModel {
      * @param {Object} model_inputs The inputs to the model.
      * @returns {Promise<SequenceClassifierOutput>} An object containing the model's output logits for sequence classification.
      */
-    async _call(model_inputs) {
+    async _call(model_inputs: Record<string, unknown>) {
         return new SequenceClassifierOutput(await super._call(model_inputs));
     }
 }
@@ -119,7 +119,7 @@ export class WavLMForXVector extends WavLMPreTrainedModel {
      * @param {Object} model_inputs The inputs to the model.
      * @returns {Promise<XVectorOutput>} An object containing the model's output logits and speaker embeddings.
      */
-    async _call(model_inputs) {
+    async _call(model_inputs: Record<string, unknown>) {
         return new XVectorOutput(await super._call(model_inputs));
     }
 }
@@ -167,7 +167,7 @@ export class WavLMForAudioFrameClassification extends WavLMPreTrainedModel {
      * @param {Object} model_inputs The inputs to the model.
      * @returns {Promise<TokenClassifierOutput>} An object containing the model's output logits for sequence classification.
      */
-    async _call(model_inputs) {
+    async _call(model_inputs: Record<string, unknown>) {
         return new TokenClassifierOutput(await super._call(model_inputs));
     }
 }

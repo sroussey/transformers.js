@@ -1,7 +1,7 @@
 import { ImageProcessor } from '../../image_processors_utils';
 
 export class JinaCLIPImageProcessor extends ImageProcessor {
-    constructor(config) {
+    constructor(config: Record<string, unknown>) {
         // JinaCLIPImageProcessor uses a custom preprocessor_config.json, so we configure it here
         const { resize_mode, fill_color, interpolation, size, ...other } = config;
 

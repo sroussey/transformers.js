@@ -1,4 +1,4 @@
-import { AutoConfig } from '../../configs';
+import { AutoConfig, PretrainedConfig } from '../../configs';
 import { getSessionsConfig } from '../../models/modeling_utils';
 import { selectDevice } from '../devices';
 import { DEFAULT_DTYPE_SUFFIX_MAPPING, selectDtype } from '../dtypes';
@@ -27,9 +27,14 @@ import { resolve_model_type } from './resolve_model_type';
  * @returns {Promise<PretrainedConfig>}
  */
 export function get_config(
-    modelId,
-    { config = null, cache_dir = null, local_files_only = false, revision = 'main' } = {},
-) {
+    modelId: string,
+    { config = null, cache_dir = null, local_files_only = false, revision = 'main' }: {
+        config?: PretrainedConfig | null,
+        cache_dir?: string | null,
+        local_files_only?: boolean,
+        revision?: string,
+    } = {},
+): Promise<PretrainedConfig> {
     // When a pre-loaded config is provided, skip memoization — no fetch occurs
     // and there is no meaningful key to deduplicate on.
     if (config !== null) {
@@ -57,9 +62,14 @@ export function get_config(
  * @returns {Promise<string[]>} Array of file paths that will be loaded
  */
 export async function get_model_files(
-    modelId,
-    { config = null, dtype: overrideDtype = null, device: overrideDevice = null, model_file_name = null } = {},
-) {
+    modelId: string,
+    { config = null, dtype: overrideDtype = null, device: overrideDevice = null, model_file_name = null }: {
+        config?: PretrainedConfig | null,
+        dtype?: string | Record<string, string> | null,
+        device?: string | Record<string, string> | null,
+        model_file_name?: string | null,
+    } = {},
+): Promise<string[]> {
     config = await get_config(modelId, { config });
 
     const files = [
@@ -68,7 +78,7 @@ export async function get_model_files(
     ];
     const custom_config = config['transformers.js_config'] ?? {};
 
-    const use_external_data_format = custom_config.use_external_data_format;
+    const use_external_data_format = custom_config.use_external_data_format as import('../hub.js').ExternalData | Record<string, import('../hub.js').ExternalData> | undefined;
     const subfolder = 'onnx'; // Always 'onnx' as per the default in from_pretrained
 
     const rawDevice = overrideDevice ?? custom_config.device;
@@ -77,12 +87,12 @@ export async function get_model_files(
     // Infer model type from config
     const modelType = resolve_model_type(config);
 
-    const add_model_file = (fileName, baseName = null) => {
+    const add_model_file = (fileName: string, baseName: string | null = null) => {
         baseName = baseName ?? fileName;
-        const selectedDevice = selectDevice(rawDevice, fileName);
-        const selectedDtype = selectDtype(dtype, fileName, selectedDevice);
+        const selectedDevice = selectDevice(rawDevice as string | Record<string, string> | null | undefined, fileName);
+        const selectedDtype = selectDtype(dtype as string | Record<string, string> | null | undefined, fileName, selectedDevice);
 
-        const suffix = DEFAULT_DTYPE_SUFFIX_MAPPING[selectedDtype] ?? '';
+        const suffix = (DEFAULT_DTYPE_SUFFIX_MAPPING as Record<string, string>)[selectedDtype] ?? '';
         const fullName = `${baseName}${suffix}.onnx`;
         const fullPath = subfolder ? `${subfolder}/${fullName}` : fullName;
         files.push(fullPath);
@@ -99,7 +109,7 @@ export async function get_model_files(
     const { sessions, optional_configs } = getSessionsConfig(modelType, config, { model_file_name });
 
     // Add model files based on sessions
-    for (const [sessionKey, baseName] of Object.entries(sessions)) {
+    for (const [sessionKey, baseName] of Object.entries(sessions) as [string, string][]) {
         add_model_file(sessionKey, baseName);
     }
 

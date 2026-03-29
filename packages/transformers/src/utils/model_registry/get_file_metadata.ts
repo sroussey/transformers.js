@@ -4,7 +4,7 @@
 
 import { env } from '../../env';
 import { getCache } from '../cache';
-import { buildResourcePaths, checkCachedResource, getFetchHeaders, getFile } from '../hub';
+import { buildResourcePaths, checkCachedResource, getFetchHeaders, getFile, type PretrainedOptions } from '../hub';
 import { isValidUrl } from '../hub/utils';
 import { logger } from '../logger';
 import { memoizePromise } from '../memoize_promise';
@@ -27,7 +27,7 @@ import { memoizePromise } from '../memoize_promise';
  * @returns {Promise<Response|null>} A promise that resolves to a Response object or null if not supported.
  * @private
  */
-async function fetch_file_head(urlOrPath) {
+async function fetch_file_head(urlOrPath: URL | string): Promise<Response | null> {
     // Range requests only make sense for HTTP URLs
     if (!isValidUrl(urlOrPath, ['http:', 'https:'])) {
         return null;
@@ -50,7 +50,7 @@ async function fetch_file_head(urlOrPath) {
  * @param {PretrainedOptions} [options] An object containing optional parameters.
  * @returns {Promise<{exists: boolean, size?: number, contentType?: string, fromCache?: boolean}>} A Promise that resolves to file metadata.
  */
-export function get_file_metadata(path_or_repo_id, filename, options = {} as any) {
+export function get_file_metadata(path_or_repo_id: string, filename: string, options: PretrainedOptions = {} as PretrainedOptions): Promise<{exists: boolean, size?: number, contentType?: string, fromCache?: boolean}> {
     const key = JSON.stringify([
         path_or_repo_id,
         filename,
@@ -61,7 +61,7 @@ export function get_file_metadata(path_or_repo_id, filename, options = {} as any
     return memoizePromise(key, () => _get_file_metadata(path_or_repo_id, filename, options));
 }
 
-async function _get_file_metadata(path_or_repo_id, filename, options) {
+async function _get_file_metadata(path_or_repo_id: string, filename: string, options: PretrainedOptions): Promise<{exists: boolean, size?: number, contentType?: string, fromCache?: boolean}> {
     /** @type {import('../cache.js').CacheInterface | null} */
     const cache = await getCache(options?.cache_dir);
     const { localPath, remoteURL, proposedCacheKey, validModelId } = buildResourcePaths(

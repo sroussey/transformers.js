@@ -68,14 +68,14 @@ export class ZeroShotAudioClassificationPipeline
         Pipeline
     )
 {
-    async _call(audio, candidate_labels, { hypothesis_template = 'This is a sound of {}.' } = {}) {
+    async _call(audio: import('./_base.js').AudioInput | import('./_base.js').AudioInput[], candidate_labels: string[], { hypothesis_template = 'This is a sound of {}.' } = {}) {
         const single = !Array.isArray(audio);
         if (single) {
-            audio = [/** @type {AudioInput} */ (audio)];
+            audio = [audio as import('./_base.js').AudioInput];
         }
 
         // Insert label into hypothesis template
-        const texts = candidate_labels.map((x) => hypothesis_template.replace('{}', x));
+        const texts = candidate_labels.map((x: string) => hypothesis_template.replace('{}', x));
 
         // Run tokenization
         const text_inputs = this.tokenizer(texts, {
@@ -83,7 +83,7 @@ export class ZeroShotAudioClassificationPipeline
             truncation: true,
         });
 
-        const sampling_rate = this.processor.feature_extractor.config.sampling_rate;
+        const sampling_rate = this.processor.feature_extractor.config.sampling_rate as number;
         const preparedAudios = await prepareAudios(audio, sampling_rate);
 
         const toReturn = [];
@@ -94,7 +94,7 @@ export class ZeroShotAudioClassificationPipeline
             const output = await this.model({ ...text_inputs, ...audio_inputs });
 
             // Compute softmax per audio
-            const probs = softmax(output.logits_per_audio.data);
+            const probs = softmax(output.logits_per_audio.data as import('../utils/maths.js').TypedArray);
 
             toReturn.push(
                 [...probs].map((x, i) => ({

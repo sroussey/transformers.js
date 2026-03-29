@@ -28,14 +28,14 @@ const cache = new LRUCache(MAX_CACHE_SIZE);
  *   Only called when no entry exists for `key`.
  * @returns {Promise<T>}
  */
-export function memoizePromise(key, factory) {
+export function memoizePromise<T>(key: string, factory: () => Promise<T>): Promise<T> {
     const cached = cache.get(key);
     if (cached !== undefined) {
         return cached;
     }
     const promise = factory().then(
-        (value) => value,
-        (err) => {
+        (value: T) => value,
+        (err: unknown) => {
             cache.delete(key);
             return Promise.reject(err);
         },

@@ -1,4 +1,4 @@
-import { cat, ones } from '../../utils/tensor';
+import { Tensor, cat, ones } from '../../utils/tensor';
 import { PreTrainedModel, decoder_forward, encoder_forward } from '../modeling_utils';
 
 export class Florence2PreTrainedModel extends PreTrainedModel {
@@ -20,7 +20,7 @@ export class Florence2PreTrainedModel extends PreTrainedModel {
 }
 
 export class Florence2ForConditionalGeneration extends Florence2PreTrainedModel {
-    _merge_input_ids_with_image_features({ inputs_embeds, image_features, input_ids, attention_mask }) {
+    _merge_input_ids_with_image_features({ inputs_embeds, image_features, input_ids, attention_mask }: Record<string, any>) {
         return {
             inputs_embeds: cat(
                 [
@@ -31,7 +31,7 @@ export class Florence2ForConditionalGeneration extends Florence2PreTrainedModel 
             ),
             attention_mask: cat(
                 [
-                    ones(image_features.dims.slice(0, 2)), // image attention mask
+                    ones((image_features as Tensor).dims.slice(0, 2)), // image attention mask
                     attention_mask, // task prefix attention mask
                 ],
                 1,
@@ -39,7 +39,7 @@ export class Florence2ForConditionalGeneration extends Florence2PreTrainedModel 
         };
     }
 
-    async _prepare_inputs_embeds({ input_ids, pixel_values, inputs_embeds, attention_mask }) {
+    async _prepare_inputs_embeds({ input_ids, pixel_values, inputs_embeds, attention_mask }: Record<string, unknown>) {
         if (!input_ids && !pixel_values) {
             throw new Error('Either `input_ids` or `pixel_values` should be provided.');
         }
@@ -47,10 +47,10 @@ export class Florence2ForConditionalGeneration extends Florence2PreTrainedModel 
         // 1. Possibly, extract the input embeddings
         let text_features, image_features;
         if (input_ids) {
-            text_features = await this.encode_text({ input_ids });
+            text_features = await this.encode_text({ input_ids } as Record<string, Tensor>);
         }
         if (pixel_values) {
-            image_features = await this.encode_image({ pixel_values });
+            image_features = await this.encode_image({ pixel_values } as Record<string, Tensor>);
         }
 
         // 2. Possibly, merge text and images
@@ -79,7 +79,7 @@ export class Florence2ForConditionalGeneration extends Florence2PreTrainedModel 
 
         inputs_embeds,
         decoder_inputs_embeds,
-    }) {
+    }: Record<string, unknown>) {
         if (!inputs_embeds) {
             ({ inputs_embeds, attention_mask } = await this._prepare_inputs_embeds({
                 input_ids,
@@ -99,7 +99,7 @@ export class Florence2ForConditionalGeneration extends Florence2PreTrainedModel 
             if (!decoder_input_ids) {
                 throw new Error('Either `decoder_input_ids` or `decoder_inputs_embeds` should be provided.');
             }
-            decoder_inputs_embeds = await this.encode_text({ input_ids: decoder_input_ids });
+            decoder_inputs_embeds = await this.encode_text({ input_ids: decoder_input_ids } as Record<string, Tensor>);
         }
 
         const decoderFeeds = {

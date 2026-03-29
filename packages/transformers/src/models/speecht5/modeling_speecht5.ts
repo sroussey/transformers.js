@@ -80,13 +80,13 @@ export class SpeechT5ForTextToSpeech extends SpeechT5PreTrainedModel {
      * @returns {Promise<SpeechOutput>} A promise which resolves to an object containing the spectrogram, waveform, and cross-attention tensors.
      */
     async generate_speech(
-        input_values,
-        speaker_embeddings,
+        input_values: Tensor,
+        speaker_embeddings: Tensor,
         {
             threshold = 0.5,
             minlenratio = 0.0,
             maxlenratio = 20.0,
-            vocoder = null,
+            vocoder = null as PreTrainedModel | null,
             // output_cross_attentions = false, // TODO add
         } = {},
     ) {
@@ -96,11 +96,11 @@ export class SpeechT5ForTextToSpeech extends SpeechT5PreTrainedModel {
 
         const { encoder_outputs, encoder_attention_mask } = await encoder_forward(this, model_inputs);
 
-        const r = encoder_outputs.dims[1] / this.config.reduction_factor;
+        const r = (encoder_outputs as Tensor).dims[1] / (this.config.reduction_factor as number);
         const maxlen = Math.floor(r * maxlenratio);
         const minlen = Math.floor(r * minlenratio);
 
-        const num_mel_bins = this.config.num_mel_bins;
+        const num_mel_bins = this.config.num_mel_bins as number;
 
         let spectrogramParts = [];
         let past_key_values = null;
@@ -126,22 +126,22 @@ export class SpeechT5ForTextToSpeech extends SpeechT5PreTrainedModel {
             };
 
             this.addPastKeyValues(decoderFeeds, past_key_values);
-            decoder_outputs = await sessionRun(this.sessions['decoder_model_merged'], decoderFeeds);
-            past_key_values = this.getPastKeyValues(decoder_outputs, past_key_values);
+            decoder_outputs = await sessionRun(this.sessions['decoder_model_merged'], decoderFeeds as Record<string, Tensor>);
+            past_key_values = this.getPastKeyValues(decoder_outputs as Record<string, Tensor>, past_key_values);
 
-            const { prob, spectrum } = decoder_outputs;
+            const { prob, spectrum } = decoder_outputs as Record<string, any>;
             spectrogramParts.push(spectrum);
 
             if (
                 idx >= minlen &&
                 // Finished when stop token or maximum length is reached.
-                (Array.from(prob.data as any).filter((p: any) => p >= threshold).length > 0 || idx >= maxlen)
+                (Array.from(prob.data as Float32Array).filter((p: number) => p >= threshold).length > 0 || idx >= maxlen)
             ) {
                 break;
             }
         }
 
-        const spectrogram = cat(spectrogramParts);
+        const spectrogram = cat(spectrogramParts as Tensor[]);
         const { waveform } = await sessionRun(vocoder.sessions['model'], { spectrogram });
 
         return {

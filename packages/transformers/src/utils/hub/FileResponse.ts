@@ -27,7 +27,7 @@ export class FileResponse {
      * Creates a new `FileResponse` object.
      * @param {string} filePath
      */
-    constructor(filePath) {
+    constructor(filePath: string) {
         this.filePath = filePath;
         this.headers = new Headers();
 
@@ -66,8 +66,8 @@ export class FileResponse {
      */
     updateContentType() {
         // Set content-type header based on file extension
-        const extension = this.filePath.toString().split('.').pop().toLowerCase();
-        this.headers.set('content-type', CONTENT_TYPE_MAP[extension] ?? 'application/octet-stream');
+        const extension = this.filePath.toString().split('.').pop()?.toLowerCase() as string;
+        this.headers.set('content-type', (CONTENT_TYPE_MAP as Record<string, string>)[extension] ?? 'application/octet-stream');
     }
 
     /**

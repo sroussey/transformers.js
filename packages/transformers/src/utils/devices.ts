@@ -33,7 +33,7 @@ const DEFAULT_DEVICE = apis.IS_NODE_ENV ? 'cpu' : 'wasm';
  * @param {(message: string) => void} [options.warn] Optional callback invoked when deviceConfig is a per-file object but fileName is not found.
  * @returns {string} The resolved device string.
  */
-export function selectDevice(deviceConfig, fileName, { warn } = {} as any) {
+export function selectDevice(deviceConfig: string | Record<string, string> | null | undefined, fileName: string, { warn }: { warn?: (message: string) => void } = {}) {
     if (!deviceConfig) return DEFAULT_DEVICE;
     if (typeof deviceConfig === 'string') return deviceConfig;
     if (deviceConfig.hasOwnProperty(fileName)) return deviceConfig[fileName];

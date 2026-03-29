@@ -5,15 +5,14 @@ export class UltravoxPreTrainedModel extends PreTrainedModel {
 }
 
 export class UltravoxModel extends UltravoxPreTrainedModel {
-    _merge_input_ids_with_audio_features(kwargs) {
+    _merge_input_ids_with_audio_features(kwargs: Record<string, unknown> & { audio_features: import('../../utils/tensor.js').Tensor }) {
         const audio_hidden_size = kwargs.audio_features.dims.at(-1);
         const reshaped_audio_features = kwargs.audio_features.view(-1, audio_hidden_size);
 
         return default_merge_input_ids_with_audio_features({
-            // @ts-ignore
-            audio_token_id: this.config.ignore_index ?? this.config.audio_token_id ?? this.config.audio_token_index,
+            audio_token_id: (this.config.ignore_index ?? this.config.audio_token_id ?? this.config.audio_token_index) as number,
             ...kwargs,
             audio_features: reshaped_audio_features,
-        });
+        } as Parameters<typeof default_merge_input_ids_with_audio_features>[0]);
     }
 }

@@ -6,12 +6,12 @@ export class Wav2Vec2FeatureExtractor extends FeatureExtractor {
      * @param {Float32Array} input_values
      * @returns {Float32Array}
      */
-    _zero_mean_unit_var_norm(input_values) {
+    _zero_mean_unit_var_norm(input_values: Float32Array) {
         // TODO support batch?
-        const sum = input_values.reduce((a, b) => a + b, 0);
+        const sum = input_values.reduce((a: number, b: number) => a + b, 0);
         const mean = sum / input_values.length;
-        const variance = input_values.reduce((a, b) => a + (b - mean) ** 2, 0) / input_values.length;
-        return input_values.map((x) => (x - mean) / Math.sqrt(variance + 1e-7));
+        const variance = input_values.reduce((a: number, b: number) => a + (b - mean) ** 2, 0) / input_values.length;
+        return input_values.map((x: number) => (x - mean) / Math.sqrt(variance + 1e-7));
     }
 
     /**
@@ -19,7 +19,7 @@ export class Wav2Vec2FeatureExtractor extends FeatureExtractor {
      * @param {Float32Array|Float64Array} audio The audio data as a Float32Array/Float64Array.
      * @returns {Promise<{ input_values: Tensor; attention_mask: Tensor }>} A Promise resolving to an object containing the extracted input features and attention mask as Tensors.
      */
-    async _call(audio) {
+    async _call(audio: Float32Array | Float64Array) {
         validate_audio_inputs(audio, 'Wav2Vec2FeatureExtractor');
 
         if (audio instanceof Float64Array) {

@@ -6,26 +6,26 @@ const EPSILON = 1e-5;
 
 export class ParakeetFeatureExtractor extends FeatureExtractor {
     window;
-    constructor(config) {
+    constructor(config: Record<string, unknown>) {
         super(config);
 
         // Prefer given `mel_filters` from preprocessor_config.json, or calculate them if they don't exist.
         this.config.mel_filters ??= mel_filter_bank(
-            Math.floor(1 + this.config.n_fft / 2), // num_frequency_bins
-            this.config.feature_size, // num_mel_filters
+            Math.floor(1 + (this.config.n_fft as number) / 2), // num_frequency_bins
+            this.config.feature_size as number, // num_mel_filters
             0.0, // min_frequency
-            this.config.sampling_rate / 2, // max_frequency
-            this.config.sampling_rate, // sampling_rate
+            (this.config.sampling_rate as number) / 2, // max_frequency
+            this.config.sampling_rate as number, // sampling_rate
             'slaney', // norm
             'slaney', // mel_scale
         );
 
-        const window = window_function(this.config.win_length, 'hann', {
+        const window = window_function(this.config.win_length as number, 'hann', {
             periodic: false,
         });
 
-        this.window = new Float64Array(this.config.n_fft);
-        const offset = Math.floor((this.config.n_fft - this.config.win_length) / 2);
+        this.window = new Float64Array(this.config.n_fft as number);
+        const offset = Math.floor(((this.config.n_fft as number) - (this.config.win_length as number)) / 2);
         this.window.set(window, offset);
     }
 
@@ -34,23 +34,23 @@ export class ParakeetFeatureExtractor extends FeatureExtractor {
      * @param {Float32Array|Float64Array} waveform The audio waveform to process.
      * @returns {Promise<Tensor>} An object containing the log-Mel spectrogram data as a Float32Array and its dimensions as an array of numbers.
      */
-    async _extract_fbank_features(waveform) {
+    async _extract_fbank_features(waveform: Float32Array | Float64Array) {
         // Parakeet uses a custom preemphasis strategy: Apply preemphasis to entire waveform at once
-        const preemphasis = this.config.preemphasis;
-        waveform = new Float64Array(waveform); // Clone to avoid destructive changes
-        for (let j = waveform.length - 1; j >= 1; --j) {
-            waveform[j] -= preemphasis * waveform[j - 1];
+        const preemphasis = this.config.preemphasis as number;
+        const waveformCopy = new Float64Array(waveform); // Clone to avoid destructive changes
+        for (let j = waveformCopy.length - 1; j >= 1; --j) {
+            waveformCopy[j] -= preemphasis * waveformCopy[j - 1];
         }
 
         const features = await spectrogram(
-            waveform,
+            waveformCopy,
             this.window, // window
             this.window.length, // frame_length
-            this.config.hop_length, // hop_length
+            this.config.hop_length as number, // hop_length
             {
-                fft_length: this.config.n_fft,
+                fft_length: this.config.n_fft as number,
                 power: 2.0,
-                mel_filters: this.config.mel_filters,
+                mel_filters: this.config.mel_filters as number[][],
                 log_mel: 'log',
                 mel_floor: -Infinity,
                 pad_mode: 'constant',
@@ -70,16 +70,18 @@ export class ParakeetFeatureExtractor extends FeatureExtractor {
      * @param {Float32Array|Float64Array} audio The audio data as a Float32Array/Float64Array.
      * @returns {Promise<{ input_features: Tensor; attention_mask: Tensor; }>} A Promise resolving to an object containing the extracted input features as a Tensor.
      */
-    async _call(audio) {
+    async _call(audio: Float32Array | Float64Array) {
         validate_audio_inputs(audio, 'ParakeetFeatureExtractor');
 
         const features = await this._extract_fbank_features(audio);
 
+        const n_fft = this.config.n_fft as number;
+        const hop_length = this.config.hop_length as number;
         const features_length = Math.floor(
-            (audio.length + Math.floor(this.config.n_fft / 2) * 2 - this.config.n_fft) / this.config.hop_length,
+            (audio.length + Math.floor(n_fft / 2) * 2 - n_fft) / hop_length,
         );
 
-        const features_data = /** @type {Float32Array} */ (features.data);
+        const features_data = features.data as Float32Array;
         features_data.fill(0, features_length * features.dims[1]);
 
         // normalize mel features, ignoring padding

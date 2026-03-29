@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import { Readable } from 'node:stream';
 import { pipeline as pipe } from 'node:stream/promises';
+import type { ReadableStream as NodeReadableStream } from 'node:stream/web';
 
 import { apis } from '../env';
 
@@ -10,7 +11,7 @@ import { apis } from '../env';
  * @param {Blob} blob The blob to save
  * @returns {Promise<void>} A promise that resolves when the blob has been saved
  */
-export async function saveBlob(path, blob) {
+export async function saveBlob(path: string, blob: Blob): Promise<void> {
     if (apis.IS_BROWSER_ENV) {
         if (apis.IS_WEBWORKER_ENV) {
             throw new Error('Unable to save a file from a Web Worker.');
@@ -36,7 +37,7 @@ export async function saveBlob(path, blob) {
     } else if (apis.IS_FS_AVAILABLE) {
         // Convert Blob to a Node.js Readable Stream
         const webStream = blob.stream();
-        const nodeStream = Readable.fromWeb(webStream);
+        const nodeStream = Readable.fromWeb(webStream as NodeReadableStream);
 
         // Create the file write stream
         const fileStream = fs.createWriteStream(path);

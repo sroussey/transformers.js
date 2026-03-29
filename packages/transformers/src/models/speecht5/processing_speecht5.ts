@@ -11,7 +11,7 @@ export class SpeechT5Processor extends Processor {
      * @param {any} input The input to extract features from.
      * @returns {Promise<any>} A Promise that resolves with the extracted features.
      */
-    async _call(input) {
-        return await this.feature_extractor(input);
+    async _call(input: Float32Array | Float64Array) {
+        return await this.feature_extractor!(input);
     }
 }

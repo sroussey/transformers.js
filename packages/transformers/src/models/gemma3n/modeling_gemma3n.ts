@@ -93,26 +93,24 @@ export class Gemma3nForConditionalGeneration extends Gemma3nPreTrainedModel {
         return outputs;
     }
 
-    _merge_input_ids_with_image_features(kwargs) {
+    _merge_input_ids_with_image_features(kwargs: Record<string, any>) {
         const vision_hidden_size = kwargs.image_features.dims.at(-1);
         const reshaped_image_hidden_states = kwargs.image_features.view(-1, vision_hidden_size);
         return default_merge_input_ids_with_image_features({
-            // @ts-ignore
-            image_token_id: this.config.image_token_id,
+            image_token_id: this.config.image_token_id as number,
             ...kwargs,
             image_features: reshaped_image_hidden_states,
-        });
+        } as Parameters<typeof default_merge_input_ids_with_image_features>[0]);
     }
-    _merge_input_ids_with_audio_features(kwargs) {
+    _merge_input_ids_with_audio_features(kwargs: Record<string, any>) {
         const audio_hidden_size = kwargs.audio_features.dims.at(-1);
         const reshaped_audio_features = kwargs.audio_features.view(-1, audio_hidden_size);
 
         return default_merge_input_ids_with_audio_features({
-            // @ts-ignore
-            audio_token_id: this.config.audio_token_id,
+            audio_token_id: this.config.audio_token_id as number,
             ...kwargs,
             audio_features: reshaped_audio_features,
-        });
+        } as Parameters<typeof default_merge_input_ids_with_audio_features>[0]);
     }
 }
 

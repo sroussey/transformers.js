@@ -14,11 +14,20 @@ export class SamImageSegmentationOutput extends ModelOutput {
      * @param {Tensor} output.iou_scores The output logits of the model.
      * @param {Tensor} output.pred_masks Predicted boxes.
      */
-    constructor({ iou_scores, pred_masks }) {
+    constructor({ iou_scores, pred_masks }: { iou_scores: Tensor; pred_masks: Tensor }) {
         super();
         this.iou_scores = iou_scores;
         this.pred_masks = pred_masks;
     }
+}
+
+interface SamModelInputs {
+    pixel_values: Tensor;
+    input_points?: Tensor;
+    input_labels?: Tensor;
+    input_boxes?: Tensor;
+    image_embeddings?: Tensor;
+    image_positional_embeddings?: Tensor;
 }
 
 export class SamPreTrainedModel extends PreTrainedModel {}
@@ -70,7 +79,7 @@ export class SamModel extends SamPreTrainedModel {
      * @param {Tensor} model_inputs.pixel_values Pixel values obtained using a `SamProcessor`.
      * @returns {Promise<{ image_embeddings: Tensor, image_positional_embeddings: Tensor }>} The image embeddings and positional image embeddings.
      */
-    async get_image_embeddings({ pixel_values }) {
+    async get_image_embeddings({ pixel_values }: { pixel_values: Tensor }) {
         // in:
         //  - pixel_values: tensor.float32[batch_size,3,1024,1024]
         //
@@ -101,19 +110,19 @@ export class SamModel extends SamPreTrainedModel {
      * @param {SamModelInputs} model_inputs Object containing the model inputs.
      * @returns {Promise<Object>} The output of the model.
      */
-    async forward(model_inputs) {
+    async forward(model_inputs: Record<string, unknown>) {
         if (!model_inputs.image_embeddings || !model_inputs.image_positional_embeddings) {
             // Compute the image embeddings if they are missing
             model_inputs = {
                 ...model_inputs,
-                ...(await this.get_image_embeddings(model_inputs)),
-            } as any;
+                ...(await this.get_image_embeddings(model_inputs as { pixel_values: Tensor })),
+            };
         } else {
-            model_inputs = { ...model_inputs } as any;
+            model_inputs = { ...model_inputs };
         }
 
         // Set default input labels if they are missing
-        model_inputs.input_labels ??= ones(model_inputs.input_points.dims.slice(0, -1));
+        model_inputs.input_labels ??= ones((model_inputs.input_points as Tensor).dims.slice(0, -1));
 
         const decoder_inputs: any = {
             image_embeddings: model_inputs.image_embeddings,
@@ -140,7 +149,7 @@ export class SamModel extends SamPreTrainedModel {
      * @param {Object} model_inputs Model inputs
      * @returns {Promise<SamImageSegmentationOutput>} Object containing segmentation outputs
      */
-    async _call(model_inputs) {
+    async _call(model_inputs: Record<string, unknown>) {
         return new SamImageSegmentationOutput(await super._call(model_inputs));
     }
 }

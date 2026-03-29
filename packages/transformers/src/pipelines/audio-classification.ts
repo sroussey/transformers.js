@@ -1,4 +1,4 @@
-import { Pipeline, prepareAudios } from './_base';
+import { Pipeline, prepareAudios, tensorAt } from './_base';
 
 import { softmax } from '../utils/maths';
 import { Tensor, topk } from '../utils/tensor';
@@ -74,8 +74,8 @@ import { Tensor, topk } from '../utils/tensor';
 export class AudioClassificationPipeline
     extends /** @type {new (options: AudioPipelineConstructorArgs) => AudioClassificationPipelineType} */ (Pipeline)
 {
-    async _call(audio, { top_k = 5 } = {}) {
-        const sampling_rate = this.processor.feature_extractor.config.sampling_rate;
+    async _call(audio: import('./_base.js').AudioInput | import('./_base.js').AudioInput[], { top_k = 5 } = {}) {
+        const sampling_rate = this.processor.feature_extractor.config.sampling_rate as number;
         const preparedAudios = await prepareAudios(audio, sampling_rate);
 
         const id2label = this.model.config.id2label;
@@ -84,15 +84,15 @@ export class AudioClassificationPipeline
         for (const aud of preparedAudios) {
             const inputs = await this.processor(aud);
             const output = await this.model(inputs);
-            const logits = output.logits[0];
+            const logits = tensorAt(output.logits, 0);
 
-            const scores = await topk(new Tensor('float32', softmax(logits.data), logits.dims), top_k);
+            const scores = await topk(new Tensor('float32', softmax(logits.data as Float32Array), logits.dims), top_k) as Tensor[];
 
-            const values = scores[0].tolist();
-            const indices = scores[1].tolist();
+            const values = scores[0].tolist() as number[];
+            const indices = scores[1].tolist() as number[];
 
-            const vals = indices.map((x, i) => ({
-                label: /** @type {string} */ (id2label ? id2label[x] : `LABEL_${x}`),
+            const vals = indices.map((x: number, i: number) => ({
+                label: /** @type {string} */ (id2label ? (id2label as Record<number, string>)[x] : `LABEL_${x}`),
                 score: /** @type {number} */ (values[i]),
             }));
 

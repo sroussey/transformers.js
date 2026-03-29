@@ -2,6 +2,7 @@ import { Pipeline } from './_base';
 
 import { softmax } from '../utils/maths';
 import { Tensor, topk } from '../utils/tensor';
+import type { TypedArray } from '../utils/maths';
 
 /**
  * @typedef {import('./_base.js').TextPipelineConstructorArgs} TextPipelineConstructorArgs
@@ -85,7 +86,7 @@ import { Tensor, topk } from '../utils/tensor';
 export class TextClassificationPipeline
     extends /** @type {new (options: TextPipelineConstructorArgs) => TextClassificationPipelineType} */ (Pipeline)
 {
-    async _call(texts, { top_k = 1 } = {}) {
+    async _call(texts: string | string[], { top_k = 1 } = {}) {
         // Run tokenization
         const model_inputs = this.tokenizer(texts, {
             padding: true,
@@ -100,17 +101,17 @@ export class TextClassificationPipeline
         // TODO: Use softmax tensor function
         const function_to_apply =
             problem_type === 'multi_label_classification'
-                ? (batch) => batch.sigmoid()
-                : (batch) => new Tensor('float32', softmax(batch.data), batch.dims); // single_label_classification (default)
+                ? (batch: Tensor) => batch.sigmoid()
+                : (batch: Tensor) => new Tensor('float32', softmax(batch.data as TypedArray | number[]), batch.dims); // single_label_classification (default)
 
         const toReturn = [];
-        for (const batch of outputs.logits) {
-            const output = function_to_apply(batch);
-            const scores = await topk(output, top_k);
-            const values = scores[0].tolist();
-            const indices = scores[1].tolist();
-            const vals = indices.map((x, i) => ({
-                label: id2label ? id2label[x] : `LABEL_${x}`,
+        for (const batch_ of outputs.logits) {
+            const output = function_to_apply(batch_ as Tensor);
+            const scores = await topk(output, top_k) as Tensor[];
+            const values = scores[0].tolist() as number[];
+            const indices = scores[1].tolist() as number[];
+            const vals = indices.map((x: number, i: number) => ({
+                label: id2label ? (id2label as Record<number, string>)[x] : `LABEL_${x}`,
                 score: values[i],
             }));
             if (top_k === 1) {

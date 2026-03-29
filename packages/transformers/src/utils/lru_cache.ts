@@ -14,7 +14,7 @@ export class LRUCache {
      * Creates an LRUCache instance.
      * @param {number} capacity The maximum number of items the cache can hold.
      */
-    constructor(capacity) {
+    constructor(capacity: number) {
         this.#capacity = capacity;
         this.#cache = new Map();
     }
@@ -24,7 +24,7 @@ export class LRUCache {
      * @param {any} key The key to retrieve.
      * @returns {any} The value associated with the key, or undefined if the key does not exist.
      */
-    get(key) {
+    get(key: unknown) {
         if (!this.#cache.has(key)) return undefined;
         const value = this.#cache.get(key);
         this.#cache.delete(key);
@@ -39,7 +39,7 @@ export class LRUCache {
      * @param {any} key The key to add or update.
      * @param {any} value The value to associate with the key.
      */
-    put(key, value) {
+    put(key: unknown, value: unknown) {
         if (this.#cache.has(key)) {
             this.#cache.delete(key);
         }
@@ -54,7 +54,7 @@ export class LRUCache {
      * @param {any} key The key to delete.
      * @returns {boolean} `true` if the entry existed and was removed, `false` otherwise.
      */
-    delete(key) {
+    delete(key: unknown) {
         return this.#cache.delete(key);
     }
 

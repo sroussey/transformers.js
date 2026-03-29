@@ -13,9 +13,9 @@ export class EfficientNetModel extends EfficientNetPreTrainedModel {}
  */
 export class EfficientNetForImageClassification extends EfficientNetPreTrainedModel {
     /**
-     * @param {any} model_inputs
+     * @param {Record<string, unknown>} model_inputs
      */
-    async _call(model_inputs) {
+    async _call(model_inputs: Record<string, unknown>) {
         return new SequenceClassifierOutput(await super._call(model_inputs));
     }
 }

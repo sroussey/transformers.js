@@ -13,7 +13,7 @@ import { DEVICE_TYPES } from './devices';
  */
 export const isWebGpuFp16Supported = (function () {
     /** @type {boolean} */
-    let cachedResult;
+    let cachedResult: boolean | undefined;
 
     return async function () {
         if (cachedResult === undefined) {
@@ -74,9 +74,14 @@ export const DEFAULT_DTYPE_SUFFIX_MAPPING = Object.freeze({
  * @param {(message: string) => void} [options.warn] Optional callback invoked when dtype is a per-file object but fileName is not found.
  * @returns {DataType} The resolved dtype string.
  */
-export function selectDtype(dtype, fileName, selectedDevice, { configDtype = null, warn } = {} as any) {
+export function selectDtype(
+    dtype: string | Record<string, string> | null | undefined,
+    fileName: string,
+    selectedDevice: string,
+    { configDtype = null, warn }: { configDtype?: string | Record<string, string> | null; warn?: (message: string) => void } = {},
+) {
     /** @type {string|null|undefined} */
-    let resolved;
+    let resolved: string | null | undefined;
     let needsWarn = false;
     if (dtype && typeof dtype !== 'string') {
         if (dtype.hasOwnProperty(fileName)) {
@@ -86,7 +91,7 @@ export function selectDtype(dtype, fileName, selectedDevice, { configDtype = nul
             needsWarn = true;
         }
     } else {
-        resolved = /** @type {string|null|undefined} */ (dtype);
+        resolved = dtype as string | null | undefined;
     }
 
     /** @type {DataType} */
@@ -100,13 +105,13 @@ export function selectDtype(dtype, fileName, selectedDevice, { configDtype = nul
                 return /** @type {DataType} */ (fallback);
             }
         }
-        result = DEFAULT_DEVICE_DTYPE_MAPPING[selectedDevice] ?? DEFAULT_DEVICE_DTYPE;
+        result = (DEFAULT_DEVICE_DTYPE_MAPPING as Record<string, string>)[selectedDevice] ?? DEFAULT_DEVICE_DTYPE;
     } else if (resolved && DATA_TYPES.hasOwnProperty(resolved)) {
         // Valid known dtype
         result = /** @type {DataType} */ (resolved);
     } else {
         // Fallback to device default
-        result = DEFAULT_DEVICE_DTYPE_MAPPING[selectedDevice] ?? DEFAULT_DEVICE_DTYPE;
+        result = (DEFAULT_DEVICE_DTYPE_MAPPING as Record<string, string>)[selectedDevice] ?? DEFAULT_DEVICE_DTYPE;
     }
 
     if (needsWarn && warn) {
@@ -119,7 +124,7 @@ export function selectDtype(dtype, fileName, selectedDevice, { configDtype = nul
 
 export const DataTypeMap = Object.freeze({
     float32: Float32Array,
-    // @ts-ignore ts(2552) Limited availability of Float16Array across browsers:
+    // Limited availability of Float16Array across browsers:
     // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Float16Array
     float16: typeof Float16Array !== 'undefined' ? Float16Array : Uint16Array,
     float64: Float64Array,

@@ -13,8 +13,14 @@ export class SupertonicForConditionalGeneration extends SupertonicPreTrainedMode
         // Optional inputs
         num_inference_steps = 5,
         speed = 1.05,
+    }: {
+        input_ids: Tensor;
+        attention_mask: Tensor;
+        style: Tensor;
+        num_inference_steps?: number;
+        speed?: number;
     }) {
-        const { sampling_rate, chunk_compress_factor, base_chunk_size, latent_dim } = this.config;
+        const { sampling_rate, chunk_compress_factor, base_chunk_size, latent_dim } = this.config as Record<string, number>;
 
         // 1. Text Encoder
         const { last_hidden_state, durations: raw_durations } = await sessionRun(this.sessions['text_encoder'], {
@@ -24,7 +30,7 @@ export class SupertonicForConditionalGeneration extends SupertonicPreTrainedMode
         });
 
         // Convert durations to sample counts
-        const durations = raw_durations.div(speed).mul_(sampling_rate);
+        const durations = (raw_durations as Tensor).div(speed).mul_(sampling_rate);
 
         // 2. Latent Preparation
         // Calculate latent lengths: ceil(durations / latent_size)
@@ -42,10 +48,10 @@ export class SupertonicForConditionalGeneration extends SupertonicPreTrainedMode
         const latent_mask = new Tensor('int64', latentMaskData, [batch_size, maxLatentLen]);
 
         // Create initial noise and apply mask: latents *= latent_mask[:, None, :]
-        const latentChannels = latent_dim * chunk_compress_factor;
+        const latentChannels = (latent_dim as number) * (chunk_compress_factor as number);
         const latentStride = latentChannels * maxLatentLen;
         let noisy_latents = randn([batch_size, latentChannels, maxLatentLen]);
-        const latentsData = /** @type {Float32Array} */ (noisy_latents.data);
+        const latentsData = /** @type {Float32Array} */ (noisy_latents.data) as Float32Array;
         for (let i = 0; i < batch_size; ++i) {
             if (latentLengths[i] === maxLatentLen) continue; // No padding for this item
             for (let c = 0; c < latentChannels; ++c) {
@@ -65,11 +71,11 @@ export class SupertonicForConditionalGeneration extends SupertonicPreTrainedMode
                 style,
                 noisy_latents,
                 latent_mask,
-                encoder_outputs: last_hidden_state,
+                encoder_outputs: last_hidden_state as Tensor,
                 attention_mask,
                 timestep,
                 num_inference_steps: num_steps,
-            }));
+            }) as Record<string, any>);
         }
 
         // 4. Voice Decoder

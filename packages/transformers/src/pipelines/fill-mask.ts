@@ -1,4 +1,4 @@
-import { Pipeline } from './_base';
+import { Pipeline, tensorAt } from './_base';
 
 import { softmax } from '../utils/maths';
 import { Tensor, topk } from '../utils/tensor';
@@ -80,7 +80,7 @@ import { Tensor, topk } from '../utils/tensor';
 export class FillMaskPipeline
     extends /** @type {new (options: TextPipelineConstructorArgs) => FillMaskPipelineType} */ (Pipeline)
 {
-    async _call(texts, { top_k = 5 } = {}) {
+    async _call(texts: string | string[], { top_k = 5 } = {}) {
         const { mask_token_id, mask_token } = this.tokenizer;
 
         // Run tokenization
@@ -95,26 +95,25 @@ export class FillMaskPipeline
         const toReturn = [];
 
         /** @type {bigint[][]} */
-        const input_ids = model_inputs.input_ids.tolist();
+        const input_ids = model_inputs.input_ids.tolist() as bigint[][];
         for (let i = 0; i < input_ids.length; ++i) {
             const ids = input_ids[i];
             const mask_token_index = ids.findIndex(
-                (x) =>
+                (x: bigint) =>
                     // We use == to match bigint with number
-                    // @ts-ignore - TS2367: Intentional loose equality for bigint/number comparison
-                    x == mask_token_id,
+                    x == (mask_token_id as unknown as bigint),
             );
             if (mask_token_index === -1) {
                 throw Error(`Mask token (${mask_token}) not found in text.`);
             }
-            const itemLogits = logits[i][mask_token_index];
+            const itemLogits = tensorAt(tensorAt(logits, i), mask_token_index);
 
-            const scores = await topk(new Tensor('float32', softmax(itemLogits.data), itemLogits.dims), top_k);
-            const values = scores[0].tolist();
-            const indices = scores[1].tolist();
+            const scores = await topk(new Tensor('float32', softmax(itemLogits.data as Float32Array), itemLogits.dims), top_k) as Tensor[];
+            const values = scores[0].tolist() as number[];
+            const indices = scores[1].tolist() as bigint[];
 
             toReturn.push(
-                indices.map((x, i) => {
+                indices.map((x: bigint, i: number) => {
                     const sequence = ids.slice();
                     sequence[mask_token_index] = x;
 

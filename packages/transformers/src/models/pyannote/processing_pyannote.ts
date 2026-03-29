@@ -9,13 +9,13 @@ export class PyAnnoteProcessor extends Processor {
      * @param {any} audio The audio input to extract features from.
      * @returns {Promise<any>} A Promise that resolves with the extracted features.
      */
-    async _call(audio) {
-        return await this.feature_extractor(audio);
+    async _call(audio: Float32Array | Float64Array) {
+        return await this.feature_extractor!(audio);
     }
 
     /** @type {PyAnnoteFeatureExtractor['post_process_speaker_diarization']} */
-    post_process_speaker_diarization(...args) {
-        return /** @type {PyAnnoteFeatureExtractor} */ (this.feature_extractor).post_process_speaker_diarization(
+    post_process_speaker_diarization(...args: Parameters<PyAnnoteFeatureExtractor['post_process_speaker_diarization']>) {
+        return (this.feature_extractor as unknown as PyAnnoteFeatureExtractor).post_process_speaker_diarization(
             ...args,
         );
     }

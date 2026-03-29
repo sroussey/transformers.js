@@ -4,6 +4,7 @@ import { AutoFeatureExtractor } from '../auto/feature_extraction_auto';
 import { AutoTokenizer } from '../auto/tokenization_auto';
 
 export class GraniteSpeechProcessor extends Processor {
+    declare config: Record<string, any>;
     static tokenizer_class = AutoTokenizer;
     static feature_extractor_class = AutoFeatureExtractor;
     static uses_processor_config = true;
@@ -13,9 +14,9 @@ export class GraniteSpeechProcessor extends Processor {
      * @param {number} audioLength Raw audio sample count.
      * @returns {number} Number of projector output tokens.
      */
-    _get_num_audio_features(audioLength) {
-        const { hop_length } = this.feature_extractor.config.melspec_kwargs;
-        const { projector_window_size, projector_downsample_rate } = this.feature_extractor.config;
+    _get_num_audio_features(audioLength: number) {
+        const { hop_length } = (this.feature_extractor!.config as Record<string, Record<string, number>>).melspec_kwargs;
+        const { projector_window_size, projector_downsample_rate } = this.feature_extractor!.config as Record<string, number>;
         const effective_window_size = Math.floor(projector_window_size / projector_downsample_rate);
         const mel_length = Math.floor(audioLength / hop_length) + 1;
         const encoder_length = Math.floor(mel_length / 2);
@@ -27,14 +28,14 @@ export class GraniteSpeechProcessor extends Processor {
      * @param {string} text The text input to process.
      * @param {Float32Array} audio The audio input to process.
      */
-    async _call(text, audio = null, kwargs = {}) {
+    async _call(text: string, audio: Float32Array | null = null, kwargs: Record<string, any> = {}) {
         if (Array.isArray(text)) {
             throw new Error('Batched inputs are not supported yet.');
         }
 
-        let audio_inputs = {};
+        const audio_inputs: Record<string, any> = {};
         if (audio) {
-            const { input_features } = await this.feature_extractor(audio);
+            const { input_features } = await this.feature_extractor!(audio);
             audio_inputs['input_features'] = input_features;
 
             // Compute audio embed sizes and mask in the processor
@@ -49,7 +50,7 @@ export class GraniteSpeechProcessor extends Processor {
             text = text.replaceAll(audio_token, audio_token.repeat(audio_embed_size));
         }
 
-        const text_inputs = this.tokenizer(text, {
+        const text_inputs = this.tokenizer!(text, {
             add_special_tokens: false,
             ...kwargs,
         });

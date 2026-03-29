@@ -23,7 +23,7 @@ export class GenerationConfig {
      * @type {number}
      * @default null
      */
-    max_new_tokens = null;
+    max_new_tokens: number | null = null;
 
     /**
      * The minimum length of the sequence to be generated.
@@ -39,7 +39,7 @@ export class GenerationConfig {
      * @type {number}
      * @default null
      */
-    min_new_tokens = null;
+    min_new_tokens: number | null = null;
 
     /**
      * Controls the stopping condition for beam-based methods, like beam-search. It accepts the following values:
@@ -57,7 +57,7 @@ export class GenerationConfig {
      * @type {number}
      * @default null
      */
-    max_time = null;
+    max_time: number | null = null;
 
     // Parameters that control the generation strategy used
     /**
@@ -87,7 +87,7 @@ export class GenerationConfig {
      * @type {number}
      * @default null
      */
-    penalty_alpha = null;
+    penalty_alpha: number | null = null;
 
     /**
      * Whether or not the model should use the past last key/values attentions (if applicable to the model) to speed up decoding.
@@ -194,7 +194,7 @@ export class GenerationConfig {
      * @type {number[][]}
      * @default null
      */
-    bad_words_ids = null;
+    bad_words_ids: number[][] | null = null;
 
     /**
      * List of token ids that must be generated.
@@ -203,7 +203,7 @@ export class GenerationConfig {
      * @type {number[][]|number[][][]}
      * @default null
      */
-    force_words_ids = null;
+    force_words_ids: number[][] | number[][][] | null = null;
 
     /**
      * Whether to renormalize the logits after applying all the logits processors or warpers (including the custom ones).
@@ -218,7 +218,7 @@ export class GenerationConfig {
      * @type {Object[]}
      * @default null
      */
-    constraints = null;
+    constraints: object[] | null = null;
 
     /**
      * The id of the token to force as the first generated token after the `decoder_start_token_id`.
@@ -226,7 +226,7 @@ export class GenerationConfig {
      * @type {number}
      * @default null
      */
-    forced_bos_token_id = null;
+    forced_bos_token_id: number | null = null;
 
     /**
      * The id of the token to force as the last generated token when `max_length` is reached.
@@ -234,7 +234,7 @@ export class GenerationConfig {
      * @type {number|number[]}
      * @default null
      */
-    forced_eos_token_id = null;
+    forced_eos_token_id: number | number[] | null = null;
 
     /**
      * Whether to remove possible *nan* and *inf* outputs of the model to prevent the generation method to crash. Note that using `remove_invalid_values` can slow down generation.
@@ -248,7 +248,7 @@ export class GenerationConfig {
      * @type {[number, number]}
      * @default null
      */
-    exponential_decay_length_penalty = null;
+    exponential_decay_length_penalty: [number, number] | null = null;
 
     /**
      * A list of tokens that will be suppressed at generation.
@@ -256,14 +256,14 @@ export class GenerationConfig {
      * @type {number[]}
      * @default null
      */
-    suppress_tokens = null;
+    suppress_tokens: number[] | null = null;
 
     /**
      * A streamer that will be used to stream the generation.
      * @type {import('./streamers.js').TextStreamer}
      * @default null
      */
-    streamer = null;
+    streamer: import('./streamers.js').TextStreamer | null = null;
 
     /**
      * A list of tokens that will be suppressed at the beginning of the generation.
@@ -271,7 +271,7 @@ export class GenerationConfig {
      * @type {number[]}
      * @default null
      */
-    begin_suppress_tokens = null;
+    begin_suppress_tokens: number[] | null = null;
 
     /**
      * A list of pairs of integers which indicates a mapping from generation indices to token indices that will be forced before sampling.
@@ -279,7 +279,7 @@ export class GenerationConfig {
      * @type {[number, number][]}
      * @default null
      */
-    forced_decoder_ids = null;
+    forced_decoder_ids: [number, number][] | null = null;
 
     /**
      * The guidance scale for classifier free guidance (CFG). CFG is enabled by setting `guidance_scale > 1`.
@@ -288,7 +288,7 @@ export class GenerationConfig {
      * @type {number}
      * @default null
      */
-    guidance_scale = null;
+    guidance_scale: number | null = null;
 
     // Parameters that define the output variables of `generate`
     /**
@@ -335,14 +335,14 @@ export class GenerationConfig {
      * @type {number}
      * @default null
      */
-    pad_token_id = null;
+    pad_token_id: number | null = null;
 
     /**
      * The id of the *beginning-of-sequence* token.
      * @type {number}
      * @default null
      */
-    bos_token_id = null;
+    bos_token_id: number | null = null;
 
     /**
      * The id of the *end-of-sequence* token.
@@ -350,7 +350,7 @@ export class GenerationConfig {
      * @type {number|number[]}
      * @default null
      */
-    eos_token_id = null;
+    eos_token_id: number | number[] | null = null;
 
     // Generation parameters exclusive to encoder-decoder models
     /**
@@ -365,7 +365,7 @@ export class GenerationConfig {
      * @type {number}
      * @default null
      */
-    decoder_start_token_id = null;
+    decoder_start_token_id: number | null = null;
 
     // Wild card
     /**
@@ -380,7 +380,7 @@ export class GenerationConfig {
      *
      * @param {GenerationConfig|import('../configs.js').PretrainedConfig} config
      */
-    constructor(config) {
-        Object.assign(this, pick(config, Object.getOwnPropertyNames(this)));
+    constructor(config: GenerationConfig | import('../configs.js').PretrainedConfig) {
+        Object.assign(this, pick(config as unknown as Record<string, unknown>, Object.getOwnPropertyNames(this)));
     }
 }

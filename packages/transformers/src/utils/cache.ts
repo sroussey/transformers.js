@@ -12,6 +12,11 @@ import { logger } from './logger';
  * @property {(request: string) => Promise<boolean>} [delete]
  * Deletes a request from the cache. Returns true if deleted, false otherwise.
  */
+export interface CacheInterface {
+    match(request: string): Promise<Response | import('./hub/FileResponse.js').FileResponse | undefined | string>;
+    put(request: string, response: Response, progress_callback?: (data: {progress: number, loaded: number, total: number}) => void): Promise<void>;
+    delete?(request: string): Promise<boolean>;
+}
 
 /**
  * Retrieves an appropriate caching backend based on the environment configuration.
@@ -19,7 +24,7 @@ import { logger } from './logger';
  * @returns {Promise<CacheInterface | null>}
  * @param file_cache_dir {string|null} Path to a directory in which a downloaded pretrained model configuration should be cached if using the file system cache.
  */
-export async function getCache(file_cache_dir = null) {
+export async function getCache(file_cache_dir: string | null = null): Promise<CacheInterface | null> {
     // First, check if the a caching backend is available
     // If no caching mechanism available, will download the file every time
     let cache = null;
@@ -77,7 +82,7 @@ export async function getCache(file_cache_dir = null) {
  * @param {...string} names The names of the items to search for
  * @returns {Promise<import('./hub/FileResponse.js').FileResponse|Response|undefined|string>} The item from the cache, or undefined if not found.
  */
-export async function tryCache(cache, ...names) {
+export async function tryCache(cache: CacheInterface, ...names: string[]): Promise<Response | import('./hub/FileResponse.js').FileResponse | undefined | string> {
     for (let name of names) {
         try {
             let result = await cache.match(name);

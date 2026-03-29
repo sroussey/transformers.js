@@ -5,9 +5,9 @@ export class ViTPreTrainedModel extends PreTrainedModel {}
 export class ViTModel extends ViTPreTrainedModel {}
 export class ViTForImageClassification extends ViTPreTrainedModel {
     /**
-     * @param {any} model_inputs
+     * @param {Record<string, unknown>} model_inputs
      */
-    async _call(model_inputs) {
+    async _call(model_inputs: Record<string, unknown>) {
         return new SequenceClassifierOutput(await super._call(model_inputs));
     }
 }

@@ -6,7 +6,7 @@ import * as AllImageProcessors from '../image_processors';
 
 export class AutoImageProcessor {
     /** @type {typeof ImageProcessor.from_pretrained} */
-    static async from_pretrained(pretrained_model_name_or_path, options = {}) {
+    static async from_pretrained(pretrained_model_name_or_path: string, options: Record<string, unknown> = {}) {
         const preprocessorConfig = await getModelJSON(
             pretrained_model_name_or_path,
             IMAGE_PROCESSOR_NAME,
@@ -15,8 +15,8 @@ export class AutoImageProcessor {
         );
 
         // Determine image processor class
-        const key = preprocessorConfig.image_processor_type ?? preprocessorConfig.feature_extractor_type;
-        let image_processor_class = AllImageProcessors[key?.replace(/Fast$/, '')];
+        const key = (preprocessorConfig.image_processor_type ?? preprocessorConfig.feature_extractor_type) as string | undefined;
+        let image_processor_class = (AllImageProcessors as unknown as Record<string, typeof ImageProcessor>)[key?.replace(/Fast$/, '') as string];
 
         if (!image_processor_class) {
             if (key !== undefined) {

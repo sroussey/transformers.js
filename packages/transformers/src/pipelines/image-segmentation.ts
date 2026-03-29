@@ -1,6 +1,7 @@
 import { Pipeline, prepareImages } from './_base';
 
 import { RawImage } from '../utils/image';
+import type { Tensor } from '../utils/tensor';
 
 /**
  * @typedef {import('./_base.js').ImagePipelineConstructorArgs} ImagePipelineConstructorArgs
@@ -62,7 +63,7 @@ export class ImageSegmentationPipeline
 {
     /** @type {ImageSegmentationPipelineCallback} */
     async _call(
-        images,
+        images: import('./_base.js').ImagePipelineInputs,
         {
             threshold = 0.5,
             mask_threshold = 0.5,
@@ -70,6 +71,13 @@ export class ImageSegmentationPipeline
             label_ids_to_fuse = null,
             target_sizes = null,
             subtask = null,
+        }: {
+            threshold?: number;
+            mask_threshold?: number;
+            overlap_mask_area_threshold?: number;
+            label_ids_to_fuse?: Set<number> | null;
+            target_sizes?: [number, number][] | null;
+            subtask?: string | null;
         } = {},
     ) {
         const isBatched = Array.isArray(images);
@@ -83,7 +91,7 @@ export class ImageSegmentationPipeline
 
         const inputs = await this.processor(preparedImages);
 
-        const { inputNames, outputNames } = this.model.sessions['model'];
+        const { inputNames, outputNames } = this.model.sessions['model'] as { inputNames: string[]; outputNames: string[] };
         if (!inputNames.includes('pixel_values')) {
             if (inputNames.length !== 1) {
                 throw Error(`Expected a single input name, but got ${inputNames.length} inputs: ${inputNames}.`);
@@ -102,18 +110,18 @@ export class ImageSegmentationPipeline
 
         let fn = null;
         if (subtask !== null) {
-            fn = SUBTASKS_MAPPING[subtask];
+            fn = SUBTASKS_MAPPING[subtask as keyof typeof SUBTASKS_MAPPING];
         } else if (this.processor.image_processor) {
             for (const [task, func] of Object.entries(SUBTASKS_MAPPING)) {
                 if (func in this.processor.image_processor) {
-                    fn = this.processor.image_processor[func].bind(this.processor.image_processor);
+                    fn = (this.processor.image_processor as unknown as Record<string, Function>)[func].bind(this.processor.image_processor);
                     subtask = task;
                     break;
                 }
             }
         }
 
-        const id2label = this.model.config.id2label;
+        const id2label = this.model.config.id2label as Record<string, string>;
 
         /** @type {ImageSegmentationOutput} */
         const annotation = [];
@@ -124,11 +132,11 @@ export class ImageSegmentationPipeline
             const epsilon = 1e-5;
 
             // Perform standard image segmentation
-            const result = output[outputNames[0]];
+            const result = (output as Record<string, Tensor>)[outputNames[0]];
             for (let i = 0; i < imageSizes.length; ++i) {
                 const size = imageSizes[i];
-                const item = result[i];
-                if (item.data.some((x) => x < -epsilon || x > 1 + epsilon)) {
+                const item = (result as unknown as Record<number, Tensor>)[i];
+                if (Array.prototype.some.call(item.data, (x: number) => x < -epsilon || x > 1 + epsilon)) {
                     item.sigmoid_();
                 }
                 const mask = await RawImage.fromTensor(item.mul_(255).to('uint8')).resize(size[1], size[0]);

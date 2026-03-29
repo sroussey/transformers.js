@@ -5,7 +5,7 @@ import * as AllFeatureExtractors from '../feature_extractors';
 
 export class AutoFeatureExtractor {
     /** @type {typeof FeatureExtractor.from_pretrained} */
-    static async from_pretrained(pretrained_model_name_or_path, options = {}) {
+    static async from_pretrained(pretrained_model_name_or_path: string, options: Record<string, unknown> = {}) {
         const preprocessorConfig = await getModelJSON(
             pretrained_model_name_or_path,
             FEATURE_EXTRACTOR_NAME,
@@ -14,8 +14,8 @@ export class AutoFeatureExtractor {
         );
 
         // Determine feature extractor class
-        const key = preprocessorConfig.feature_extractor_type;
-        const feature_extractor_class = AllFeatureExtractors[key];
+        const key = preprocessorConfig.feature_extractor_type as string;
+        const feature_extractor_class = (AllFeatureExtractors as unknown as Record<string, typeof FeatureExtractor>)[key];
 
         if (!feature_extractor_class) {
             throw new Error(`Unknown feature_extractor_type: '${key}'. Please report this at ${GITHUB_ISSUE_URL}.`);

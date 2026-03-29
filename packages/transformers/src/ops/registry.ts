@@ -12,14 +12,14 @@ import { Tensor } from '../utils/tensor';
  * @returns {Promise<function(Record<string, Tensor>): Promise<T extends string ? Tensor : T extends string[] ? { [K in keyof T]: Tensor } : never>>}
  * The wrapper function for running the ONNX inference session.
  */
-const wrap = async (session_bytes, session_options, names) => {
-    const session = await createInferenceSession(new Uint8Array(session_bytes), session_options, undefined as any);
+const wrap = async (session_bytes: number[], session_options: import('onnxruntime-common').InferenceSession.SessionOptions, names: string | string[]) => {
+    const session = await createInferenceSession(new Uint8Array(session_bytes), session_options, undefined as unknown as Record<string, unknown>);
 
     return /** @type {any} */ (
-        async (/** @type {Record<string, Tensor>} */ inputs) => {
+        async (inputs: Record<string, Tensor>) => {
             const proxied = isONNXProxy();
             const ortFeed = Object.fromEntries(
-                Object.entries(inputs).map(([k, v]) => [k, (proxied ? (v as any).clone() : v).ort_tensor]),
+                Object.entries(inputs).map(([k, v]) => [k, (proxied ? (v as Tensor).clone() : v).ort_tensor]),
             );
             const outputs = await runInferenceSession(session, ortFeed);
             if (Array.isArray(names)) {
@@ -33,14 +33,14 @@ const wrap = async (session_bytes, session_options, names) => {
 
 // In-memory registry of initialized ONNX operators
 export class TensorOpRegistry {
-    /** @type {any} */ static _nearest_interpolate_4d;
-    /** @type {any} */ static _bilinear_interpolate_4d;
-    /** @type {any} */ static _bicubic_interpolate_4d;
-    /** @type {any} */ static _matmul;
-    /** @type {any} */ static _stft;
-    /** @type {any} */ static _rfft;
-    /** @type {any} */ static _top_k;
-    /** @type {any} */ static _slice;
+    static _nearest_interpolate_4d: ReturnType<typeof wrap>;
+    static _bilinear_interpolate_4d: ReturnType<typeof wrap>;
+    static _bicubic_interpolate_4d: ReturnType<typeof wrap>;
+    static _matmul: ReturnType<typeof wrap>;
+    static _stft: ReturnType<typeof wrap>;
+    static _rfft: ReturnType<typeof wrap>;
+    static _top_k: ReturnType<typeof wrap>;
+    static _slice: ReturnType<typeof wrap>;
 
     static session_options = {
         // TODO: Allow for multiple execution providers

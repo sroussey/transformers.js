@@ -14,7 +14,7 @@ export class MarianTokenizer extends PreTrainedTokenizer {
      * @param {Object} tokenizerJSON The JSON of the tokenizer.
      * @param {Object} tokenizerConfig The config of the tokenizer.
      */
-    constructor(tokenizerJSON, tokenizerConfig) {
+    constructor(tokenizerJSON: Record<string, unknown>, tokenizerConfig: Record<string, unknown>) {
         super(tokenizerJSON, tokenizerConfig);
 
         this.languageRegex = /^(>>\w+<<)\s*/g;
@@ -34,7 +34,7 @@ export class MarianTokenizer extends PreTrainedTokenizer {
      * @param {string|null} text The text to encode.
      * @returns {string[]|null} The encoded tokens.
      */
-    _encode_text(text) {
+    _encode_text(text: string | null): string[] | null {
         if (text === null) return null;
 
         // Check if text starts with language code:
@@ -52,7 +52,7 @@ export class MarianTokenizer extends PreTrainedTokenizer {
                     `Unsupported language code "${language}" detected, which may lead to unexpected behavior. Should be one of: ${JSON.stringify(this.supported_language_codes)}`,
                 );
             }
-            return mergeArrays([language], super._encode_text(text));
+            return mergeArrays([language], super._encode_text(text)) as string[];
         }
     }
 }

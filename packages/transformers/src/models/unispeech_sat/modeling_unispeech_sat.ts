@@ -18,7 +18,7 @@ export class UniSpeechSatForCTC extends UniSpeechSatPreTrainedModel {
      * @param {Tensor} model_inputs.input_values Float values of input raw speech waveform.
      * @param {Tensor} model_inputs.attention_mask Mask to avoid performing convolution and attention on padding token indices. Mask values selected in [0, 1]
      */
-    async _call(model_inputs) {
+    async _call(model_inputs: Record<string, unknown>) {
         return new CausalLMOutput(await super._call(model_inputs));
     }
 }
@@ -32,7 +32,7 @@ export class UniSpeechSatForSequenceClassification extends UniSpeechSatPreTraine
      * @param {Object} model_inputs The inputs to the model.
      * @returns {Promise<SequenceClassifierOutput>} An object containing the model's output logits for sequence classification.
      */
-    async _call(model_inputs) {
+    async _call(model_inputs: Record<string, unknown>) {
         return new SequenceClassifierOutput(await super._call(model_inputs));
     }
 }
@@ -46,7 +46,7 @@ export class UniSpeechSatForAudioFrameClassification extends UniSpeechSatPreTrai
      * @param {Object} model_inputs The inputs to the model.
      * @returns {Promise<TokenClassifierOutput>} An object containing the model's output logits for sequence classification.
      */
-    async _call(model_inputs) {
+    async _call(model_inputs: Record<string, unknown>) {
         return new TokenClassifierOutput(await super._call(model_inputs));
     }
 }

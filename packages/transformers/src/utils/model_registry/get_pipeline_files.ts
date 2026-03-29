@@ -16,12 +16,12 @@ import { get_files } from './get_files';
  * @returns {Promise<string[]>} Array of file paths that will be loaded
  * @throws {Error} If the task is not supported
  */
-export async function get_pipeline_files(task, modelId, options = {}) {
+export async function get_pipeline_files(task: string, modelId: string, options: Record<string, unknown> = {}): Promise<string[]> {
     // Apply task aliases
-    task = TASK_ALIASES[task] ?? task;
+    task = (TASK_ALIASES as Record<string, string>)[task] ?? task;
 
     // Validate that the task is supported
-    const taskConfig = SUPPORTED_TASKS[task];
+    const taskConfig = (SUPPORTED_TASKS as Record<string, { pipeline: unknown, model: unknown, default: unknown, type: string }>)[task];
     if (!taskConfig) {
         throw new Error(
             `Unsupported pipeline task: ${task}. Must be one of [${Object.keys(SUPPORTED_TASKS).join(', ')}]`,

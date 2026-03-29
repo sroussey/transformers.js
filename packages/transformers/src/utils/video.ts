@@ -9,26 +9,26 @@ export class RawVideoFrame {
      * @param {RawImage} image
      * @param {number} timestamp
      */
-    constructor(image, timestamp) {
+    constructor(image: RawImage, timestamp: number) {
         this.image = image;
         this.timestamp = timestamp;
     }
 }
 
 export class RawVideo {
-    frames;
-    duration;
+    frames: RawVideoFrame[];
+    duration: number;
 
     /**
      * @param {RawVideoFrame[]|RawImage[]} frames
      * @param {number} duration
      */
-    constructor(frames, duration) {
+    constructor(frames: RawVideoFrame[] | RawImage[], duration: number) {
         if (frames.length > 0 && frames[0] instanceof RawImage) {
             // Assume uniform timestamps
-            frames = frames.map((image, i) => new RawVideoFrame(image, ((i + 1) / (frames.length + 1)) * duration));
+            frames = (frames as RawImage[]).map((image: RawImage, i: number) => new RawVideoFrame(image, ((i + 1) / (frames.length + 1)) * duration));
         }
-        this.frames = /** @type {RawVideoFrame[]} */ (frames);
+        this.frames = frames as RawVideoFrame[];
         this.duration = duration;
     }
 
@@ -54,7 +54,7 @@ export class RawVideo {
  *
  * @returns {Promise<RawVideo>} The loaded video.
  */
-export async function load_video(src, { num_frames = null, fps = null } = {}) {
+export async function load_video(src: string | Blob | HTMLVideoElement, { num_frames = null, fps = null }: { num_frames?: number | null; fps?: number | null } = {}) {
     if (!apis.IS_BROWSER_ENV) {
         throw new Error('`load_video` is currently only supported in browser environments.');
     }

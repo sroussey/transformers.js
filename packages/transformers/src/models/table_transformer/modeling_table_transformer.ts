@@ -15,9 +15,9 @@ export class TableTransformerModel extends TableTransformerPreTrainedModel {}
  */
 export class TableTransformerForObjectDetection extends TableTransformerPreTrainedModel {
     /**
-     * @param {any} model_inputs
+     * @param {Object} model_inputs
      */
-    async _call(model_inputs) {
+    async _call(model_inputs: Record<string, unknown>) {
         return new TableTransformerObjectDetectionOutput(await super._call(model_inputs));
     }
 }

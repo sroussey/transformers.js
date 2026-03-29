@@ -55,10 +55,7 @@ export class VitMattePreTrainedModel extends PreTrainedModel {}
  * ```
  */
 export class VitMatteForImageMatting extends VitMattePreTrainedModel {
-    /**
-     * @param {any} model_inputs
-     */
-    async _call(model_inputs) {
+    async _call(model_inputs: Record<string, any>) {
         return new ImageMattingOutput(await super._call(model_inputs));
     }
 }

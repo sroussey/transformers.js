@@ -7,7 +7,7 @@ import { ERROR_MAPPING, REPO_ID_REGEX } from './constants';
  * @param {...string} parts Multiple parts of a path.
  * @returns {string} A string representing the joined path.
  */
-export function pathJoin(...parts) {
+export function pathJoin(...parts: string[]): string {
     // https://stackoverflow.com/a/55142565
     parts = parts.map((part, index) => {
         if (index) {
@@ -28,7 +28,7 @@ export function pathJoin(...parts) {
  * @param {string[]} [validHosts=null] A list of valid hostnames. If specified, the URL's hostname must be in this list.
  * @returns {boolean} True if the string is a valid URL, false otherwise.
  */
-export function isValidUrl(string, protocols = null, validHosts = null) {
+export function isValidUrl(string: string | URL, protocols: string[] | null = null, validHosts: string[] | null = null): boolean {
     let url;
     try {
         url = new URL(string);
@@ -51,7 +51,7 @@ export function isValidUrl(string, protocols = null, validHosts = null) {
  * @param {string} string The string to test
  * @returns {boolean} True if the string is a valid model ID, false otherwise.
  */
-export function isValidHfModelId(string) {
+export function isValidHfModelId(string: string): boolean {
     if (!REPO_ID_REGEX.test(string)) return false;
     if (string.includes('..') || string.includes('--')) return false;
     if (string.endsWith('.git') || string.endsWith('.ipynb')) return false;
@@ -66,14 +66,14 @@ export function isValidHfModelId(string) {
  * @returns {null} Returns `null` if `fatal = true`.
  * @throws {Error} If `fatal = false`.
  */
-export function handleError(status, remoteURL, fatal) {
+export function handleError(status: number, remoteURL: string, fatal: boolean): null {
     if (!fatal) {
         // File was not loaded correctly, but it is optional.
         // TODO in future, cache the response?
         return null;
     }
 
-    const message = ERROR_MAPPING[status] ?? `Error (${status}) occurred while trying to load file`;
+    const message = (ERROR_MAPPING as Record<number, string>)[status] ?? `Error (${status}) occurred while trying to load file`;
     throw Error(`${message}: "${remoteURL}".`);
 }
 
@@ -85,7 +85,7 @@ export function handleError(status, remoteURL, fatal) {
  * @param {number} [expectedSize] The expected size of the file (used when content-length header is missing)
  * @returns {Promise<Uint8Array>} A Promise that resolves with the Uint8Array buffer
  */
-export async function readResponse(response, progress_callback, expectedSize) {
+export async function readResponse(response: Response | import('./FileResponse.js').FileResponse, progress_callback: (data: {progress: number, loaded: number, total: number}) => void, expectedSize?: number): Promise<Uint8Array> {
     const contentLength = response.headers.get('Content-Length');
 
     // Use content-length if available, otherwise fall back to expectedSize (from metadata)
@@ -139,7 +139,7 @@ export async function readResponse(response, progress_callback, expectedSize) {
  * @param {string} url - The URL to check.
  * @returns {boolean} True if the URL is a blob URL, false otherwise.
  */
-export function isBlobURL(url) {
+export function isBlobURL(url: string): boolean {
     return isValidUrl(url, ['blob:']);
 }
 
@@ -150,7 +150,7 @@ export function isBlobURL(url) {
  * @param {string} url - The URL to convert (can be relative or absolute).
  * @returns {string} The absolute URL.
  */
-export function toAbsoluteURL(url) {
+export function toAbsoluteURL(url: string): string {
     let baseURL;
 
     if (typeof location !== 'undefined' && location.href) {

@@ -42,7 +42,7 @@ import * as AllProcessors from '../processors';
  */
 export class AutoProcessor {
     /** @type {typeof Processor.from_pretrained} */
-    static async from_pretrained(pretrained_model_name_or_path, options = {}) {
+    static async from_pretrained(pretrained_model_name_or_path: string, options: Record<string, unknown> = {}) {
         // TODO: first check for processor.json
         const preprocessorConfig = await getModelJSON(
             pretrained_model_name_or_path,
@@ -51,19 +51,19 @@ export class AutoProcessor {
             options,
         );
 
-        const { image_processor_type, feature_extractor_type, processor_class } = preprocessorConfig;
-        if (processor_class && AllProcessors[processor_class]) {
-            return AllProcessors[processor_class].from_pretrained(pretrained_model_name_or_path, options);
+        const { image_processor_type, feature_extractor_type, processor_class } = preprocessorConfig as Record<string, string>;
+        if (processor_class && (AllProcessors as unknown as Record<string, typeof Processor>)[processor_class]) {
+            return (AllProcessors as unknown as Record<string, typeof Processor>)[processor_class].from_pretrained(pretrained_model_name_or_path, options);
         }
 
         if (!image_processor_type && !feature_extractor_type) {
             throw new Error('No `image_processor_type` or `feature_extractor_type` found in the config.');
         }
 
-        const components = {} as any;
+        const components: Record<string, object> = {};
         if (image_processor_type) {
             // Some image processors are saved with the "Fast" suffix, so we remove that if present.
-            const image_processor_class = AllImageProcessors[image_processor_type.replace(/Fast$/, '')];
+            const image_processor_class = (AllImageProcessors as unknown as Record<string, { new(config: Record<string, unknown>): object }>)[image_processor_type.replace(/Fast$/, '')];
             if (!image_processor_class) {
                 throw new Error(`Unknown image_processor_type: '${image_processor_type}'.`);
             }
@@ -71,12 +71,12 @@ export class AutoProcessor {
         }
 
         if (feature_extractor_type) {
-            const image_processor_class = AllImageProcessors[feature_extractor_type];
+            const image_processor_class = (AllImageProcessors as unknown as Record<string, { new(config: Record<string, unknown>): object }>)[feature_extractor_type];
             if (image_processor_class) {
                 // Handle legacy case where image processors were specified as feature extractors
                 components.image_processor = new image_processor_class(preprocessorConfig);
             } else {
-                const feature_extractor_class = AllFeatureExtractors[feature_extractor_type];
+                const feature_extractor_class = (AllFeatureExtractors as unknown as Record<string, { new(config: Record<string, unknown>): object }>)[feature_extractor_type];
                 if (!feature_extractor_class) {
                     throw new Error(`Unknown feature_extractor_type: '${feature_extractor_type}'.`);
                 }

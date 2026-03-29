@@ -41,22 +41,22 @@ export class Text2TextGenerationPipeline
     _key = 'generated_text';
 
     /** @type {Text2TextGenerationPipelineCallback} */
-    async _call(texts, generate_kwargs = {}) {
+    async _call(texts: string | string[], generate_kwargs: Record<string, unknown> = {}) {
         if (!Array.isArray(texts)) {
             texts = [texts];
         }
 
         // Add global prefix, if present
         if (this.model.config.prefix) {
-            texts = texts.map((x) => this.model.config.prefix + x);
+            texts = texts.map((x: string) => this.model.config.prefix + x);
         }
 
         // Handle task specific params:
-        const task_specific_params = this.model.config.task_specific_params;
+        const task_specific_params = this.model.config.task_specific_params as Record<string, Record<string, string>> | undefined;
         if (task_specific_params && task_specific_params[this.task]) {
             // Add prefixes, if present
             if (task_specific_params[this.task].prefix) {
-                texts = texts.map((x) => task_specific_params[this.task].prefix + x);
+                texts = texts.map((x: string) => task_specific_params[this.task].prefix + x);
             }
 
             // TODO update generation config
@@ -67,21 +67,20 @@ export class Text2TextGenerationPipeline
             padding: true,
             truncation: true,
         };
-        let inputs;
+        let inputs: Record<string, unknown>;
         if (this.task === 'translation' && '_build_translation_inputs' in tokenizer) {
             // TODO: move to Translation pipeline?
             // Currently put here to avoid code duplication
-            // @ts-ignore
-            inputs = tokenizer._build_translation_inputs(texts, tokenizer_options, generate_kwargs);
+            inputs = (tokenizer as unknown as { _build_translation_inputs: (...args: unknown[]) => Record<string, unknown> })._build_translation_inputs(texts, tokenizer_options, generate_kwargs);
         } else {
             inputs = tokenizer(texts, tokenizer_options);
         }
 
         const outputTokenIds = await this.model.generate({ ...inputs, ...generate_kwargs });
         return tokenizer
-            .batch_decode(/** @type {Tensor} */ (outputTokenIds), {
+            .batch_decode(/** @type {Tensor} */ (outputTokenIds) as Tensor, {
                 skip_special_tokens: true,
             })
-            .map((text) => ({ [this._key]: text }));
+            .map((text: string) => ({ [this._key]: text }));
     }
 }

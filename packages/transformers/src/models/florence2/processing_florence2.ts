@@ -6,12 +6,12 @@ export class Florence2Processor extends Processor {
     static tokenizer_class = AutoTokenizer;
     static image_processor_class = AutoImageProcessor;
 
-    tasks_answer_post_processing_type;
-    task_prompts_without_inputs;
-    task_prompts_with_input;
-    regexes;
-    size_per_bin;
-    constructor(config, components, chat_template) {
+    tasks_answer_post_processing_type: Map<string, string>;
+    task_prompts_without_inputs: Map<string, string>;
+    task_prompts_with_input: Map<string, string>;
+    regexes: { quad_boxes: RegExp; bboxes: RegExp };
+    size_per_bin: number;
+    constructor(config: Record<string, unknown>, components: Record<string, object>, chat_template: string | null) {
         super(config, components, chat_template);
 
         const {
@@ -42,7 +42,7 @@ export class Florence2Processor extends Processor {
      * @param {string|string[]} text
      * @returns {string[]}
      */
-    construct_prompts(text) {
+    construct_prompts(text: string | string[]): string[] {
         if (typeof text === 'string') {
             text = [text];
         }
@@ -77,7 +77,7 @@ export class Florence2Processor extends Processor {
      * @param {string} task The task to post-process the text for.
      * @param {[number, number]} image_size The size of the image. height x width.
      */
-    post_process_generation(text, task, image_size) {
+    post_process_generation(text: string, task: string, image_size: [number, number]) {
         const task_answer_post_processing_type = this.tasks_answer_post_processing_type.get(task) ?? 'pure_text';
 
         // remove the special tokens
@@ -95,14 +95,14 @@ export class Florence2Processor extends Processor {
             case 'ocr':
                 const key = task_answer_post_processing_type === 'ocr' ? 'quad_boxes' : 'bboxes';
                 const matches = text.matchAll(this.regexes[key]);
-                const labels = [];
+                const labels: string[] = [];
                 const items = [];
                 for (const [_, label, ...locations] of matches) {
                     // Push new label, or duplicate the last label
                     labels.push(label ? label.trim() : (labels.at(-1) ?? ''));
                     items.push(
                         locations.map(
-                            (x, i) =>
+                            (x: string, i: number) =>
                                 // NOTE: Add 0.5 to use the center position of the bin as the coordinate.
                                 ((Number(x) + 0.5) / this.size_per_bin) * image_size[i % 2],
                         ),
@@ -120,13 +120,13 @@ export class Florence2Processor extends Processor {
 
     // NOTE: images and text are switched from the python version
     // `images` is required, `text` is optional
-    async _call(images, text = null, kwargs = {}) {
+    async _call(images: unknown, text: string | string[] | null = null, kwargs: Record<string, unknown> = {}) {
         if (!images && !text) {
             throw new Error('Either text or images must be provided');
         }
 
-        const image_inputs = await this.image_processor(images, kwargs);
-        const text_inputs = text ? this.tokenizer(this.construct_prompts(text), kwargs) : {};
+        const image_inputs = await this.image_processor!(images, kwargs);
+        const text_inputs = text ? this.tokenizer!(this.construct_prompts(text), kwargs) : {};
 
         return {
             ...image_inputs,

@@ -13,7 +13,7 @@ const NUM_AUDIO_TOKENS = 375;
  * @param {number} n_samples
  * @returns {Float32Array[]}
  */
-function chunk(audio, n_samples) {
+function chunk(audio: Float32Array, n_samples: number) {
     const chunks = [];
     for (let i = 0; i < audio.length; i += n_samples) {
         chunks.push(audio.subarray(i, Math.min(i + n_samples, audio.length)));
@@ -25,6 +25,7 @@ function chunk(audio, n_samples) {
  * Represents a VoxtralProcessor that extracts features from an audio input.
  */
 export class VoxtralProcessor extends Processor {
+    declare config: Record<string, any>;
     static tokenizer_class = AutoTokenizer;
     static feature_extractor_class = AutoFeatureExtractor;
     static uses_processor_config = false;
@@ -33,12 +34,12 @@ export class VoxtralProcessor extends Processor {
      * @param {string} text The text input to process.
      * @param {Float32Array|Float32Array[]} audio The audio input(s) to process.
      */
-    async _call(text, audio = null, kwargs = {}) {
+    async _call(text: string, audio: Float32Array | Float32Array[] | null = null, kwargs: Record<string, any> = {}) {
         if (Array.isArray(text)) {
             throw new Error('Batched inputs are not supported yet.');
         }
 
-        const audio_inputs = {};
+        const audio_inputs: Record<string, any> = {};
         if (audio) {
             if (!text.includes(AUDIO_TOKEN)) {
                 throw new Error(`The input text does not contain the audio token ${AUDIO_TOKEN}.`);
@@ -54,17 +55,17 @@ export class VoxtralProcessor extends Processor {
                 );
             }
 
-            const n_samples = this.feature_extractor.config.n_samples;
+            const n_samples = (this.feature_extractor!.config as Record<string, number>).n_samples;
 
             // Split each audio input into chunks and keep track of chunk counts
-            const audio_chunks = audio.map((a) => chunk(a, n_samples));
-            const chunk_counts = audio_chunks.map((chunks) => chunks.length);
+            const audio_chunks = audio.map((a: Float32Array) => chunk(a, n_samples));
+            const chunk_counts = audio_chunks.map((chunks: Float32Array[]) => chunks.length);
 
             // Flatten all chunks for feature extraction
             const all_chunks = audio_chunks.flat();
             const features = (
-                await Promise.all(all_chunks.map((audio_input) => this.feature_extractor(audio_input, kwargs)))
-            ).map((x) => x.input_features);
+                await Promise.all(all_chunks.map((audio_input: Float32Array) => this.feature_extractor!(audio_input, kwargs)))
+            ).map((x: Record<string, any>) => x.input_features);
 
             audio_inputs['audio_values'] = features.length > 1 ? cat(features, 0) : features[0];
 
@@ -80,7 +81,7 @@ export class VoxtralProcessor extends Processor {
             text = new_text;
         }
 
-        const text_inputs = this.tokenizer(text, {
+        const text_inputs = this.tokenizer!(text, {
             add_special_tokens: false,
             ...kwargs,
         });

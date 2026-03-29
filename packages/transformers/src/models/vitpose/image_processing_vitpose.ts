@@ -16,17 +16,17 @@ export class VitPoseImageProcessor extends ImageProcessor {
      * }[][]} List of keypoints predictions for each image.
      */
     post_process_pose_estimation(
-        outputs,
-        boxes,
+        outputs: import('../../utils/tensor.js').Tensor,
+        boxes: [number, number, number, number][][],
         {
-            threshold = null,
+            threshold = null as number | null,
             // TODO:
             // kernel_size = 11,
             // target_sizes = null,
         } = {},
     ) {
         // NOTE: boxes are 3D (batch_size, num_boxes, 4)
-        const heatmaps = outputs.tolist();
+        const heatmaps: any = outputs.tolist();
         const [batch_size, num_classes, height, width] = outputs.dims;
 
         const results = [];

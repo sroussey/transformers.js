@@ -16,9 +16,9 @@ export class ResNetModel extends ResNetPreTrainedModel {}
  */
 export class ResNetForImageClassification extends ResNetPreTrainedModel {
     /**
-     * @param {any} model_inputs
+     * @param {Object} model_inputs
      */
-    async _call(model_inputs) {
+    async _call(model_inputs: Record<string, unknown>) {
         return new SequenceClassifierOutput(await super._call(model_inputs));
     }
 }

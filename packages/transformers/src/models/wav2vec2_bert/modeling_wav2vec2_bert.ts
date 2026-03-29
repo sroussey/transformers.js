@@ -18,7 +18,7 @@ export class Wav2Vec2BertForCTC extends Wav2Vec2BertPreTrainedModel {
      * @param {Tensor} model_inputs.input_features Float values of input mel-spectrogram.
      * @param {Tensor} model_inputs.attention_mask Mask to avoid performing convolution and attention on padding token indices. Mask values selected in [0, 1]
      */
-    async _call(model_inputs) {
+    async _call(model_inputs: { input_features: Tensor; attention_mask: Tensor }) {
         return new CausalLMOutput(await super._call(model_inputs));
     }
 }
@@ -32,7 +32,7 @@ export class Wav2Vec2BertForSequenceClassification extends Wav2Vec2BertPreTraine
      * @param {Object} model_inputs The inputs to the model.
      * @returns {Promise<SequenceClassifierOutput>} An object containing the model's output logits for sequence classification.
      */
-    async _call(model_inputs) {
+    async _call(model_inputs: Record<string, any>) {
         return new SequenceClassifierOutput(await super._call(model_inputs));
     }
 }

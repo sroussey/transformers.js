@@ -2,11 +2,12 @@ import { ImageProcessor, smart_resize } from '../../image_processors_utils';
 import { cat, Tensor } from '../../utils/tensor';
 
 export class Qwen2VLImageProcessor extends ImageProcessor {
+    declare config: Record<string, any>;
     declare min_pixels;
     declare max_pixels;
     patch_size;
     merge_size;
-    constructor(config) {
+    constructor(config: Record<string, any>) {
         super(config);
         this.min_pixels = config.min_pixels ?? config.size?.shortest_edge;
         this.max_pixels = config.max_pixels ?? config.size?.longest_edge;
@@ -15,18 +16,17 @@ export class Qwen2VLImageProcessor extends ImageProcessor {
     }
 
     /** @type {ImageProcessor['get_resize_output_image_size']} */
-    get_resize_output_image_size(image, size) {
+    get_resize_output_image_size(image: import('../../utils/image.js').RawImage, size: { width: number; height: number } | number) {
         const factor = this.patch_size * this.merge_size;
         return smart_resize(image.height, image.width, factor, this.min_pixels, this.max_pixels);
     }
 
-    async _call(images, ...args) {
+    async _call(images: import('../../utils/image.js').RawImage[], ...args: unknown[]) {
         const { pixel_values, original_sizes, reshaped_input_sizes } = await super._call(images, ...args);
 
         let patches = pixel_values;
 
-        // @ts-ignore
-        const { temporal_patch_size, merge_size, patch_size } = this.config;
+        const { temporal_patch_size, merge_size, patch_size } = this.config as Record<string, number>;
         if (patches.dims[0] === 1) {
             // Equivalent to np.tile(patches, (self.temporal_patch_size, 1, 1, 1))
             patches = cat(

@@ -54,7 +54,7 @@ class PretrainedMixin {
      * Mapping from model type to model class.
      * @type {Map<string, Object>[]}
      */
-    static MODEL_CLASS_MAPPINGS = null;
+    static MODEL_CLASS_MAPPINGS: Map<string, string>[] | null = null;
 
     /**
      * Whether to attempt to instantiate the base class (`PretrainedModel`) if
@@ -67,7 +67,7 @@ class PretrainedMixin {
      * @param {string} model_type The model type from config (e.g., 'bert', 'whisper').
      * @returns {boolean} Whether this class can handle the given model type.
      */
-    static supports(model_type) {
+    static supports(model_type: string): boolean {
         if (!this.MODEL_CLASS_MAPPINGS) return false;
         for (const mapping of this.MODEL_CLASS_MAPPINGS) {
             if (mapping.has(model_type)) return true;
@@ -77,7 +77,7 @@ class PretrainedMixin {
 
     /** @type {typeof PreTrainedModel.from_pretrained} */
     static async from_pretrained(
-        pretrained_model_name_or_path,
+        pretrained_model_name_or_path: string,
         {
             progress_callback = null,
             config = null,
@@ -90,7 +90,7 @@ class PretrainedMixin {
             dtype = null,
             use_external_data_format = null,
             session_options = {},
-        } = {},
+        }: import('../../utils/hub.js').PretrainedModelOptions = {},
     ) {
         const options = {
             progress_callback,
@@ -123,14 +123,14 @@ class PretrainedMixin {
                 }
                 if (!modelInfo) continue; // Item not found in this mapping
             }
-            return await ALL_MODEL_FILES[modelInfo].from_pretrained(pretrained_model_name_or_path, options);
+            return await (ALL_MODEL_FILES as unknown as Record<string, typeof PreTrainedModel>)[modelInfo].from_pretrained(pretrained_model_name_or_path, options as Record<string, unknown>);
         }
 
         if (this.BASE_IF_FAIL) {
             if (!CUSTOM_ARCHITECTURES.has(model_type)) {
                 logger.warn(`Unknown model class "${model_type}", attempting to construct from base class.`);
             }
-            return await PreTrainedModel.from_pretrained(pretrained_model_name_or_path, options);
+            return await PreTrainedModel.from_pretrained(pretrained_model_name_or_path, options as Record<string, unknown>);
         } else {
             throw Error(`Unsupported model type: ${model_type}`);
         }
@@ -146,8 +146,7 @@ class PretrainedMixin {
  */
 export class AutoModel extends PretrainedMixin {
     /** @type {Map<string, Object>[]} */
-    // @ts-ignore
-    static MODEL_CLASS_MAPPINGS = MODEL_CLASS_TYPE_MAPPING.map((x) => x[0]);
+    static MODEL_CLASS_MAPPINGS = MODEL_CLASS_TYPE_MAPPING.map((x) => x[0]) as Map<string, string>[];
     static BASE_IF_FAIL = true;
 }
 

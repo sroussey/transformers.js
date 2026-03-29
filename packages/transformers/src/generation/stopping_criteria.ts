@@ -20,14 +20,14 @@ export class StoppingCriteria extends Callable {
      * or scores for each vocabulary token after SoftMax.
      * @returns {boolean[]} A list of booleans indicating whether each sequence should be stopped.
      */
-    _call(input_ids, scores) {
+    _call(input_ids: number[][], scores: number[][]) {
         throw Error('StoppingCriteria needs to be subclassed');
     }
 }
 /**
  */
 export class StoppingCriteriaList extends Callable {
-    criteria;
+    criteria: StoppingCriteria[];
 
     /**
      * Constructs a new instance of `StoppingCriteriaList`.
@@ -42,7 +42,7 @@ export class StoppingCriteriaList extends Callable {
      *
      * @param {StoppingCriteria} item The stopping criterion to add.
      */
-    push(item) {
+    push(item: StoppingCriteria) {
         this.criteria.push(item);
     }
 
@@ -51,7 +51,7 @@ export class StoppingCriteriaList extends Callable {
      *
      * @param {StoppingCriteria|StoppingCriteriaList|StoppingCriteria[]} items The stopping criteria to add.
      */
-    extend(items) {
+    extend(items: StoppingCriteria | StoppingCriteriaList | StoppingCriteria[]) {
         if (items instanceof StoppingCriteriaList) {
             items = items.criteria;
         } else if (items instanceof StoppingCriteria) {
@@ -60,10 +60,10 @@ export class StoppingCriteriaList extends Callable {
         this.criteria.push(...items);
     }
 
-    _call(input_ids, scores) {
+    _call(input_ids: number[][], scores: number[][]) {
         const is_done = new Array(input_ids.length).fill(false);
         for (const criterion of this.criteria) {
-            const criterion_done = criterion(input_ids, scores);
+            const criterion_done = (criterion as unknown as (input_ids: number[][], scores: number[][]) => boolean[])(input_ids, scores);
             for (let i = 0; i < is_done.length; ++i) {
                 is_done[i] ||= criterion_done[i];
             }
@@ -89,14 +89,14 @@ export class MaxLengthCriteria extends StoppingCriteria {
      * @param {number} max_length The maximum length that the output sequence can have in number of tokens.
      * @param {number} [max_position_embeddings=null] The maximum model length, as defined by the model's `config.max_position_embeddings` attribute.
      */
-    constructor(max_length, max_position_embeddings = null) {
+    constructor(max_length: number, max_position_embeddings: number | null = null) {
         super();
         this.max_length = max_length;
         this.max_position_embeddings = max_position_embeddings;
     }
 
-    _call(input_ids) {
-        return input_ids.map((ids) => ids.length >= this.max_length);
+    _call(input_ids: number[][]) {
+        return input_ids.map((ids: number[]) => ids.length >= this.max_length);
     }
 }
 
@@ -114,7 +114,7 @@ export class EosTokenCriteria extends StoppingCriteria {
      * @param {number|number[]} eos_token_id The id of the *end-of-sequence* token.
      * Optionally, use a list to set multiple *end-of-sequence* tokens.
      */
-    constructor(eos_token_id) {
+    constructor(eos_token_id: number | number[]) {
         super();
         if (!Array.isArray(eos_token_id)) {
             eos_token_id = [eos_token_id];
@@ -128,11 +128,11 @@ export class EosTokenCriteria extends StoppingCriteria {
      * @param {number[][]} scores
      * @returns {boolean[]}
      */
-    _call(input_ids, scores) {
-        return input_ids.map((ids) => {
+    _call(input_ids: number[][], scores: number[][]) {
+        return input_ids.map((ids: number[]) => {
             const last = ids.at(-1);
             // NOTE: We use == instead of === to allow for number/bigint comparison
-            return this.eos_token_id.some((eos_id) => last == eos_id);
+            return this.eos_token_id.some((eos_id: number) => last == eos_id);
         });
     }
 }
@@ -156,7 +156,7 @@ export class InterruptableStoppingCriteria extends StoppingCriteria {
         this.interrupted = false;
     }
 
-    _call(input_ids, scores) {
+    _call(input_ids: number[][], scores: number[][]) {
         return new Array(input_ids.length).fill(this.interrupted);
     }
 }

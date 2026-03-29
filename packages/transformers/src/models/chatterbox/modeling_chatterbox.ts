@@ -28,7 +28,7 @@ export class ChatterboxModel extends ChatterboxPreTrainedModel {
      * @param {Tensor} audio_values
      * @returns {Promise<{audio_features: Tensor, audio_tokens: Tensor, speaker_embeddings: Tensor, speaker_features: Tensor}>}
      */
-    async encode_speech(audio_values) {
+    async encode_speech(audio_values: Tensor) {
         return sessionRun(this.sessions['speech_encoder'], {
             audio_values,
         });
@@ -62,7 +62,7 @@ export class ChatterboxModel extends ChatterboxPreTrainedModel {
         let speech_encoder_outputs;
         if (!inputs_embeds) {
             const expected_inputs = this.sessions['embed_tokens'].inputNames;
-            const embed_model_inputs = { input_ids } as any;
+            const embed_model_inputs: Record<string, Tensor> = { input_ids };
             if (expected_inputs.includes('exaggeration')) {
                 // Support the following types for exaggeration:
                 // 1. null/undefined (no exaggeration): use the default of 0.5
@@ -127,27 +127,27 @@ export class ChatterboxModel extends ChatterboxPreTrainedModel {
         };
     }
 
-    prepare_inputs_for_generation(input_ids, model_inputs, generation_config) {
+    prepare_inputs_for_generation(input_ids: bigint[][], model_inputs: Record<string, any>, generation_config: Record<string, unknown>) {
         if (!model_inputs.position_ids && this.sessions['embed_tokens'].inputNames.includes('position_ids')) {
             // If position_ids are not provided, we create them on the fly using the position of the START_SPEECH_TOKEN
-            if (model_inputs.input_ids.dims[1] === 1) {
+            if ((model_inputs.input_ids as Tensor).dims[1] === 1) {
                 const position_ids = Array.from(
                     {
                         length: input_ids.length,
                     },
-                    (_, i) => input_ids[i].length - input_ids[i].findLastIndex((x) => x == START_SPEECH_TOKEN) - 1,
+                    (_: unknown, i: number) => input_ids[i].length - input_ids[i].findLastIndex((x: bigint) => x == START_SPEECH_TOKEN) - 1,
                 );
                 model_inputs.position_ids = new Tensor('int64', position_ids, [input_ids.length, 1]);
             } else {
-                const batched_input_ids = model_inputs.input_ids.tolist();
-                const position_ids_list = batched_input_ids.map((ids) => {
+                const batched_input_ids = (model_inputs.input_ids as Tensor).tolist() as bigint[][];
+                const position_ids_list = batched_input_ids.map((ids: bigint[]) => {
                     let position = 0;
-                    return ids.map((id) => (id >= START_SPEECH_TOKEN ? 0 : position++));
+                    return ids.map((id: bigint) => (id >= START_SPEECH_TOKEN ? 0 : position++));
                 });
-                model_inputs.position_ids = new Tensor('int64', position_ids_list.flat(), model_inputs.input_ids.dims);
+                model_inputs.position_ids = new Tensor('int64', position_ids_list.flat(), (model_inputs.input_ids as Tensor).dims);
             }
         }
-        if (model_inputs.input_ids.dims[1] === 1) {
+        if ((model_inputs.input_ids as Tensor).dims[1] === 1) {
             // We are in generation mode and no longer need the audio inputs
             delete model_inputs.audio_values;
             delete model_inputs.audio_features;
@@ -155,15 +155,15 @@ export class ChatterboxModel extends ChatterboxPreTrainedModel {
             delete model_inputs.speaker_embeddings;
             delete model_inputs.speaker_features;
         }
-        return decoder_prepare_inputs_for_generation(this, input_ids, model_inputs, generation_config);
+        return decoder_prepare_inputs_for_generation(this, input_ids, model_inputs, generation_config as unknown as import('../../generation/configuration_utils').GenerationConfig);
     }
 
     /** @type {PreTrainedModel['generate']} */
-    async generate(params) {
+    async generate(params: import('../../generation/parameters.js').GenerationFunctionParameters): Promise<any> {
         const _result = await super.generate({
             ...params,
             return_dict_in_generate: true,
-        }) as any;
+        }) as unknown as Record<string, Tensor>;
         const { sequences, audio_tokens, speaker_embeddings, speaker_features } = _result;
 
         const new_tokens = sequences.slice(null, [

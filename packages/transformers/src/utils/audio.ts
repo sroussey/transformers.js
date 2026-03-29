@@ -20,7 +20,7 @@ import { Tensor, matmul } from './tensor';
  * @param {number} sampling_rate The sampling rate to use when decoding the audio.
  * @returns {Promise<Float32Array>} The decoded audio as a `Float32Array`.
  */
-export async function read_audio(url, sampling_rate) {
+export async function read_audio(url: string | URL, sampling_rate: number) {
     if (typeof AudioContext === 'undefined') {
         // Running in node or an environment without AudioContext
         throw Error(
@@ -81,7 +81,7 @@ export async function read_audio(url, sampling_rate) {
  * @param {number} a_0 Offset for the generalized cosine window.
  * @returns {Float64Array} The generated window.
  */
-function generalized_cosine_window(M, a_0) {
+function generalized_cosine_window(M: number, a_0: number) {
     if (M < 1) {
         return new Float64Array();
     }
@@ -106,7 +106,7 @@ function generalized_cosine_window(M, a_0) {
  * @param {number} M The length of the Hanning window to generate.
  * @returns {Float64Array} The generated Hanning window.
  */
-export function hanning(M) {
+export function hanning(M: number) {
     return generalized_cosine_window(M, 0.5);
 }
 
@@ -117,14 +117,14 @@ export function hanning(M) {
  * @param {number} M The length of the Hamming window to generate.
  * @returns {Float64Array} The generated Hamming window.
  */
-export function hamming(M) {
+export function hamming(M: number) {
     return generalized_cosine_window(M, 0.54);
 }
 
 const HERTZ_TO_MEL_MAPPING = {
-    htk: (/** @type {number} */ freq) => 2595.0 * Math.log10(1.0 + freq / 700.0),
-    kaldi: (/** @type {number} */ freq) => 1127.0 * Math.log(1.0 + freq / 700.0),
-    slaney: (/** @type {number} */ freq, min_log_hertz = 1000.0, min_log_mel = 15.0, logstep = 27.0 / Math.log(6.4)) =>
+    htk: (/** @type {number} */ freq: number) => 2595.0 * Math.log10(1.0 + freq / 700.0),
+    kaldi: (/** @type {number} */ freq: number) => 1127.0 * Math.log(1.0 + freq / 700.0),
+    slaney: (/** @type {number} */ freq: number, min_log_hertz = 1000.0, min_log_mel = 15.0, logstep = 27.0 / Math.log(6.4)) =>
         freq >= min_log_hertz ? min_log_mel + Math.log(freq / min_log_hertz) * logstep : (3.0 * freq) / 200.0,
 };
 
@@ -134,19 +134,19 @@ const HERTZ_TO_MEL_MAPPING = {
  * @param {keyof typeof HERTZ_TO_MEL_MAPPING} [mel_scale]
  * @returns {T}
  */
-function hertz_to_mel(freq, mel_scale = 'htk') {
+function hertz_to_mel<T extends Float32Array | Float64Array | number>(freq: T, mel_scale: keyof typeof HERTZ_TO_MEL_MAPPING = 'htk'): T {
     const fn = HERTZ_TO_MEL_MAPPING[mel_scale];
     if (!fn) {
         throw new Error('mel_scale should be one of "htk", "slaney" or "kaldi".');
     }
 
-    return typeof freq === 'number' ? fn(freq) : freq.map((x) => fn(x));
+    return (typeof freq === 'number' ? fn(freq) : freq.map((x: number) => fn(x))) as T;
 }
 
 const MEL_TO_HERTZ_MAPPING = {
-    htk: (/** @type {number} */ mels) => 700.0 * (10.0 ** (mels / 2595.0) - 1.0),
-    kaldi: (/** @type {number} */ mels) => 700.0 * (Math.exp(mels / 1127.0) - 1.0),
-    slaney: (/** @type {number} */ mels, min_log_hertz = 1000.0, min_log_mel = 15.0, logstep = Math.log(6.4) / 27.0) =>
+    htk: (/** @type {number} */ mels: number) => 700.0 * (10.0 ** (mels / 2595.0) - 1.0),
+    kaldi: (/** @type {number} */ mels: number) => 700.0 * (Math.exp(mels / 1127.0) - 1.0),
+    slaney: (/** @type {number} */ mels: number, min_log_hertz = 1000.0, min_log_mel = 15.0, logstep = Math.log(6.4) / 27.0) =>
         mels >= min_log_mel ? min_log_hertz * Math.exp(logstep * (mels - min_log_mel)) : (200.0 * mels) / 3.0,
 };
 
@@ -156,13 +156,13 @@ const MEL_TO_HERTZ_MAPPING = {
  * @param {keyof typeof MEL_TO_HERTZ_MAPPING} [mel_scale]
  * @returns {T}
  */
-function mel_to_hertz(mels, mel_scale = 'htk') {
+function mel_to_hertz<T extends Float32Array | Float64Array | number>(mels: T, mel_scale: keyof typeof MEL_TO_HERTZ_MAPPING = 'htk'): T {
     const fn = MEL_TO_HERTZ_MAPPING[mel_scale];
     if (!fn) {
         throw new Error('mel_scale should be one of "htk", "slaney" or "kaldi".');
     }
 
-    return typeof mels === 'number' ? fn(mels) : mels.map((x) => fn(x));
+    return (typeof mels === 'number' ? fn(mels) : mels.map((x: number) => fn(x))) as T;
 }
 
 /**
@@ -174,7 +174,7 @@ function mel_to_hertz(mels, mel_scale = 'htk') {
  * @param {Float64Array} filter_freqs Center frequencies of the triangular filters to create, in Hz, of shape `(num_mel_filters,)`.
  * @returns {number[][]} of shape `(num_frequency_bins, num_mel_filters)`.
  */
-function _create_triangular_filter_bank(fft_freqs, filter_freqs) {
+function _create_triangular_filter_bank(fft_freqs: Float64Array, filter_freqs: Float64Array) {
     const filter_diff = Float64Array.from(
         { length: filter_freqs.length - 1 },
         (_, i) => filter_freqs[i + 1] - filter_freqs[i],
@@ -217,7 +217,7 @@ function _create_triangular_filter_bank(fft_freqs, filter_freqs) {
  * @param {number} num Number of samples to generate.
  * @returns `num` evenly spaced samples, calculated over the interval `[start, stop]`.
  */
-function linspace(start, end, num) {
+function linspace(start: number, end: number, num: number) {
     const step = (end - start) / (num - 1);
     return Float64Array.from({ length: num }, (_, i) => start + step * i);
 }
@@ -241,14 +241,14 @@ function linspace(start, end, num) {
  * This is a projection matrix to go from a spectrogram to a mel spectrogram.
  */
 export function mel_filter_bank(
-    num_frequency_bins,
-    num_mel_filters,
-    min_frequency,
-    max_frequency,
-    sampling_rate,
-    norm = null,
-    mel_scale = 'htk',
-    triangularize_in_mel_space = false,
+    num_frequency_bins: number,
+    num_mel_filters: number,
+    min_frequency: number,
+    max_frequency: number,
+    sampling_rate: number,
+    norm: string | null = null,
+    mel_scale: keyof typeof MEL_TO_HERTZ_MAPPING = 'htk',
+    triangularize_in_mel_space: boolean = false,
 ) {
     if (norm !== null && norm !== 'slaney') {
         throw new Error('norm must be one of null or "slaney"');
@@ -307,9 +307,9 @@ export function mel_filter_bank(
  * @param {number} right The amount of padding to add to the right.
  * @returns {T} The padded array.
  */
-function padReflect(array, left, right) {
-    // @ts-ignore
-    const padded = new array.constructor(array.length + left + right);
+function padReflect<T extends Float32Array | Float64Array>(array: T, left: number, right: number): T {
+    const PadCtor = array.constructor as new (size: number) => T;
+    const padded = new PadCtor(array.length + left + right);
     const w = array.length - 1;
 
     for (let i = 0; i < array.length; ++i) {
@@ -337,7 +337,7 @@ function padReflect(array, left, right) {
  * @param {number} db_range
  * @returns {T}
  */
-function _db_conversion_helper(spectrogram, factor, reference, min_value, db_range) {
+function _db_conversion_helper<T extends Float32Array | Float64Array>(spectrogram: T, factor: number, reference: number, min_value: number, db_range: number | null): T {
     if (reference <= 0) {
         throw new Error('reference must be greater than zero');
     }
@@ -385,7 +385,7 @@ function _db_conversion_helper(spectrogram, factor, reference, min_value, db_ran
  * difference between the peak value and the smallest value will never be more than 80 dB. Must be greater than zero.
  * @returns {T} The modified spectrogram in decibels.
  */
-function amplitude_to_db(spectrogram, reference = 1.0, min_value = 1e-5, db_range = null) {
+function amplitude_to_db<T extends Float32Array | Float64Array>(spectrogram: T, reference: number = 1.0, min_value: number = 1e-5, db_range: number | null = null): T {
     return _db_conversion_helper(spectrogram, 20.0, reference, min_value, db_range);
 }
 
@@ -410,7 +410,7 @@ function amplitude_to_db(spectrogram, reference = 1.0, min_value = 1e-5, db_rang
  * difference between the peak value and the smallest value will never be more than 80 dB. Must be greater than zero.
  * @returns {T} The modified spectrogram in decibels.
  */
-function power_to_db(spectrogram, reference = 1.0, min_value = 1e-10, db_range = null) {
+function power_to_db<T extends Float32Array | Float64Array>(spectrogram: T, reference: number = 1.0, min_value: number = 1e-10, db_range: number | null = null): T {
     return _db_conversion_helper(spectrogram, 10.0, reference, min_value, db_range);
 }
 
@@ -471,10 +471,10 @@ function power_to_db(spectrogram, reference = 1.0, min_value = 1e-10, db_range =
  * @returns {Promise<Tensor>} Spectrogram of shape `(num_frequency_bins, length)` (regular spectrogram) or shape `(num_mel_filters, length)` (mel spectrogram).
  */
 export async function spectrogram(
-    waveform,
-    window,
-    frame_length,
-    hop_length,
+    waveform: Float32Array | Float64Array,
+    window: Float32Array | Float64Array,
+    frame_length: number,
+    hop_length: number,
     {
         fft_length = null,
         power = 1.0,
@@ -498,6 +498,27 @@ export async function spectrogram(
         do_pad = true,
         transpose = false,
         mel_offset = 0,
+    }: {
+        fft_length?: number | null;
+        power?: number | null;
+        center?: boolean;
+        pad_mode?: string;
+        onesided?: boolean;
+        preemphasis?: number | null;
+        preemphasis_htk_flavor?: boolean;
+        mel_filters?: number[][] | null;
+        mel_floor?: number;
+        log_mel?: string | null;
+        max_log_mel?: number | null;
+        reference?: number;
+        min_value?: number;
+        db_range?: number | null;
+        remove_dc_offset?: boolean | null;
+        min_num_frames?: number | null;
+        max_num_frames?: number | null;
+        do_pad?: boolean;
+        transpose?: boolean;
+        mel_offset?: number;
     } = {},
 ) {
     const window_length = window.length;
@@ -536,7 +557,7 @@ export async function spectrogram(
             }
             case 'constant': {
                 const padding = Math.floor(fft_length / 2);
-                const padded = new waveform.constructor(waveform.length + 2 * padding);
+                const padded = new (waveform.constructor as { new(length: number): Float32Array | Float64Array })(waveform.length + 2 * padding);
                 padded.set(waveform, padding);
                 waveform = padded;
                 break;
@@ -645,12 +666,12 @@ export async function spectrogram(
         // TODO: Make `mel_filters` a Tensor during initialization
         new Tensor('float32', mel_filters.flat(), [num_mel_filters, num_frequency_bins]),
         new Tensor('float32', transposedMagnitudeData, [num_frequency_bins, d1Max]),
-    );
+    ) as Tensor;
     if (transpose) {
         mel_spec = mel_spec.transpose(1, 0);
     }
 
-    const mel_spec_data = /** @type {Float32Array} */ (mel_spec.data);
+    const mel_spec_data = mel_spec.data as Float32Array;
     for (let i = 0; i < mel_spec_data.length; ++i) {
         mel_spec_data[i] = mel_offset + Math.max(mel_floor, mel_spec_data[i]);
     }
@@ -710,7 +731,7 @@ export async function spectrogram(
  * @param {boolean} [options.center=true] Whether to center the window inside the FFT buffer. Only used when `frame_length` is provided.
  * @returns {Float64Array} The window of shape `(window_length,)` or `(frame_length,)`.
  */
-export function window_function(window_length, name, { periodic = true, frame_length = null, center = true } = {}) {
+export function window_function(window_length: number, name: string, { periodic = true, frame_length = null, center = true }: { periodic?: boolean; frame_length?: number | null; center?: boolean } = {}) {
     const length = periodic ? window_length + 1 : window_length;
     let window;
     switch (name) {
@@ -754,8 +775,8 @@ export function window_function(window_length, name, { periodic = true, frame_le
  * @param {number} rate The sample rate.
  * @returns {Blob} The WAV file as a Blob.
  */
-function encodeWAV(chunks, rate) {
-    const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0);
+function encodeWAV(chunks: Float32Array[], rate: number) {
+    const totalLength = chunks.reduce((acc: number, chunk: Float32Array) => acc + chunk.length, 0);
 
     const buffer = new ArrayBuffer(44);
     const view = new DataView(buffer);
@@ -787,12 +808,12 @@ function encodeWAV(chunks, rate) {
     /* data chunk length */
     view.setUint32(40, totalLength * 4, true);
 
-    return new Blob([buffer, ...chunks.map((chunk) => /** @type {ArrayBuffer} */ (chunk.buffer))], {
+    return new Blob([buffer, ...chunks.map((chunk: Float32Array) => /** @type {ArrayBuffer} */ (chunk.buffer as ArrayBuffer))], {
         type: 'audio/wav',
     });
 }
 
-function writeString(view, offset, string) {
+function writeString(view: DataView, offset: number, string: string) {
     for (let i = 0; i < string.length; ++i) {
         view.setUint8(offset + i, string.charCodeAt(i));
     }
@@ -807,7 +828,7 @@ export class RawAudio {
      * @param {Float32Array|Float32Array[]} audio Audio data, either as a single `Float32Array` chunk or multiple `Float32Array` chunks.
      * @param {number} sampling_rate Sampling rate of the audio data
      */
-    constructor(audio, sampling_rate) {
+    constructor(audio: Float32Array | Float32Array[], sampling_rate: number) {
         this.audio = audio;
         this.sampling_rate = sampling_rate;
     }
@@ -855,7 +876,7 @@ export class RawAudio {
      * @param {string} path
      * @returns {Promise<void>}
      */
-    async save(path) {
+    async save(path: string) {
         return saveBlob(path, this.toBlob());
     }
 }

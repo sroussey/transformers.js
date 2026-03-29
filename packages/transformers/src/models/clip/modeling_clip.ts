@@ -52,7 +52,7 @@ export class CLIPModel extends CLIPPreTrainedModel {}
  */
 export class CLIPTextModel extends CLIPPreTrainedModel {
     /** @type {typeof PreTrainedModel.from_pretrained} */
-    static async from_pretrained(pretrained_model_name_or_path, options = {} as any) {
+    static async from_pretrained(pretrained_model_name_or_path: string, options = {} as Record<string, any>) {
         return super.from_pretrained(pretrained_model_name_or_path, {
             ...options,
             // Update default model file name if not provided
@@ -89,7 +89,7 @@ export class CLIPTextModel extends CLIPPreTrainedModel {
  */
 export class CLIPTextModelWithProjection extends CLIPPreTrainedModel {
     /** @type {typeof PreTrainedModel.from_pretrained} */
-    static async from_pretrained(pretrained_model_name_or_path, options = {} as any) {
+    static async from_pretrained(pretrained_model_name_or_path: string, options = {} as Record<string, any>) {
         return super.from_pretrained(pretrained_model_name_or_path, {
             ...options,
             // Update default model file name if not provided
@@ -103,7 +103,7 @@ export class CLIPTextModelWithProjection extends CLIPPreTrainedModel {
  */
 export class CLIPVisionModel extends CLIPPreTrainedModel {
     /** @type {typeof PreTrainedModel.from_pretrained} */
-    static async from_pretrained(pretrained_model_name_or_path, options = {} as any) {
+    static async from_pretrained(pretrained_model_name_or_path: string, options = {} as Record<string, any>) {
         return super.from_pretrained(pretrained_model_name_or_path, {
             ...options,
             // Update default model file name if not provided
@@ -140,7 +140,7 @@ export class CLIPVisionModel extends CLIPPreTrainedModel {
  */
 export class CLIPVisionModelWithProjection extends CLIPPreTrainedModel {
     /** @type {typeof PreTrainedModel.from_pretrained} */
-    static async from_pretrained(pretrained_model_name_or_path, options = {} as any) {
+    static async from_pretrained(pretrained_model_name_or_path: string, options = {} as Record<string, any>) {
         return super.from_pretrained(pretrained_model_name_or_path, {
             ...options,
             // Update default model file name if not provided

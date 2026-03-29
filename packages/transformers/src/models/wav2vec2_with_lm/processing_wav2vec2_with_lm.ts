@@ -11,7 +11,7 @@ export class Wav2Vec2ProcessorWithLM extends Processor {
      * @param {any} audio The audio input to extract features from.
      * @returns {Promise<any>} A Promise that resolves with the extracted features.
      */
-    async _call(audio) {
-        return await this.feature_extractor(audio);
+    async _call(audio: Float32Array | Float64Array) {
+        return await this.feature_extractor!(audio);
     }
 }

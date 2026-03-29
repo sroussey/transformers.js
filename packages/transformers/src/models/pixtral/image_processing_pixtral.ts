@@ -2,8 +2,8 @@ import { ImageProcessor } from '../../image_processors_utils';
 
 export class PixtralImageProcessor extends ImageProcessor {
     /** @type {ImageProcessor['get_resize_output_image_size']} */
-    get_resize_output_image_size(image, size) {
-        const { longest_edge } = size;
+    get_resize_output_image_size(image: import('../../utils/image.js').RawImage, size: Record<string, number> | number | undefined): [number, number] {
+        const { longest_edge } = size as Record<string, number>;
         if (longest_edge === undefined) {
             throw new Error("size must contain 'longest_edge'");
         }
@@ -19,11 +19,11 @@ export class PixtralImageProcessor extends ImageProcessor {
             newHeight = Math.floor(srcHeight / ratio);
         }
 
-        const { patch_size, spatial_merge_size } = this.config;
+        const { patch_size, spatial_merge_size } = this.config as Record<string, number>;
         if (!spatial_merge_size) {
             throw new Error("config must contain 'spatial_merge_size'");
         }
-        const real_patch_size = patch_size * spatial_merge_size;
+        const real_patch_size = (patch_size as number) * (spatial_merge_size as number);
 
         // Calculate number of tokens
         const num_width_tokens = Math.floor((newWidth - 1) / real_patch_size) + 1;

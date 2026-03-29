@@ -3,6 +3,7 @@ import { AutoImageProcessor } from '../auto/image_processing_auto';
 import { AutoTokenizer } from '../auto/tokenization_auto';
 
 export class LlavaProcessor extends Processor {
+    declare config: Record<string, any>;
     static tokenizer_class = AutoTokenizer;
     static image_processor_class = AutoImageProcessor;
     static uses_processor_config = true;
@@ -12,11 +13,11 @@ export class LlavaProcessor extends Processor {
      */
 
     // `images` is required, `text` is optional
-    async _call(/** @type {RawImage|RawImage[]} */ images, text = null, kwargs = {}) {
-        const image_inputs = await this.image_processor(images, kwargs);
+    async _call(images: import('../../utils/image.js').RawImage | import('../../utils/image.js').RawImage[], text: string | string[] | null = null, kwargs: Record<string, any> = {}) {
+        const image_inputs = await this.image_processor!(images, kwargs);
 
         if (text) {
-            const [height, width] = image_inputs.pixel_values.dims.slice(-2);
+            const [height, width] = (image_inputs.pixel_values as import('../../utils/tensor').Tensor).dims.slice(-2);
 
             const { image_token, patch_size, num_additional_image_tokens } = this.config;
             const num_image_tokens =
@@ -31,7 +32,7 @@ export class LlavaProcessor extends Processor {
             }
         }
 
-        const text_inputs = text ? this.tokenizer(text, kwargs) : {};
+        const text_inputs = text ? this.tokenizer!(text, kwargs) : {};
 
         return {
             ...image_inputs,

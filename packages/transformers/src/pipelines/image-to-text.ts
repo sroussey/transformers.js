@@ -54,21 +54,22 @@ import { Tensor } from '../utils/tensor';
 export class ImageToTextPipeline
     extends /** @type {new (options: TextImagePipelineConstructorArgs) => ImageToTextPipelineType} */ (Pipeline)
 {
-    async _call(images, generate_kwargs = {}) {
+    async _call(images: import('./_base.js').ImageInput | import('./_base.js').ImageInput[], generate_kwargs: Record<string, unknown> = {}) {
         const isBatched = Array.isArray(images);
         const preparedImages = await prepareImages(images);
 
         const { pixel_values } = await this.processor(preparedImages);
 
         const toReturn = [];
-        for (const batch of pixel_values) {
+        for (const batch_ of pixel_values) {
+            const batch = batch_ as Tensor;
             batch.dims = [1, ...batch.dims];
             const output = await this.model.generate({ inputs: batch, ...generate_kwargs });
             const decoded = this.tokenizer
-                .batch_decode(/** @type {Tensor} */ (output), {
+                .batch_decode(/** @type {Tensor} */ (output) as Tensor, {
                     skip_special_tokens: true,
                 })
-                .map((x) => ({ generated_text: x.trim() }));
+                .map((x: string) => ({ generated_text: x.trim() }));
             toReturn.push(decoded);
         }
 

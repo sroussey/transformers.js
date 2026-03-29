@@ -1,7 +1,7 @@
 import { ImageProcessor } from '../../image_processors_utils';
 
 export class DonutImageProcessor extends ImageProcessor {
-    pad_image(pixelData, imgDims, padSize, options = {}) {
+    pad_image(pixelData: Float32Array, imgDims: number[], padSize: { width: number; height: number } | number | 'square', options: Record<string, unknown> = {}) {
         const [imageHeight, imageWidth, imageChannels] = imgDims;
 
         let image_mean = this.image_mean;
@@ -14,7 +14,7 @@ export class DonutImageProcessor extends ImageProcessor {
             image_std = new Array(imageChannels).fill(image_mean);
         }
 
-        const constant_values = image_mean.map((x, i) => -x / image_std[i]);
+        const constant_values = (image_mean as number[]).map((x: number, i: number) => -x / (image_std as number[])[i]);
 
         return super.pad_image(pixelData, imgDims, padSize, {
             center: true,

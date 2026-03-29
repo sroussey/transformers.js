@@ -22,6 +22,7 @@ export { MAX_EXTERNAL_DATA_CHUNKS } from './hub/constants';
  * - `true`: Use external data format with 1 chunk
  * - `number`: Use external data format with the specified number of chunks
  */
+export type ExternalData = boolean | number;
 
 /**
  * @typedef {Object} PretrainedOptions Options for loading a pretrained model.
@@ -35,6 +36,13 @@ export { MAX_EXTERNAL_DATA_CHUNKS } from './hub/constants';
  * since we use a git-based system for storing models and other artifacts on huggingface.co, so `revision` can be any identifier allowed by git.
  * NOTE: This setting is ignored for local requests.
  */
+export interface PretrainedOptions {
+    progress_callback?: import('./core.js').ProgressCallback | null;
+    config?: import('../configs.js').PretrainedConfig | null;
+    cache_dir?: string | null;
+    local_files_only?: boolean;
+    revision?: string;
+}
 
 /**
  * @typedef {Object} ModelSpecificPretrainedOptions Options for loading a pretrained model.
@@ -50,6 +58,14 @@ export { MAX_EXTERNAL_DATA_CHUNKS } from './hub/constants';
 /**
  * @typedef {PretrainedOptions & ModelSpecificPretrainedOptions} PretrainedModelOptions Options for loading a pretrained model.
  */
+export type PretrainedModelOptions = PretrainedOptions & {
+    subfolder?: string;
+    model_file_name?: string | null;
+    device?: string | Record<string, string> | null;
+    dtype?: string | Record<string, string> | null;
+    use_external_data_format?: ExternalData | Record<string, ExternalData>;
+    session_options?: import('onnxruntime-common').InferenceSession.SessionOptions;
+};
 
 /**
  * Helper function to get a file, using either the Fetch API or FileSystem API.
@@ -57,7 +73,7 @@ export { MAX_EXTERNAL_DATA_CHUNKS } from './hub/constants';
  * @param {URL|string} urlOrPath The URL/path of the file to get.
  * @returns {Promise<FileResponse|Response>} A promise that resolves to a FileResponse object (if the file is retrieved using the FileSystem API), or a Response object (if the file is retrieved using the Fetch API).
  */
-export async function getFile(urlOrPath) {
+export async function getFile(urlOrPath: URL | string): Promise<FileResponse | Response> {
     if (env.useFS && !isValidUrl(urlOrPath, ['http:', 'https:', 'blob:'])) {
         return new FileResponse(
             urlOrPath instanceof URL
@@ -81,7 +97,7 @@ export async function getFile(urlOrPath) {
  * @param {URL|string} urlOrPath The URL or path being fetched.
  * @returns {Headers} A Headers object with appropriate headers for the request.
  */
-export function getFetchHeaders(urlOrPath) {
+export function getFetchHeaders(urlOrPath: URL | string): Headers {
     const isNode = typeof process !== 'undefined' && process?.release?.name === 'node';
     const headers = new Headers();
 
@@ -122,9 +138,8 @@ export function getFetchHeaders(urlOrPath) {
  * @returns {{ requestURL: string, localPath: string, remoteURL: string, proposedCacheKey: string, validModelId: boolean }}
  * An object containing all the paths and URLs for the resource.
  */
-export function buildResourcePaths(path_or_repo_id, filename, options = {}, cache = null) {
-    const opts = options as any;
-    const revision = opts.revision ?? 'main';
+export function buildResourcePaths(path_or_repo_id: string, filename: string, options: PretrainedOptions = {}, cache: import('./cache.js').CacheInterface | null = null): { requestURL: string, localPath: string, remoteURL: string, proposedCacheKey: string, validModelId: boolean } {
+    const revision = options.revision ?? 'main';
     const requestURL = pathJoin(path_or_repo_id, filename);
 
     const validModelId = isValidHfModelId(path_or_repo_id);
@@ -165,7 +180,7 @@ export function buildResourcePaths(path_or_repo_id, filename, options = {}, cach
  * @returns {Promise<Response|import('./hub/FileResponse.js').FileResponse|undefined|string>}
  * The cached response if found, undefined otherwise.
  */
-export async function checkCachedResource(cache, localPath, proposedCacheKey) {
+export async function checkCachedResource(cache: import('./cache.js').CacheInterface | null, localPath: string, proposedCacheKey: string): Promise<Response | import('./hub/FileResponse.js').FileResponse | undefined | string> {
     if (!cache) {
         return undefined;
     }
@@ -189,8 +204,7 @@ export async function checkCachedResource(cache, localPath, proposedCacheKey) {
  * @param {PretrainedOptions} [options] Options containing progress callback and context for progress updates.
  * @returns {Promise<void>}
  */
-export async function storeCachedResource(path_or_repo_id, filename, cache, cacheKey, response, result, options = {}) {
-    const opts = options as any;
+export async function storeCachedResource(path_or_repo_id: string, filename: string, cache: import('./cache.js').CacheInterface, cacheKey: string, response: Response | import('./hub/FileResponse.js').FileResponse, result?: Uint8Array, options: PretrainedOptions = {}): Promise<void> {
     // Check again whether request is in cache. If not, we add the response to the cache
     if ((await cache.match(cacheKey)) !== undefined) {
         return;
@@ -199,16 +213,16 @@ export async function storeCachedResource(path_or_repo_id, filename, cache, cach
     if (!result) {
         // We haven't yet read the response body, so we need to do so now.
         // Ensure progress updates include consistent metadata.
-        const wrapped_progress = opts.progress_callback
-            ? (data) =>
-                  dispatchCallback(opts.progress_callback, {
+        const wrapped_progress = options.progress_callback
+            ? (data: {progress: number, loaded: number, total: number}) =>
+                  dispatchCallback(options.progress_callback, {
                       status: 'progress',
                       name: path_or_repo_id,
                       file: filename,
                       ...data,
                   })
             : undefined;
-        await cache.put(cacheKey, /** @type {Response} */ (response), wrapped_progress);
+        await cache.put(cacheKey, response as Response, wrapped_progress);
     } else if (typeof response !== 'string') {
         // NOTE: We use `new Response(buffer, ...)` instead of `response.clone()` to handle LFS files
         // Explicitly set content-length from the buffer size, since the browser Cache API may strip it.
@@ -217,11 +231,11 @@ export async function storeCachedResource(path_or_repo_id, filename, cache, cach
         await cache
             .put(
                 cacheKey,
-                new Response(/** @type {any} */ (result), {
+                new Response(result as unknown as BodyInit, {
                     headers,
                 }),
             )
-            .catch((err) => {
+            .catch((err: unknown) => {
                 // Do not crash if unable to add to cache (e.g., QuotaExceededError).
                 // Rather, log a warning and proceed with execution.
                 logger.warn(`Unable to add response to browser cache: ${err}.`);
@@ -245,14 +259,13 @@ export async function storeCachedResource(path_or_repo_id, filename, cache, cach
  * @returns {Promise<string|Uint8Array|null>} A Promise that resolves with the file content as a Uint8Array if `return_path` is false, or the file path as a string if `return_path` is true.
  */
 export async function loadResourceFile(
-    path_or_repo_id,
-    filename,
-    fatal = true,
-    options = {},
-    return_path = false,
-    cache = null,
-) {
-    const opts = options as any;
+    path_or_repo_id: string,
+    filename: string,
+    fatal: boolean = true,
+    options: PretrainedOptions = {},
+    return_path: boolean = false,
+    cache: import('./cache.js').CacheInterface | null = null,
+): Promise<string | Uint8Array | null> {
     const { requestURL, localPath, remoteURL, proposedCacheKey, validModelId } = buildResourcePaths(
         path_or_repo_id,
         filename,
@@ -289,7 +302,7 @@ export async function loadResourceFile(
                     // NOTE: error handling is done in the next step (since `response` will be undefined)
                     logger.warn(`Unable to load from local path "${localPath}": "${e}"`);
                 }
-            } else if (opts.local_files_only) {
+            } else if (options.local_files_only) {
                 throw new Error(`\`local_files_only=true\`, but attempted to load a remote file from: ${requestURL}.`);
             } else if (!env.allowRemoteModels) {
                 throw new Error(
@@ -304,7 +317,7 @@ export async function loadResourceFile(
             // - the path is a valid HTTP url (`response === undefined`)
             // - the path is not a valid HTTP url and the file is not present on the file system or local server (`response.status === 404`)
 
-            if (opts.local_files_only || !env.allowRemoteModels) {
+            if (options.local_files_only || !env.allowRemoteModels) {
                 // User requested local files only, but the file is not found locally.
                 if (fatal) {
                     throw Error(
@@ -344,7 +357,7 @@ export async function loadResourceFile(
     }
 
     // Start downloading
-    dispatchCallback(opts.progress_callback, {
+    dispatchCallback(options.progress_callback, {
         status: 'download',
         name: path_or_repo_id,
         file: filename,
@@ -356,7 +369,7 @@ export async function loadResourceFile(
         let buffer;
 
         if (typeof response !== 'string') {
-            if (!opts.progress_callback) {
+            if (!options.progress_callback) {
                 // If no progress callback is specified, we can use the `.arrayBuffer()`
                 // method to read the response.
                 buffer = new Uint8Array(await response.arrayBuffer());
@@ -370,7 +383,7 @@ export async function loadResourceFile(
                 buffer = new Uint8Array(await response.arrayBuffer());
 
                 // For completeness, we still fire the final progress callback
-                dispatchCallback(opts.progress_callback, {
+                dispatchCallback(options.progress_callback, {
                     status: 'progress',
                     name: path_or_repo_id,
                     file: filename,
@@ -399,8 +412,8 @@ export async function loadResourceFile(
 
                 buffer = await readResponse(
                     response,
-                    (data) => {
-                        dispatchCallback(opts.progress_callback, {
+                    (data: {progress: number, loaded: number, total: number}) => {
+                        dispatchCallback(options.progress_callback, {
                             status: 'progress',
                             name: path_or_repo_id,
                             file: filename,
@@ -424,7 +437,7 @@ export async function loadResourceFile(
         await storeCachedResource(path_or_repo_id, filename, cache, cacheKey, response, result, options);
     }
 
-    dispatchCallback(opts.progress_callback, {
+    dispatchCallback(options.progress_callback, {
         status: 'done',
         name: path_or_repo_id,
         file: filename,
@@ -469,12 +482,11 @@ export async function loadResourceFile(
  * @throws Will throw an error if the file is not found and `fatal` is true.
  * @returns {Promise<string|Uint8Array>} A Promise that resolves with the file content as a Uint8Array if `return_path` is false, or the file path as a string if `return_path` is true.
  */
-export async function getModelFile(path_or_repo_id, filename, fatal = true, options = {}, return_path = false) {
-    const opts = options as any;
+export async function getModelFile(path_or_repo_id: string, filename: string, fatal: boolean = true, options: PretrainedOptions = {}, return_path: boolean = false): Promise<string | Uint8Array> {
     if (!env.allowLocalModels) {
         // User has disabled local models, so we just make sure other settings are correct.
 
-        if (opts.local_files_only) {
+        if (options.local_files_only) {
             throw Error(
                 'Invalid configuration detected: local models are disabled (`env.allowLocalModels=false`) but you have requested to only use local models (`local_files_only=true`).',
             );
@@ -485,14 +497,14 @@ export async function getModelFile(path_or_repo_id, filename, fatal = true, opti
         }
     }
 
-    dispatchCallback(opts.progress_callback, {
+    dispatchCallback(options.progress_callback, {
         status: 'initiate',
         name: path_or_repo_id,
         file: filename,
     });
 
     /** @type {import('./cache.js').CacheInterface | null} */
-    const cache = await getCache(opts?.cache_dir);
+    const cache = await getCache(options?.cache_dir);
     return await loadResourceFile(path_or_repo_id, filename, fatal, options, return_path, cache);
 }
 
@@ -506,14 +518,14 @@ export async function getModelFile(path_or_repo_id, filename, fatal = true, opti
  * @returns {Promise<string|null>} The text content of the file.
  * @throws Will throw an error if the file is not found and `fatal` is true.
  */
-export async function getModelText(modelPath, fileName, fatal = true, options = {}) {
+export async function getModelText(modelPath: string, fileName: string, fatal: boolean = true, options: PretrainedOptions = {}): Promise<string | null> {
     const buffer = await getModelFile(modelPath, fileName, fatal, options, false);
     if (buffer === null) {
         return null;
     }
 
     const decoder = new TextDecoder('utf-8');
-    return decoder.decode(/** @type {Uint8Array} */ (buffer));
+    return decoder.decode(buffer as Uint8Array);
 }
 
 /**
@@ -526,7 +538,7 @@ export async function getModelText(modelPath, fileName, fatal = true, options = 
  * @returns {Promise<Object>} The JSON data parsed into a JavaScript object.
  * @throws Will throw an error if the file is not found and `fatal` is true.
  */
-export async function getModelJSON(modelPath, fileName, fatal = true, options = {}) {
+export async function getModelJSON(modelPath: string, fileName: string, fatal: boolean = true, options: PretrainedOptions = {}): Promise<Record<string, unknown>> {
     const text = await getModelText(modelPath, fileName, fatal, options);
     if (text === null) {
         // Return empty object

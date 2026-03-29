@@ -21,7 +21,7 @@ export const logger = {
      * Log an error message. Only suppressed when logLevel is NONE.
      * @param  {...any} args - Arguments to log
      */
-    error(...args) {
+    error(...args: unknown[]) {
         if (env.logLevel <= LogLevel.ERROR) {
             console.error(...args);
         }
@@ -31,7 +31,7 @@ export const logger = {
      * Log a warning message. Shown when logLevel <= WARNING.
      * @param  {...any} args - Arguments to log
      */
-    warn(...args) {
+    warn(...args: unknown[]) {
         if (env.logLevel <= LogLevel.WARNING) {
             console.warn(...args);
         }
@@ -41,7 +41,7 @@ export const logger = {
      * Log an info message. Shown when logLevel <= INFO.
      * @param  {...any} args - Arguments to log
      */
-    info(...args) {
+    info(...args: unknown[]) {
         if (env.logLevel <= LogLevel.INFO) {
             console.log(...args);
         }
@@ -51,7 +51,7 @@ export const logger = {
      * Log a debug message. Only shown when logLevel is DEBUG.
      * @param  {...any} args - Arguments to log
      */
-    debug(...args) {
+    debug(...args: unknown[]) {
         if (env.logLevel <= LogLevel.DEBUG) {
             console.log(...args);
         }
@@ -61,7 +61,7 @@ export const logger = {
      * Log a message (alias for info). Shown when logLevel <= INFO.
      * @param  {...any} args - Arguments to log
      */
-    log(...args) {
+    log(...args: unknown[]) {
         this.info(...args);
     },
 };

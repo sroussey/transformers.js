@@ -1,3 +1,4 @@
+import type { PretrainedConfig } from '../../configs';
 import { getSessionsConfig } from '../../models/modeling_utils';
 import { DEFAULT_DTYPE_SUFFIX_MAPPING } from '../dtypes';
 import { get_file_metadata } from './get_file_metadata';
@@ -32,9 +33,15 @@ const CONCRETE_DTYPES = Object.keys(DEFAULT_DTYPE_SUFFIX_MAPPING);
  * @returns {Promise<string[]>} Array of available dtype strings (e.g., ['fp32', 'fp16', 'q4', 'q8'])
  */
 export async function get_available_dtypes(
-    modelId,
-    { config = null, model_file_name = null, revision = 'main', cache_dir = null, local_files_only = false } = {},
-) {
+    modelId: string,
+    { config = null, model_file_name = null, revision = 'main', cache_dir = null, local_files_only = false }: {
+        config?: PretrainedConfig | null,
+        model_file_name?: string | null,
+        revision?: string,
+        cache_dir?: string | null,
+        local_files_only?: boolean,
+    } = {},
+): Promise<string[]> {
     config = await get_config(modelId, { config, cache_dir, local_files_only, revision });
 
     const subfolder = 'onnx';
@@ -52,7 +59,7 @@ export async function get_available_dtypes(
     // Probe all (dtype, baseName) combinations in parallel
     const probeResults = await Promise.all(
         CONCRETE_DTYPES.map(async (dtype) => {
-            const suffix = DEFAULT_DTYPE_SUFFIX_MAPPING[dtype] ?? '';
+            const suffix = (DEFAULT_DTYPE_SUFFIX_MAPPING as Record<string, string>)[dtype] ?? '';
             const allExist = await Promise.all(
                 baseNames.map(async (baseName) => {
                     const filename = `${subfolder}/${baseName}${suffix}.onnx`;

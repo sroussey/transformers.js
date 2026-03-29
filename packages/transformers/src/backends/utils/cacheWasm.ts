@@ -7,7 +7,7 @@ import { logger } from '../../utils/logger';
  * @param {string} url The URL of the file to load.
  * @returns {Promise<Response|import('../../utils/hub/FileResponse.js').FileResponse|null|string>} The response object, or null if loading failed.
  */
-async function loadAndCacheFile(url) {
+async function loadAndCacheFile(url: string): Promise<Response | import('../../utils/hub/FileResponse.js').FileResponse | null | string> {
     const fileName = url.split('/').pop();
 
     /** @type {import('../../utils/cache.js').CacheInterface|undefined} */
@@ -51,7 +51,7 @@ async function loadAndCacheFile(url) {
  * @returns {Promise<ArrayBuffer|null>} The WASM binary as an ArrayBuffer, or null if loading failed.
  */
 
-export async function loadWasmBinary(wasmURL) {
+export async function loadWasmBinary(wasmURL: string): Promise<ArrayBuffer | null> {
     const response = await loadAndCacheFile(wasmURL);
     if (!response || typeof response === 'string') return null;
 
@@ -69,7 +69,7 @@ export async function loadWasmBinary(wasmURL) {
  * @param {string} libURL The URL of the WASM Factory to load.
  * @returns {Promise<string|null>} The blob URL (if enabled), original URL (if disabled), or null if loading failed.
  */
-export async function loadWasmFactory(libURL) {
+export async function loadWasmFactory(libURL: string): Promise<string | null> {
     // We can't use Blob URLs in some environments (Service Workers, Chrome extensions) due to security restrictions on dynamic import() of blob URLs.
     // In such cases, just return the original URL and don't bother caching since dynamic import() won't use the Cache API anyway.
     // See https://github.com/huggingface/transformers.js/issues/1532.

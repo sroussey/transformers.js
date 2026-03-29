@@ -25,14 +25,14 @@ export class VoxtralRealtimeProcessor extends Processor {
 
     /** Number of raw audio samples in the first audio chunk. */
     get num_samples_first_audio_chunk() {
-        const { hop_length, n_fft } = this.feature_extractor.config;
-        return (this.num_mel_frames_first_audio_chunk - 1) * hop_length + Math.floor(n_fft / 2);
+        const { hop_length, n_fft } = this.feature_extractor.config as Record<string, number>;
+        return (this.num_mel_frames_first_audio_chunk - 1) * (hop_length as number) + Math.floor((n_fft as number) / 2);
     }
 
     /** Number of raw audio samples per subsequent audio chunk. */
     get num_samples_per_audio_chunk() {
-        const { hop_length, n_fft } = this.feature_extractor.config;
-        return AUDIO_LENGTH_PER_TOK * hop_length + n_fft;
+        const { hop_length, n_fft } = this.feature_extractor.config as Record<string, number>;
+        return AUDIO_LENGTH_PER_TOK * (hop_length as number) + (n_fft as number);
     }
 
     /** Number of right-pad tokens for non-streaming mode. */
@@ -47,7 +47,7 @@ export class VoxtralRealtimeProcessor extends Processor {
 
     /** Number of raw audio samples per token. */
     get raw_audio_length_per_tok() {
-        return AUDIO_LENGTH_PER_TOK * this.feature_extractor.config.hop_length;
+        return AUDIO_LENGTH_PER_TOK * (this.feature_extractor.config.hop_length as number);
     }
 
     /**
@@ -70,7 +70,7 @@ export class VoxtralRealtimeProcessor extends Processor {
      * @param {boolean} [options.is_first_audio_chunk=true] Whether this is the first audio chunk.
      * @returns {Promise<Object>}
      */
-    async _call(audio, { is_streaming = false, is_first_audio_chunk = true } = {}) {
+    async _call(audio: Float32Array | Float64Array, { is_streaming = false, is_first_audio_chunk = true } = {}) {
         validate_audio_inputs(audio, 'VoxtralRealtimeProcessor');
 
         if (!is_streaming && !is_first_audio_chunk) {
@@ -84,7 +84,7 @@ export class VoxtralRealtimeProcessor extends Processor {
                 const padded_audio = new Float32Array(num_left_pad_samples + audio.length);
                 padded_audio.set(audio, num_left_pad_samples);
 
-                const audio_encoding = await this.feature_extractor(padded_audio, { center: true });
+                const audio_encoding = await this.feature_extractor!(padded_audio, { center: true });
 
                 // Build input_ids: BOS + (num_left_pad_tokens + num_delay_tokens) * [STREAMING_PAD]
                 const num_pad_tokens = NUM_LEFT_PAD_TOKENS + NUM_DELAY_TOKENS;
@@ -103,11 +103,11 @@ export class VoxtralRealtimeProcessor extends Processor {
                 const padded_audio = new Float32Array(audio.length + right_pad_samples);
                 padded_audio.set(audio);
 
-                return await this.feature_extractor(padded_audio, { center: true });
+                return await this.feature_extractor!(padded_audio, { center: true });
             }
         } else {
             // Subsequent streaming chunks: extract mel with center=false
-            return await this.feature_extractor(audio, { center: false });
+            return await this.feature_extractor!(audio, { center: false });
         }
     }
 }

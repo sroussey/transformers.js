@@ -58,7 +58,7 @@ export class ImageFeatureExtractionPipeline
     extends /** @type {new (options: ImagePipelineConstructorArgs) => ImageFeatureExtractionPipelineType} */ (Pipeline)
 {
     /** @type {ImageFeatureExtractionPipelineCallback} */
-    async _call(images, { pool = null } = {}) {
+    async _call(images: import('./_base.js').ImagePipelineInputs, { pool = null as boolean | null } = {}) {
         const preparedImages = await prepareImages(images);
         const { pixel_values } = await this.processor(preparedImages);
         const outputs = await this.model({ pixel_values });

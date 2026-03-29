@@ -7,14 +7,14 @@ export class EncodecFeatureExtractor extends FeatureExtractor {
      * @param {Float32Array|Float64Array} audio The audio data as a Float32Array/Float64Array.
      * @returns {Promise<{ input_values: Tensor; }>} The extracted input values.
      */
-    async _call(audio) {
+    async _call(audio: Float32Array | Float64Array) {
         validate_audio_inputs(audio, 'EncodecFeatureExtractor');
 
         if (audio instanceof Float64Array) {
             audio = new Float32Array(audio);
         }
 
-        const num_channels = this.config.feature_size;
+        const num_channels = this.config.feature_size as number;
         if (audio.length % num_channels !== 0) {
             throw new Error(
                 `The length of the audio data must be a multiple of the number of channels (${num_channels}).`,

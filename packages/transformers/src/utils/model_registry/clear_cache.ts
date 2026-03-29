@@ -22,6 +22,11 @@ import { get_pipeline_files } from './get_pipeline_files';
  * @property {number} filesCached - Number of files that were in cache
  * @property {FileClearStatus[]} files - Array of files with their deletion status
  */
+export interface CacheClearResult {
+    filesDeleted: number;
+    filesCached: number;
+    files: { file: string; deleted: boolean; wasCached: boolean }[];
+}
 
 /**
  * Internal helper to clear cached files.
@@ -33,14 +38,14 @@ import { get_pipeline_files } from './get_pipeline_files';
  * @param {Object} options - Options including cache_dir
  * @returns {Promise<CacheClearResult>}
  */
-async function clear_files_from_cache(modelId, files, options = {} as any) {
-    const cache = await getCache(options?.cache_dir);
+async function clear_files_from_cache(modelId: string, files: string[], options: Record<string, unknown> = {}): Promise<CacheClearResult> {
+    const cache = await getCache((options?.cache_dir as string) ?? null);
 
     if (!cache) {
         return {
             filesDeleted: 0,
             filesCached: 0,
-            files: files.map((filename) => ({ file: filename, deleted: false, wasCached: false })),
+            files: files.map((filename: string) => ({ file: filename, deleted: false, wasCached: false })),
         };
     }
 
@@ -49,7 +54,7 @@ async function clear_files_from_cache(modelId, files, options = {} as any) {
     }
 
     const results = await Promise.all(
-        files.map(async (filename) => {
+        files.map(async (filename: string) => {
             const { localPath, proposedCacheKey } = buildResourcePaths(modelId, filename, options, cache);
 
             const cached = await checkCachedResource(cache, localPath, proposedCacheKey);
@@ -92,7 +97,7 @@ async function clear_files_from_cache(modelId, files, options = {} as any) {
  * @param {boolean} [options.include_processor=true] - Whether to clear processor files
  * @returns {Promise<CacheClearResult>} Object with deletion statistics and file status
  */
-export async function clear_cache(modelId, options = {}) {
+export async function clear_cache(modelId: string, options: Record<string, unknown> = {}): Promise<CacheClearResult> {
     if (!modelId) {
         throw new Error('modelId is required');
     }
@@ -115,7 +120,7 @@ export async function clear_cache(modelId, options = {}) {
  * @param {import('../devices.js').DeviceType|Record<string, import('../devices.js').DeviceType>} [options.device] - Override device
  * @returns {Promise<CacheClearResult>} Object with deletion statistics and file status
  */
-export async function clear_pipeline_cache(task, modelId, options = {}) {
+export async function clear_pipeline_cache(task: string, modelId: string, options: Record<string, unknown> = {}): Promise<CacheClearResult> {
     if (!task) {
         throw new Error('task is required');
     }
