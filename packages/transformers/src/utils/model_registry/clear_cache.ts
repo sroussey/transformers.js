@@ -1,0 +1,133 @@
+/**
+ * @file Cache clearing utilities for model files
+ *
+ * Provides functions to clear cached model files from the cache system.
+ */
+
+import { getCache } from '../cache';
+import { buildResourcePaths, checkCachedResource } from '../hub';
+import { get_files } from './get_files';
+import { get_pipeline_files } from './get_pipeline_files';
+
+/**
+ * @typedef {Object} FileClearStatus
+ * @property {string} file - The file path
+ * @property {boolean} deleted - Whether the file was successfully deleted
+ * @property {boolean} wasCached - Whether the file was cached before deletion
+ */
+
+/**
+ * @typedef {Object} CacheClearResult
+ * @property {number} filesDeleted - Number of files successfully deleted
+ * @property {number} filesCached - Number of files that were in cache
+ * @property {FileClearStatus[]} files - Array of files with their deletion status
+ */
+export interface CacheClearResult {
+    filesDeleted: number;
+    filesCached: number;
+    files: { file: string; deleted: boolean; wasCached: boolean }[];
+}
+
+/**
+ * Internal helper to clear cached files.
+ *
+ *
+ * @private
+ * @param {string} modelId - The model id
+ * @param {string[]} files - List of file paths to clear
+ * @param {Object} options - Options including cache_dir
+ * @returns {Promise<CacheClearResult>}
+ */
+async function clear_files_from_cache(modelId: string, files: string[], options: Record<string, unknown> = {}): Promise<CacheClearResult> {
+    const cache = await getCache((options?.cache_dir as string) ?? null);
+
+    if (!cache) {
+        return {
+            filesDeleted: 0,
+            filesCached: 0,
+            files: files.map((filename: string) => ({ file: filename, deleted: false, wasCached: false })),
+        };
+    }
+
+    if (!cache.delete) {
+        throw new Error('Cache does not support delete operation');
+    }
+
+    const results = await Promise.all(
+        files.map(async (filename: string) => {
+            const { localPath, proposedCacheKey } = buildResourcePaths(modelId, filename, options, cache);
+
+            const cached = await checkCachedResource(cache, localPath, proposedCacheKey);
+            const wasCached = !!cached;
+
+            let deleted = false;
+            if (wasCached) {
+                // Try proposedCacheKey first (remote URL for browser Cache API, request path for FileCache),
+                // then fall back to localPath in case the entry was cached under the local key instead.
+                const deletedWithProposed = await cache.delete(proposedCacheKey);
+                const deletedWithLocal =
+                    !deletedWithProposed && proposedCacheKey !== localPath ? await cache.delete(localPath) : false;
+
+                deleted = deletedWithProposed || deletedWithLocal;
+            }
+
+            return { file: filename, deleted, wasCached };
+        }),
+    );
+
+    return {
+        filesDeleted: results.filter((r) => r.deleted).length,
+        filesCached: results.filter((r) => r.wasCached).length,
+        files: results,
+    };
+}
+
+/**
+ * Clears all cached files for a given model.
+ * Automatically determines which files are needed using get_files().
+ *
+ * @param {string} modelId - The model id (e.g., "Xenova/gpt2")
+ * @param {Object} [options] - Optional parameters
+ * @param {string} [options.cache_dir] - Custom cache directory
+ * @param {string} [options.revision] - Model revision (default: 'main')
+ * @param {import('../../configs.js').PretrainedConfig} [options.config] - Pre-loaded config
+ * @param {import('../dtypes.js').DataType|Record<string, import('../dtypes.js').DataType>} [options.dtype] - Override dtype
+ * @param {import('../devices.js').DeviceType|Record<string, import('../devices.js').DeviceType>} [options.device] - Override device
+ * @param {boolean} [options.include_tokenizer=true] - Whether to clear tokenizer files
+ * @param {boolean} [options.include_processor=true] - Whether to clear processor files
+ * @returns {Promise<CacheClearResult>} Object with deletion statistics and file status
+ */
+export async function clear_cache(modelId: string, options: Record<string, unknown> = {}): Promise<CacheClearResult> {
+    if (!modelId) {
+        throw new Error('modelId is required');
+    }
+
+    const files = await get_files(modelId, options);
+    return await clear_files_from_cache(modelId, files, options);
+}
+
+/**
+ * Clears all cached files for a specific pipeline task.
+ * Automatically determines which components are needed based on the task.
+ *
+ * @param {string} task - The pipeline task (e.g., "text-generation", "image-classification")
+ * @param {string} modelId - The model id (e.g., "Xenova/gpt2")
+ * @param {Object} [options] - Optional parameters
+ * @param {string} [options.cache_dir] - Custom cache directory
+ * @param {string} [options.revision] - Model revision (default: 'main')
+ * @param {import('../../configs.js').PretrainedConfig} [options.config] - Pre-loaded config
+ * @param {import('../dtypes.js').DataType|Record<string, import('../dtypes.js').DataType>} [options.dtype] - Override dtype
+ * @param {import('../devices.js').DeviceType|Record<string, import('../devices.js').DeviceType>} [options.device] - Override device
+ * @returns {Promise<CacheClearResult>} Object with deletion statistics and file status
+ */
+export async function clear_pipeline_cache(task: string, modelId: string, options: Record<string, unknown> = {}): Promise<CacheClearResult> {
+    if (!task) {
+        throw new Error('task is required');
+    }
+    if (!modelId) {
+        throw new Error('modelId is required');
+    }
+
+    const files = await get_pipeline_files(task, modelId, options);
+    return await clear_files_from_cache(modelId, files, options);
+}

@@ -98,7 +98,7 @@ Every model file exports a base class and one or more task heads. For the vast m
 **Decoder-only LLM:**
 
 ```js
-import { PreTrainedModel } from '../modeling_utils.js';
+import { PreTrainedModel } from '../modeling_utils';
 
 export class MyModelPreTrainedModel extends PreTrainedModel {}
 export class MyModelModel extends MyModelPreTrainedModel {}
@@ -108,8 +108,8 @@ export class MyModelForCausalLM extends MyModelPreTrainedModel {}
 **Encoder-only model:**
 
 ```js
-import { PreTrainedModel } from '../modeling_utils.js';
-import { MaskedLMOutput, SequenceClassifierOutput } from '../modeling_outputs.js';
+import { PreTrainedModel } from '../modeling_utils';
+import { MaskedLMOutput, SequenceClassifierOutput } from '../modeling_outputs';
 
 export class MyModelPreTrainedModel extends PreTrainedModel {}
 export class MyModelModel extends MyModelPreTrainedModel {}

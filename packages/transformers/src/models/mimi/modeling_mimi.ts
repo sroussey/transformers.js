@@ -1,0 +1,78 @@
+import { Tensor } from '../../utils/tensor';
+import { ModelOutput } from '../modeling_outputs';
+import { PreTrainedModel } from '../modeling_utils';
+import { sessionRun } from '../session';
+
+export class MimiEncoderOutput extends ModelOutput {
+    audio_codes;
+    /**
+     * @param {Object} output The output of the model.
+     * @param {Tensor} output.audio_codes Discrete code embeddings, of shape `(batch_size, num_quantizers, codes_length)`.
+     */
+    constructor({ audio_codes }: { audio_codes: Tensor }) {
+        super();
+        this.audio_codes = audio_codes;
+    }
+}
+
+export class MimiDecoderOutput extends ModelOutput {
+    audio_values;
+    /**
+     * @param {Object} output The output of the model.
+     * @param {Tensor} output.audio_values Decoded audio values, of shape `(batch_size, num_channels, sequence_length)`.
+     */
+    constructor({ audio_values }: { audio_values: Tensor }) {
+        super();
+        this.audio_values = audio_values;
+    }
+}
+
+export class MimiPreTrainedModel extends PreTrainedModel {
+    main_input_name = 'input_values';
+    forward_params = ['input_values'];
+}
+
+/**
+ * The Mimi neural audio codec model.
+ */
+export class MimiModel extends MimiPreTrainedModel {
+    /**
+     * Encodes the input audio waveform into discrete codes.
+     * @param {Object} inputs Model inputs
+     * @param {Tensor} [inputs.input_values] Float values of the input audio waveform, of shape `(batch_size, channels, sequence_length)`).
+     * @returns {Promise<MimiEncoderOutput>} The output tensor of shape `(batch_size, num_codebooks, sequence_length)`.
+     */
+    async encode(inputs: Record<string, Tensor>) {
+        return new MimiEncoderOutput(await sessionRun(this.sessions['encoder_model'], inputs) as { audio_codes: Tensor });
+    }
+
+    /**
+     * Decodes the given frames into an output audio waveform.
+     * @param {MimiEncoderOutput} inputs The encoded audio codes.
+     * @returns {Promise<MimiDecoderOutput>} The output tensor of shape `(batch_size, num_channels, sequence_length)`.
+     */
+    async decode(inputs: MimiEncoderOutput) {
+        return new MimiDecoderOutput(await sessionRun(this.sessions['decoder_model'], inputs as unknown as Record<string, Tensor>) as { audio_values: Tensor });
+    }
+}
+
+export class MimiEncoderModel extends MimiPreTrainedModel {
+    /** @type {typeof PreTrainedModel.from_pretrained} */
+    static async from_pretrained(pretrained_model_name_or_path: string, options: Record<string, unknown> = {}) {
+        return super.from_pretrained(pretrained_model_name_or_path, {
+            ...options,
+            // Update default model file name if not provided
+            model_file_name: (options.model_file_name as string) ?? 'encoder_model',
+        });
+    }
+}
+export class MimiDecoderModel extends MimiPreTrainedModel {
+    /** @type {typeof PreTrainedModel.from_pretrained} */
+    static async from_pretrained(pretrained_model_name_or_path: string, options: Record<string, unknown> = {}) {
+        return super.from_pretrained(pretrained_model_name_or_path, {
+            ...options,
+            // Update default model file name if not provided
+            model_file_name: (options.model_file_name as string) ?? 'decoder_model',
+        });
+    }
+}
