@@ -2,10 +2,10 @@ import { spawn } from "node:child_process";
 import { unlinkSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { OUT_DIR } from "./build/constants.mjs";
-import prepareOutDir from "../../../scripts/prepareOutDir.mjs";
 import { colors, createLogger } from "../../../scripts/logger.mjs";
+import prepareOutDir from "../../../scripts/prepareOutDir.mjs";
 import { buildAllWithWatch } from "./build/buildAllWithWatch.mjs";
+import { OUT_DIR } from "./build/constants.mjs";
 
 const log = createLogger("transformers");
 const startTime = performance.now();
@@ -37,7 +37,7 @@ log.section("TYPES");
 log.info("Generating initial type declarations...");
 
 await new Promise((resolve, reject) => {
-  const tscBuild = spawn("tsc", ["--build"], {
+  const tscBuild = spawn("tsgo", ["--build"], {
     cwd: ROOT_DIR,
     stdio: "pipe",
     shell: true,
@@ -69,7 +69,7 @@ await new Promise((resolve, reject) => {
 
 log.info("Starting TypeScript watch mode...\n");
 
-const tscWatch = spawn("tsc", ["--build", "--watch", "--preserveWatchOutput"], {
+const tscWatch = spawn("tsgo", ["--build", "--watch", "--preserveWatchOutput"], {
   cwd: ROOT_DIR,
   stdio: "pipe",
   shell: true,
