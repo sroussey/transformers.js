@@ -53,7 +53,7 @@ const DEVICE_TO_EXECUTION_PROVIDER_MAPPING = Object.freeze({
  * This handles both standard LogLevel values (10, 20, 30, 40, 50) and custom intermediate values.
  *
  * @param {number} logLevel - The LogLevel value to convert
- * @returns {number} ONNX Runtime severity level (0-4)
+ * @returns {0 | 1 | 2 | 3 | 4} ONNX Runtime severity level (0-4)
  */
 function getOnnxLogSeverityLevel(logLevel) {
     // ONNX Runtime's log severity levels are defined as follows:
@@ -99,12 +99,13 @@ const supportedDevices = [];
 
 /** @type {ONNXExecutionProviders[]} */
 let defaultDevices;
+/** @type {typeof ONNX_WEB} */
 let ONNX;
 const ORT_SYMBOL = Symbol.for('onnxruntime');
 
 if (ORT_SYMBOL in globalThis) {
     // If the JS runtime exposes their own ONNX runtime, use it
-    ONNX = globalThis[ORT_SYMBOL];
+    ONNX = /** @type {typeof ONNX_WEB} */ (/** @type {Record<symbol, unknown>} */ (globalThis)[ORT_SYMBOL]);
 } else if (apis.IS_NODE_ENV) {
     ONNX = ONNX_NODE;
 
@@ -150,8 +151,8 @@ if (ORT_SYMBOL in globalThis) {
     defaultDevices = ['wasm'];
 }
 
-// @ts-ignore
-const InferenceSession = ONNX.InferenceSession;
+/** @type {typeof import('onnxruntime-common').InferenceSession} */
+const InferenceSession = /** @type {typeof ONNX_WEB} */ (ONNX).InferenceSession;
 
 /**
  * Map a device to the execution providers to use for the given device.
@@ -256,7 +257,7 @@ async function ensureWasmLoaded() {
                       try {
                           const wasmFactoryBlob = await loadWasmFactory(toAbsoluteURL(urls.mjs));
                           if (wasmFactoryBlob) {
-                              // @ts-ignore
+                              // @ts-expect-error
                               ONNX_ENV.wasm.wasmPaths.mjs = wasmFactoryBlob;
                           }
                       } catch (err) {
@@ -268,7 +269,7 @@ async function ensureWasmLoaded() {
 
         // If wasmBinary failed to load, revert wasmPaths.mjs to the original URL (factory can only be loaded from blob if ONNX_ENV.wasm.wasmBinary is set. @see ORT PR #27411)
         if (!wasmBinaryLoaded) {
-            // @ts-ignore
+            // @ts-expect-errors
             ONNX_ENV.wasm.wasmPaths.mjs = urls.mjs;
         }
     })();
@@ -287,7 +288,7 @@ export async function createInferenceSession(buffer_or_path, session_options, se
     await ensureWasmLoaded();
     const logSeverityLevel = getOnnxLogSeverityLevel(env.logLevel ?? LogLevel.WARNING);
     const load = () =>
-        InferenceSession.create(buffer_or_path, {
+        InferenceSession.create(/** @type {any} */ (buffer_or_path), {
             // Set default log severity level, but allow overriding through session options
             logSeverityLevel,
             ...session_options,
@@ -312,7 +313,7 @@ let webInferenceChain = Promise.resolve();
  */
 export async function runInferenceSession(session, ortFeed) {
     const run = () => session.run(ortFeed);
-    return apis.IS_WEB_ENV ? (webInferenceChain = webInferenceChain.then(run)) : run();
+    return apis.IS_WEB_ENV ? /** @type {Promise<Record<string, import('onnxruntime-common').Tensor>>} */ (webInferenceChain = webInferenceChain.then(run)) : run();
 }
 
 /**
@@ -375,8 +376,8 @@ if (ONNX_ENV) {
      * @param {number} logLevel The log level to set.
      */
     function setLogLevel(logLevel) {
-        const severityLevel = getOnnxLogSeverityLevel(logLevel);
-        ONNX_ENV.logLevel = ONNX_LOG_LEVEL_NAMES[severityLevel];
+        const severityLevel = /** @type {0 | 1 | 2 | 3 | 4} */ (getOnnxLogSeverityLevel(logLevel));
+        ONNX_ENV.logLevel = /** @type {typeof ONNX_ENV.logLevel} */ (ONNX_LOG_LEVEL_NAMES[severityLevel]);
     }
 
     // Set the initial log level to be the default Transformers.js log level.
