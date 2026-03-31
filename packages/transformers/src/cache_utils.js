@@ -8,7 +8,7 @@ class _DynamicCache {
      * Create a DynamicCache, optionally pre-populated with entries.
      * @param {Record<string, Tensor>} [entries] Initial name→Tensor mappings.
      */
-    constructor(entries) {
+    constructor(entries = undefined) {
         if (!entries) return;
         for (const key in entries) {
             if (key in this) {
@@ -18,7 +18,7 @@ class _DynamicCache {
             if (!(value instanceof Tensor)) {
                 throw new TypeError(`Expected a Tensor for key "${key}", got ${typeof value}`);
             }
-            this[key] = value;
+            /** @type {Record<string, Tensor>} */ (/** @type {unknown} */ (this))[key] = value;
         }
     }
 
@@ -27,11 +27,10 @@ class _DynamicCache {
      * @returns {number} The past sequence length.
      */
     get_seq_length() {
-        /** @type {Record<string, Tensor>} */
-        const self = /** @type {any} */ (this);
+        const self = /** @type {Record<string, Tensor>} */ (/** @type {unknown} */ (this));
         for (const name in self) {
             if (name.startsWith('past_key_values.')) {
-                return self[name].dims.at(-2);
+                return /** @type {Tensor} */ (self[name]).dims.at(-2);
             }
         }
         throw new Error('Unable to determine sequence length from the cache.');
@@ -45,7 +44,7 @@ class _DynamicCache {
     async dispose() {
         const promises = [];
         for (const t of /** @type {Tensor[]} */ (Object.values(this))) {
-            if (t.location === 'gpu-buffer') {
+            if (t instanceof Tensor && t.location === 'gpu-buffer') {
                 promises.push(t.dispose());
             }
         }
