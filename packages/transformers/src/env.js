@@ -34,9 +34,10 @@ const IS_FS_AVAILABLE = !isEmpty(fs);
 const IS_PATH_AVAILABLE = !isEmpty(path);
 const IS_WEB_CACHE_AVAILABLE = HAS_SELF && 'caches' in self;
 
+const gtAsRecord = /** @type {Record<string, any>} */ (globalThis);
 // Runtime detection
-const IS_DENO_RUNTIME = typeof globalThis.Deno !== 'undefined';
-const IS_BUN_RUNTIME = typeof globalThis.Bun !== 'undefined';
+const IS_DENO_RUNTIME = typeof gtAsRecord.Deno !== 'undefined';
+const IS_BUN_RUNTIME = typeof gtAsRecord.Bun !== 'undefined';
 
 const IS_DENO_WEB_RUNTIME = IS_DENO_RUNTIME && IS_WEB_CACHE_AVAILABLE && !IS_FS_AVAILABLE;
 
@@ -57,12 +58,10 @@ const IS_WEBNN_AVAILABLE = typeof navigator !== 'undefined' && 'ml' in navigator
 const IS_CRYPTO_AVAILABLE = typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function';
 
 const IS_CHROME_AVAILABLE =
-    // @ts-ignore - chrome may not exist in all environments
-    typeof chrome !== 'undefined' && typeof chrome.runtime !== 'undefined' && typeof chrome.runtime.id === 'string';
+    typeof gtAsRecord.chrome !== 'undefined' && typeof gtAsRecord.chrome?.runtime !== 'undefined' && typeof gtAsRecord.chrome?.runtime?.id === 'string';
 
 const IS_SERVICE_WORKER_ENV =
-    // @ts-ignore - ServiceWorkerGlobalScope may not exist in all environments
-    typeof ServiceWorkerGlobalScope !== 'undefined' && HAS_SELF && self instanceof ServiceWorkerGlobalScope;
+    typeof gtAsRecord.ServiceWorkerGlobalScope !== 'undefined' && HAS_SELF && self instanceof /** @type {{ new (): EventTarget }} */ (/** @type {Record<string, unknown>} */ (globalThis).ServiceWorkerGlobalScope);
 
 /**
  * Check if the current environment is Safari browser.
@@ -241,7 +240,7 @@ export const env = {
     // NOTE: These will be populated later by the backends themselves.
     backends: {
         // onnxruntime-web/onnxruntime-node
-        onnx: {},
+        onnx: /** @type {Partial<import('onnxruntime-common').Env> & { setLogLevel?: (logLevel: number) => void }} */ ({}),
     },
 
     /////////////////// Logging settings ///////////////////
@@ -270,7 +269,7 @@ export const env = {
     cacheDir: DEFAULT_CACHE_DIR,
 
     useCustomCache: false,
-    customCache: null,
+    customCache: /** @type {{ match: (request: string) => Promise<Response | undefined | string>, put: (request: string, response: Response, progress_callback?: (data: { progress: number; loaded: number; total: number }) => void) => Promise<void>, delete?: (request: string) => Promise<boolean> } | null} */ (null),
 
     useWasmCache: IS_WEB_CACHE_AVAILABLE || IS_FS_AVAILABLE,
     cacheKey: 'transformers-cache',
