@@ -6,6 +6,9 @@ import { getModelJSON } from './utils/hub.js';
  * Base class for feature extractors.
  */
 export class FeatureExtractor extends Callable {
+    /** @type {Object} */
+    config;
+
     /**
      * Constructs a new FeatureExtractor instance.
      *
