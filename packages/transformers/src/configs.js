@@ -57,8 +57,10 @@ async function loadConfig(pretrained_model_name_or_path, options) {
  * @returns {Object} The normalized configuration.
  */
 function getNormalizedConfig(config) {
+    /** @type {Record<string, string>} */
     const mapping = {};
 
+    /** @type {Record<string, any>} */
     let init_normalized_config = {};
     switch (config.model_type) {
         // Sub-configs
@@ -268,9 +270,10 @@ function getNormalizedConfig(config) {
             break;
         case 'vision-encoder-decoder':
             // @ts-expect-error TS2339
-            const decoderConfig = getNormalizedConfig(config.decoder);
+            const decoderConfig = /** @type {Record<string, any>} */ (getNormalizedConfig(config.decoder));
 
             const add_encoder_pkv = 'num_decoder_layers' in decoderConfig;
+            /** @type {Record<string, any>} */
             const result = pick(config, ['model_type', 'is_encoder_decoder']);
             if (add_encoder_pkv) {
                 // Decoder is part of an encoder-decoder model
@@ -291,12 +294,13 @@ function getNormalizedConfig(config) {
     }
 
     // NOTE: If `num_attention_heads` is not set, it is assumed to be equal to `num_heads`
+    /** @type {Record<string, any>} */
     const normalized_config = {
         ...init_normalized_config,
         ...pick(config, ['model_type', 'multi_query', 'is_encoder_decoder']),
     };
     for (const key in mapping) {
-        normalized_config[key] = config[mapping[key]];
+        normalized_config[key] = /** @type {any} */ (config)[mapping[key]];
     }
     return normalized_config;
 }
@@ -304,6 +308,10 @@ function getNormalizedConfig(config) {
 /**
  *
  * @param {PretrainedConfig} config
+ * @param {Object} [options]
+ * @param {number} [options.batch_size]
+ * @param {string} [options.prefix]
+ * @param {string} [options.session_name]
  * @returns {Record<string, number[]>}
  */
 export function getCacheShapes(config, options) {
@@ -429,7 +437,13 @@ export function getCacheShapes(config, options) {
     return getKeyValueShapes(config, options);
 }
 
-/** @type {typeof getKeyValueShapes} */
+/**
+ * @param {PretrainedConfig|Record<string, any>} config
+ * @param {Object} [options]
+ * @param {string} [options.prefix]
+ * @param {number} [options.batch_size]
+ * @returns {Record<string, number[]>}
+ */
 function getKeyValueShapes(config, { prefix = 'past_key_values', batch_size = 1 } = {}) {
     /** @type {Record<string, number[]>} */
     const decoderFeeds = {};
@@ -524,6 +538,28 @@ export class PretrainedConfig {
     /** @type {TransformersJSConfig} */
     'transformers.js_config';
 
+    normalized_config;
+
+    // Dynamic properties commonly set via Object.assign from config JSON:
+    /** @type {Record<number, string>|undefined} */
+    id2label;
+    /** @type {Record<string, number>|undefined} */
+    label2id;
+    /** @type {string|undefined} */
+    problem_type;
+    /** @type {string|undefined} */
+    prefix;
+    /** @type {Record<string, Record<string, string>>|undefined} */
+    task_specific_params;
+    /** @type {Record<string, any>|undefined} */
+    decoder;
+    /** @type {number|undefined} */
+    sampling_rate;
+    /** @type {number|undefined} */
+    max_source_positions;
+    /** @type {string[]|undefined} */
+    architectures;
+
     /**
      * Create a new PreTrainedTokenizer instance.
      * @param {Object} configJSON The JSON of the config.
@@ -537,7 +573,7 @@ export class PretrainedConfig {
      * Loads a pre-trained config from the given `pretrained_model_name_or_path`.
      *
      * @param {string} pretrained_model_name_or_path The path to the pre-trained config.
-     * @param {PretrainedOptions} options Additional options for loading the config.
+     * @param {PretrainedOptions} [options] Additional options for loading the config.
      * @throws {Error} Throws an error if the config.json is not found in the `pretrained_model_name_or_path`.
      *
      * @returns {Promise<PretrainedConfig>} A new instance of the `PretrainedConfig` class.
