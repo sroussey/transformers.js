@@ -1,8 +1,8 @@
 import {
     PreTrainedModel,
     decoder_forward,
-    default_merge_input_ids_with_image_features,
     default_merge_input_ids_with_audio_features,
+    default_merge_input_ids_with_image_features,
 } from '../modeling_utils.js';
 import { sessionRun } from '../session.js';
 
@@ -23,21 +23,21 @@ export class Gemma3nPreTrainedModel extends PreTrainedModel {
 export class Gemma3nForConditionalGeneration extends Gemma3nPreTrainedModel {
     async forward({
         // Produced by the tokenizer/processor:
-        input_ids = null,
-        attention_mask = null,
-        pixel_values = null,
-        input_features = null,
-        input_features_mask = null,
+        input_ids = /** @type {import('../../utils/tensor.js').Tensor | null} */ (null),
+        attention_mask = /** @type {import('../../utils/tensor.js').Tensor | null} */ (null),
+        pixel_values = /** @type {import('../../utils/tensor.js').Tensor | null} */ (null),
+        input_features = /** @type {import('../../utils/tensor.js').Tensor | null} */ (null),
+        input_features_mask = /** @type {import('../../utils/tensor.js').Tensor | null} */ (null),
 
         // Used during generation:
-        position_ids = null,
-        inputs_embeds = null,
-        per_layer_inputs = null,
-        past_key_values = null,
+        position_ids = /** @type {import('../../utils/tensor.js').Tensor | null} */ (null),
+        inputs_embeds = /** @type {import('../../utils/tensor.js').Tensor | null} */ (null),
+        per_layer_inputs = /** @type {import('../../utils/tensor.js').Tensor | null} */ (null),
+        past_key_values = /** @type {import('../../cache_utils.js').DynamicCache | null} */ (null),
 
         // Generic generation parameters
-        generation_config = null,
-        logits_processor = null,
+        generation_config = /** @type {import('../../generation/configuration_utils.js').GenerationConfig | null} */ (null),
+        logits_processor = /** @type {import('../../generation/logits_process.js').LogitsProcessorList | null} */ (null),
 
         // TODO: needed?
         ...kwargs
@@ -45,9 +45,9 @@ export class Gemma3nForConditionalGeneration extends Gemma3nPreTrainedModel {
         if (!inputs_embeds || !per_layer_inputs) {
             // 1. Extract the text embeddings.
             ({ inputs_embeds, per_layer_inputs } = await sessionRun(this.sessions['embed_tokens'], {
-                input_ids,
+                input_ids: /** @type {import('../../utils/tensor.js').Tensor} */ (input_ids),
             }));
-            if (input_ids.dims[1] !== 1) {
+            if (/** @type {import('../../utils/tensor.js').Tensor} */ (input_ids).dims[1] !== 1) {
                 if (pixel_values) {
                     // Encode the image
                     const { image_features } = await sessionRun(this.sessions['vision_encoder'], {
@@ -64,8 +64,8 @@ export class Gemma3nForConditionalGeneration extends Gemma3nPreTrainedModel {
                 if (input_features) {
                     // Encode the audio
                     const { audio_features } = await sessionRun(this.sessions['audio_encoder'], {
-                        input_features,
-                        input_features_mask,
+                        input_features: /** @type {import('../../utils/tensor.js').Tensor} */ (input_features),
+                        input_features_mask: /** @type {import('../../utils/tensor.js').Tensor} */ (input_features_mask),
                     });
                     ({ inputs_embeds, attention_mask } = this._merge_input_ids_with_audio_features({
                         audio_features,
@@ -93,26 +93,26 @@ export class Gemma3nForConditionalGeneration extends Gemma3nPreTrainedModel {
         return outputs;
     }
 
+    /** @param {Record<string, any>} kwargs */
     _merge_input_ids_with_image_features(kwargs) {
         const vision_hidden_size = kwargs.image_features.dims.at(-1);
         const reshaped_image_hidden_states = kwargs.image_features.view(-1, vision_hidden_size);
-        return default_merge_input_ids_with_image_features({
-            // @ts-ignore
-            image_token_id: this.config.image_token_id,
+        return default_merge_input_ids_with_image_features(/** @type {Parameters<typeof default_merge_input_ids_with_image_features>[0]} */ ({
+            image_token_id: /** @type {number} */ (/** @type {any} */ (this.config).image_token_id),
             ...kwargs,
             image_features: reshaped_image_hidden_states,
-        });
+        }));
     }
+    /** @param {Record<string, any>} kwargs */
     _merge_input_ids_with_audio_features(kwargs) {
         const audio_hidden_size = kwargs.audio_features.dims.at(-1);
         const reshaped_audio_features = kwargs.audio_features.view(-1, audio_hidden_size);
 
-        return default_merge_input_ids_with_audio_features({
-            // @ts-ignore
-            audio_token_id: this.config.audio_token_id,
+        return default_merge_input_ids_with_audio_features(/** @type {Parameters<typeof default_merge_input_ids_with_audio_features>[0]} */ ({
+            audio_token_id: /** @type {number} */ (/** @type {any} */ (this.config).audio_token_id),
             ...kwargs,
             audio_features: reshaped_audio_features,
-        });
+        }));
     }
 }
 

@@ -1,5 +1,5 @@
 import { BertTokenizer } from "../../../src/models/tokenizers.js";
-import { BASE_TEST_STRINGS, BERT_TEST_STRINGS, NORMALIZATION_TEST_STRINGS } from "../test_strings.js";
+import { BASE_TEST_STRINGS, BERT_TEST_STRINGS, NORMALIZATION_TEST_STRINGS } from "../test_strings.ts";
 
 export const TOKENIZER_CLASS = BertTokenizer;
 export const TEST_CONFIG = {

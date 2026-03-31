@@ -1,19 +1,19 @@
-import { PreTrainedModel } from '../modeling_utils.js';
-import { ModelOutput } from '../modeling_outputs.js';
 import { Tensor } from '../../utils/tensor.js';
+import { ModelOutput } from '../modeling_outputs.js';
+import { PreTrainedModel } from '../modeling_utils.js';
 
 export class RTDetrPreTrainedModel extends PreTrainedModel {}
 export class RTDetrModel extends RTDetrPreTrainedModel {}
 export class RTDetrForObjectDetection extends RTDetrPreTrainedModel {
-    /**
-     * @param {any} model_inputs
-     */
+    /** @param {Object} model_inputs */
     async _call(model_inputs) {
-        return new RTDetrObjectDetectionOutput(await super._call(model_inputs));
+        return new RTDetrObjectDetectionOutput(/** @type {any} */ (await super._call(model_inputs)));
     }
 }
 
 export class RTDetrObjectDetectionOutput extends ModelOutput {
+    logits;
+    pred_boxes;
     /**
      * @param {Object} output The output of the model.
      * @param {Tensor} output.logits Classification logits (including no-object) for all queries.

@@ -55,13 +55,13 @@ import { Tensor } from '../utils/tensor.js';
  * ```
  */
 export class ImageFeatureExtractionPipeline
-    extends /** @type {new (options: ImagePipelineConstructorArgs) => ImageFeatureExtractionPipelineType} */ (Pipeline)
+    extends /** @type {new (options: ImagePipelineConstructorArgs) => ImageFeatureExtractionPipelineType} */ (/** @type {unknown} */ (Pipeline))
 {
     /** @type {ImageFeatureExtractionPipelineCallback} */
     async _call(images, { pool = null } = {}) {
         const preparedImages = await prepareImages(images);
-        const { pixel_values } = await this.processor(preparedImages);
-        const outputs = await this.model({ pixel_values });
+        const { pixel_values } = await /** @type {any} */ (this.processor)(preparedImages);
+        const outputs = await /** @type {any} */ (this.model)({ pixel_values });
 
         /** @type {Tensor} */
         let result;

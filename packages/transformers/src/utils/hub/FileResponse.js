@@ -16,6 +16,13 @@ const CONTENT_TYPE_MAP = {
 };
 
 export class FileResponse {
+    filePath;
+    headers;
+    exists;
+    status;
+    statusText;
+    body;
+
     /**
      * Creates a new `FileResponse` object.
      * @param {string} filePath
@@ -59,8 +66,8 @@ export class FileResponse {
      */
     updateContentType() {
         // Set content-type header based on file extension
-        const extension = this.filePath.toString().split('.').pop().toLowerCase();
-        this.headers.set('content-type', CONTENT_TYPE_MAP[extension] ?? 'application/octet-stream');
+        const extension = /** @type {string} */ (this.filePath.toString().split('.').pop()?.toLowerCase());
+        this.headers.set('content-type', /** @type {Record<string, string>} */ (CONTENT_TYPE_MAP)[extension] ?? 'application/octet-stream');
     }
 
     /**
@@ -95,7 +102,7 @@ export class FileResponse {
      */
     async blob() {
         const data = await fs.promises.readFile(this.filePath);
-        return new Blob([/** @type {any} */ (data)], { type: this.headers.get('content-type') });
+        return new Blob([/** @type {any} */ (data)], { type: this.headers.get('content-type') ?? undefined });
     }
 
     /**

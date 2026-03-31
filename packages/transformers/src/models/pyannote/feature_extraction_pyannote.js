@@ -27,7 +27,7 @@ export class PyAnnoteFeatureExtractor extends FeatureExtractor {
      * @returns {number} The number of frames in the audio.
      */
     samples_to_frames(samples) {
-        return (samples - this.config.offset) / this.config.step;
+        return (samples - /** @type {number} */ (/** @type {any} */ (this.config).offset)) / /** @type {number} */ (/** @type {any} */ (this.config).step);
     }
 
     /**
@@ -37,17 +37,17 @@ export class PyAnnoteFeatureExtractor extends FeatureExtractor {
      * @returns {Array<Array<{ id: number, start: number, end: number, confidence: number }>>} The post-processed speaker diarization results.
      */
     post_process_speaker_diarization(logits, num_samples) {
-        const ratio = num_samples / this.samples_to_frames(num_samples) / this.config.sampling_rate;
+        const ratio = num_samples / this.samples_to_frames(num_samples) / /** @type {number} */ (/** @type {any} */ (this.config).sampling_rate);
 
         const results = [];
-        for (const scores of logits.tolist()) {
+        for (const scores of /** @type {number[][][]} */ (logits.tolist())) {
             const accumulated_segments = [];
 
             let current_speaker = -1;
             for (let i = 0; i < scores.length; ++i) {
                 /** @type {number[]} */
-                const probabilities = softmax(scores[i]);
-                const [score, id] = max(probabilities);
+                const probabilities = /** @type {number[]} */ (softmax(scores[i]));
+                const [score, id] = /** @type {[number, number]} */ (max(probabilities));
                 const [start, end] = [i, i + 1];
 
                 if (id !== current_speaker) {
@@ -56,8 +56,8 @@ export class PyAnnoteFeatureExtractor extends FeatureExtractor {
                     accumulated_segments.push({ id, start, end, score });
                 } else {
                     // Continue the current segment
-                    accumulated_segments.at(-1).end = end;
-                    accumulated_segments.at(-1).score += score;
+                    /** @type {NonNullable<ReturnType<typeof accumulated_segments.at>>} */ (accumulated_segments.at(-1)).end = end;
+                    /** @type {NonNullable<ReturnType<typeof accumulated_segments.at>>} */ (accumulated_segments.at(-1)).score += score;
                 }
             }
 
@@ -65,7 +65,7 @@ export class PyAnnoteFeatureExtractor extends FeatureExtractor {
                 accumulated_segments.map(
                     // Convert frame-space to time-space
                     // and compute the confidence
-                    ({ id, start, end, score }) => ({
+                    (/** @type {{ id: number, start: number, end: number, score: number }} */ { id, start, end, score }) => ({
                         id,
                         start: start * ratio,
                         end: end * ratio,

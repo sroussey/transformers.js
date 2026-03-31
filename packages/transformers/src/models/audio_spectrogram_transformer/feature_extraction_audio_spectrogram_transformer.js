@@ -1,15 +1,20 @@
 import { FeatureExtractor, validate_audio_inputs } from '../../feature_extraction_utils.js';
-import { Tensor } from '../../utils/tensor.js';
 import { mel_filter_bank, spectrogram, window_function } from '../../utils/audio.js';
+import { Tensor } from '../../utils/tensor.js';
 
 export class ASTFeatureExtractor extends FeatureExtractor {
+    mel_filters;
+    window;
+    mean;
+    std;
+    /** @param {Record<string, any>} config */
     constructor(config) {
         super(config);
-
-        const sampling_rate = this.config.sampling_rate;
+        const cfg = /** @type {Record<string, any>} */ (this.config);
+        const sampling_rate = cfg.sampling_rate;
         const mel_filters = mel_filter_bank(
             257, // num_frequency_bins
-            this.config.num_mel_bins, // num_mel_filters
+            cfg.num_mel_bins, // num_mel_filters
             20, // min_frequency
             Math.floor(sampling_rate / 2), // max_frequency
             sampling_rate, // sampling_rate
@@ -23,8 +28,8 @@ export class ASTFeatureExtractor extends FeatureExtractor {
             periodic: false,
         });
 
-        this.mean = this.config.mean;
-        this.std = this.config.std;
+        this.mean = cfg.mean;
+        this.std = cfg.std;
     }
 
     /**
@@ -65,13 +70,13 @@ export class ASTFeatureExtractor extends FeatureExtractor {
     async _call(audio) {
         validate_audio_inputs(audio, 'ASTFeatureExtractor');
 
-        const features = await this._extract_fbank_features(audio, this.config.max_length);
-        if (this.config.do_normalize) {
+        const features = await this._extract_fbank_features(audio, /** @type {any} */ (this.config).max_length);
+        if (/** @type {any} */ (this.config).do_normalize) {
             // Normalize the input audio spectrogram to have mean=0, std=0.5
             const denom = this.std * 2;
             const features_data = features.data;
             for (let i = 0; i < features_data.length; ++i) {
-                features_data[i] = (features_data[i] - this.mean) / denom;
+                features_data[i] = (/** @type {number} */ (features_data[i]) - /** @type {number} */ (this.mean)) / /** @type {number} */ (denom);
             }
         }
 

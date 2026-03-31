@@ -6,7 +6,7 @@ import { Tensor } from './utils/tensor.js';
 class _DynamicCache {
     /**
      * Create a DynamicCache, optionally pre-populated with entries.
-     * @param {Record<string, Tensor>} [entries] Initial name→Tensor mappings.
+     * @param {Record<string, Tensor> | undefined} [entries] Initial name→Tensor mappings.
      */
     constructor(entries = undefined) {
         if (!entries) return;
@@ -30,7 +30,7 @@ class _DynamicCache {
         const self = /** @type {Record<string, Tensor>} */ (/** @type {unknown} */ (this));
         for (const name in self) {
             if (name.startsWith('past_key_values.')) {
-                return /** @type {Tensor} */ (self[name]).dims.at(-2);
+                return /** @type {number} */ (/** @type {Tensor} */ (self[name]).dims.at(-2));
             }
         }
         throw new Error('Unable to determine sequence length from the cache.');

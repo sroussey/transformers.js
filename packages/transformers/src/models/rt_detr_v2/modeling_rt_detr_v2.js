@@ -4,11 +4,9 @@ import { RTDetrObjectDetectionOutput } from '../rt_detr/modeling_rt_detr.js';
 export class RTDetrV2PreTrainedModel extends PreTrainedModel {}
 export class RTDetrV2Model extends RTDetrV2PreTrainedModel {}
 export class RTDetrV2ForObjectDetection extends RTDetrV2PreTrainedModel {
-    /**
-     * @param {any} model_inputs
-     */
+    /** @param {Object} model_inputs */
     async _call(model_inputs) {
-        return new RTDetrV2ObjectDetectionOutput(await super._call(model_inputs));
+        return new RTDetrV2ObjectDetectionOutput(/** @type {any} */ (await super._call(model_inputs)));
     }
 }
 

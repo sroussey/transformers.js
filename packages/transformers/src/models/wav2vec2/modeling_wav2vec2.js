@@ -1,6 +1,6 @@
-import { PreTrainedModel } from '../modeling_utils.js';
-import { CausalLMOutput, SequenceClassifierOutput, TokenClassifierOutput } from '../modeling_outputs.js';
 import { Tensor } from '../../utils/tensor.js';
+import { CausalLMOutput, SequenceClassifierOutput, TokenClassifierOutput } from '../modeling_outputs.js';
+import { PreTrainedModel } from '../modeling_utils.js';
 
 export class Wav2Vec2PreTrainedModel extends PreTrainedModel {}
 
@@ -39,7 +39,7 @@ export class Wav2Vec2ForCTC extends Wav2Vec2PreTrainedModel {
      * @param {Tensor} model_inputs.attention_mask Mask to avoid performing convolution and attention on padding token indices. Mask values selected in [0, 1]
      */
     async _call(model_inputs) {
-        return new CausalLMOutput(await super._call(model_inputs));
+        return new CausalLMOutput(/** @type {any} */ (await super._call(model_inputs)));
     }
 }
 
@@ -50,7 +50,7 @@ export class Wav2Vec2ForSequenceClassification extends Wav2Vec2PreTrainedModel {
      * @returns {Promise<SequenceClassifierOutput>} An object containing the model's output logits for sequence classification.
      */
     async _call(model_inputs) {
-        return new SequenceClassifierOutput(await super._call(model_inputs));
+        return new SequenceClassifierOutput(/** @type {any} */ (await super._call(model_inputs)));
     }
 }
 
@@ -64,6 +64,6 @@ export class Wav2Vec2ForAudioFrameClassification extends Wav2Vec2PreTrainedModel
      * @returns {Promise<TokenClassifierOutput>} An object containing the model's output logits for sequence classification.
      */
     async _call(model_inputs) {
-        return new TokenClassifierOutput(await super._call(model_inputs));
+        return new TokenClassifierOutput(/** @type {any} */ (await super._call(model_inputs)));
     }
 }

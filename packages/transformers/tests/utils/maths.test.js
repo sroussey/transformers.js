@@ -1,5 +1,5 @@
 import { FFT, medianFilter, bankers_round, log_softmax } from "../../src/utils/maths.js";
-import { init } from "../init.js";
+import { init } from "../init.ts";
 
 // Initialise the testing environment
 init();

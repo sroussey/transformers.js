@@ -32,7 +32,7 @@ export class SamImageProcessor extends ImageProcessor {
             if (!is_bounding_box) {
                 shape = [1, ...shape];
             }
-            input_points = [input_points];
+            input_points = /** @type {any} */ ([input_points]);
         } else if (shape.length !== 4) {
             throw Error(
                 'The input_points must be a 4D tensor of shape `batch_size`, `point_batch_size`, `nb_points_per_image`, `2`.',
@@ -73,7 +73,7 @@ export class SamImageProcessor extends ImageProcessor {
         if (shape.length === 2) {
             // Correct user's input
             shape = [1, ...shape];
-            input_labels = [input_labels];
+            input_labels = /** @type {any} */ ([input_labels]);
         } else if (shape.length !== 3) {
             throw Error(
                 'The input_points must be a 4D tensor of shape `batch_size`, `point_batch_size`, `nb_points_per_image`, `2`.',
@@ -83,7 +83,7 @@ export class SamImageProcessor extends ImageProcessor {
         if (shape.some((x, i) => x !== input_points.dims[i])) {
             throw Error(`The first ${shape.length} dimensions of 'input_points' and 'input_labels' must be the same.`);
         }
-        return new Tensor('int64', input_labels.flat(Infinity).map(BigInt), shape);
+        return new Tensor('int64', input_labels.flat(Infinity).map((/** @type {any} */ x) => BigInt(x)), shape);
     }
     /**
      * @param {any[]} images The URL(s) of the image(s) to extract features from.
@@ -105,16 +105,16 @@ export class SamImageProcessor extends ImageProcessor {
      * - `y2`: the y coordinate of the bottom right point of the input box
      * @returns {Promise<SamImageProcessorResult>}
      */
-    async _call(images, { input_points = null, input_labels = null, input_boxes = null } = {}) {
+    async _call(images, /** @type {any[]} */ ...args) {
+        const { input_points = null, input_labels = null, input_boxes = null } = /** @type {{ input_points?: number[][][][] | number[][][] | null; input_labels?: number[][][] | number[][] | null; input_boxes?: number[][][] | null }} */ (args[0] ?? {});
         // TODO allow user to use preprocessed images
-        /** @type {SamImageProcessorResult} */
-        const processed = await super._call(images);
+        const processed = /** @type {{ pixel_values: Tensor; original_sizes: number[][]; reshaped_input_sizes: number[][]; [key: string]: unknown }} */ (await super._call(images));
 
         if (input_points) {
             processed.input_points = this.reshape_input_points(
-                input_points,
-                processed.original_sizes,
-                processed.reshaped_input_sizes,
+                /** @type {number[][][][]} */ (input_points),
+                /** @type {[number, number][]} */ (processed.original_sizes),
+                /** @type {[number, number][]} */ (processed.reshaped_input_sizes),
             );
         }
 
@@ -122,19 +122,19 @@ export class SamImageProcessor extends ImageProcessor {
             if (!processed.input_points) {
                 throw Error('`input_points` must be provided if `input_labels` are provided.');
             }
-            processed.input_labels = this.add_input_labels(input_labels, processed.input_points);
+            processed.input_labels = this.add_input_labels(/** @type {number[][][]} */ (input_labels), /** @type {Tensor} */ (processed.input_points));
         }
 
         if (input_boxes) {
             processed.input_boxes = this.reshape_input_points(
-                input_boxes,
-                processed.original_sizes,
-                processed.reshaped_input_sizes,
+                /** @type {any} */ (input_boxes),
+                /** @type {[number, number][]} */ (processed.original_sizes),
+                /** @type {[number, number][]} */ (processed.reshaped_input_sizes),
                 true,
             );
         }
 
-        return processed;
+        return /** @type {SamImageProcessorResult} */ (/** @type {unknown} */ (processed));
     }
 
     /**
@@ -143,34 +143,32 @@ export class SamImageProcessor extends ImageProcessor {
      * @param {[number, number][]} original_sizes The original sizes of each image before it was resized to the model's expected input shape, in (height, width) format.
      * @param {[number, number][]} reshaped_input_sizes The size of each image as it is fed to the model, in (height, width) format. Used to remove padding.
      * @param {Object} options Optional parameters for post-processing.
-     * @param {number} [options.mask_threshold] The threshold to use for binarizing the masks.
-     * @param {boolean} [options.binarize] Whether to binarize the masks.
-     * @param {Object} [options.pad_size] The target size the images were padded to before being passed to the model. If `null`, the target size is assumed to be the processor's `pad_size`.
-     * @param {number} [options.pad_size.height] The height the images were padded to.
-     * @param {number} [options.pad_size.width] The width the images were padded to.
+     * @param {number} [options.mask_threshold=0.0] The threshold to use for binarizing the masks.
+     * @param {boolean} [options.binarize=true] Whether to binarize the masks.
+     * @param {{ height: number; width: number } | null} [options.pad_size] The target size the images were padded to before being passed to the model. If `null`, the target size is assumed to be the processor's `pad_size`.
      * @returns {Promise<Tensor[]>} Batched masks in batch_size, num_channels, height, width) format, where (height, width) is given by original_size.
      */
     async post_process_masks(
         masks,
         original_sizes,
         reshaped_input_sizes,
-        { mask_threshold = 0.0, binarize = true, pad_size = null } = {},
+        { mask_threshold = 0.0, binarize = true, pad_size = /** @type {{ height: number; width: number } | null} */ (null) } = {},
     ) {
         // masks: [1, 1, 3, 256, 256]
 
         const output_masks = [];
 
-        pad_size = pad_size ?? this.pad_size ?? this.size;
+        pad_size = pad_size ?? /** @type {{ height: number; width: number }} */ (this.pad_size) ?? /** @type {{ height: number; width: number }} */ (this.size);
 
         /** @type {[number, number]} */
-        const target_image_size = [pad_size.height, pad_size.width];
+        const target_image_size = /** @type {[number, number]} */ ([pad_size.height, pad_size.width]);
 
         for (let i = 0; i < original_sizes.length; ++i) {
             const original_size = original_sizes[i];
             const reshaped_input_size = reshaped_input_sizes[i];
 
             // Upscale mask to padded size
-            let interpolated_mask = await interpolate_4d(masks[i], { mode: 'bilinear', size: target_image_size });
+            let interpolated_mask = /** @type {Tensor} */ (await interpolate_4d(/** @type {Tensor[]} */ (/** @type {unknown} */ (masks))[i], { mode: 'bilinear', size: target_image_size }));
 
             // Crop mask
             interpolated_mask = interpolated_mask.slice(
@@ -181,10 +179,10 @@ export class SamImageProcessor extends ImageProcessor {
             );
 
             // Downscale mask
-            interpolated_mask = await interpolate_4d(interpolated_mask, { mode: 'bilinear', size: original_size });
+            interpolated_mask = /** @type {Tensor} */ (await interpolate_4d(interpolated_mask, { mode: 'bilinear', size: original_size }));
 
             if (binarize) {
-                const data = interpolated_mask.data;
+                const data = /** @type {Float32Array} */ (interpolated_mask.data);
                 const binarizedMaskData = new Uint8Array(data.length);
                 for (let i = 0; i < data.length; ++i) {
                     if (data[i] > mask_threshold) {
@@ -205,12 +203,12 @@ export class SamImageProcessor extends ImageProcessor {
      * @param {import("../../utils/image.js").RawImage} image Input original image
      * @param {number} target_size Target size of the resized image
      * @param {Object} options Options for generating crop boxes
-     * @param {number} [options.crop_n_layers] If >0, mask prediction will be run again on crops of the image.
+     * @param {number} [options.crop_n_layers=0] If >0, mask prediction will be run again on crops of the image.
      * Sets the number of layers to run, where each layer has 2**i_layer number of image crops.
-     * @param {number} [options.overlap_ratio] Sets the degree to which crops overlap. In the first crop layer,
+     * @param {number} [options.overlap_ratio=512/1500] Sets the degree to which crops overlap. In the first crop layer,
      * crops will overlap by this fraction of the image length. Later layers with more crops scale down this overlap.
-     * @param {number} [options.points_per_crop] Number of points to sample from each crop.
-     * @param {number} [options.crop_n_points_downscale_factor] The number of points-per-side sampled in layer n is
+     * @param {number} [options.points_per_crop=32] Number of points to sample from each crop.
+     * @param {number} [options.crop_n_points_downscale_factor=1] The number of points-per-side sampled in layer n is
      * scaled down by crop_n_points_downscale_factor**n.
      * @returns {Object} An object containing the crop boxes, number of points per crop, cropped images, and input labels.
      */
@@ -225,6 +223,6 @@ export class SamImageProcessor extends ImageProcessor {
         } = {},
     ) {
         // TODO: Implement
-        // return { crop_boxes, points_per_crop, cropped_images, input_labels }
+        throw new Error('generate_crop_boxes is not yet implemented');
     }
 }

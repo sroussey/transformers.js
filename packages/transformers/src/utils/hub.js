@@ -5,13 +5,13 @@
  */
 
 import { apis, env } from '../env.js';
+import { getCache, tryCache } from './cache.js';
+import { FileCache } from './cache/FileCache.js';
 import { dispatchCallback } from './core.js';
 import { FileResponse } from './hub/FileResponse.js';
-import { FileCache } from './cache/FileCache.js';
-import { handleError, isValidUrl, pathJoin, isValidHfModelId, readResponse } from './hub/utils.js';
-import { getCache, tryCache } from './cache.js';
-import { get_file_metadata } from './model_registry/get_file_metadata.js';
+import { handleError, isValidHfModelId, isValidUrl, pathJoin, readResponse } from './hub/utils.js';
 import { logger } from './logger.js';
+import { get_file_metadata } from './model_registry/get_file_metadata.js';
 
 export { MAX_EXTERNAL_DATA_CHUNKS } from './hub/constants.js';
 
@@ -67,7 +67,7 @@ export async function getFile(urlOrPath) {
                 : urlOrPath,
         );
     } else {
-        return env.fetch(urlOrPath, {
+        return /** @type {Function} */ (env.fetch)(urlOrPath, {
             headers: getFetchHeaders(urlOrPath),
         });
     }
@@ -198,13 +198,13 @@ export async function storeCachedResource(path_or_repo_id, filename, cache, cach
         // We haven't yet read the response body, so we need to do so now.
         // Ensure progress updates include consistent metadata.
         const wrapped_progress = options.progress_callback
-            ? (data) =>
-                  dispatchCallback(options.progress_callback, {
+            ? (/** @type {Record<string, unknown>} */ data) =>
+                  dispatchCallback(options.progress_callback, /** @type {any} */ ({
                       status: 'progress',
                       name: path_or_repo_id,
                       file: filename,
                       ...data,
-                  })
+                  }))
             : undefined;
         await cache.put(cacheKey, /** @type {Response} */ (response), wrapped_progress);
     } else if (typeof response !== 'string') {
@@ -215,7 +215,7 @@ export async function storeCachedResource(path_or_repo_id, filename, cache, cach
         await cache
             .put(
                 cacheKey,
-                new Response(/** @type {any} */ (result), {
+                new Response(/** @type {BodyInit} */ (/** @type {unknown} */ (result)), {
                     headers,
                 }),
             )
@@ -258,7 +258,7 @@ export async function loadResourceFile(
     );
 
     /** @type {string} */
-    let cacheKey;
+    let cacheKey = '';
 
     // Whether to cache the final response in the end.
     let toCacheResponse = false;
@@ -334,7 +334,7 @@ export async function loadResourceFile(
 
         // Only cache the response if:
         toCacheResponse =
-            cache && // 1. A caching system is available
+            !!cache && // 1. A caching system is available
             typeof Response !== 'undefined' && // 2. `Response` is defined (i.e., we are in a browser-like environment)
             response instanceof Response && // 3. result is a `Response` object (i.e., not a `FileResponse`)
             response.status === 200; // 4. request was successful (status code 200)
@@ -349,14 +349,15 @@ export async function loadResourceFile(
 
     let result;
     if (!(apis.IS_NODE_ENV && return_path)) {
-        /** @type {Uint8Array} */
+        /** @type {Uint8Array | undefined} */
         let buffer;
 
         if (typeof response !== 'string') {
+            const nonNullResponse = /** @type {import('./hub/FileResponse.js').FileResponse | Response} */ (response);
             if (!options.progress_callback) {
                 // If no progress callback is specified, we can use the `.arrayBuffer()`
                 // method to read the response.
-                buffer = new Uint8Array(await response.arrayBuffer());
+                buffer = new Uint8Array(await nonNullResponse.arrayBuffer());
             } else if (
                 cacheHit && // The item is being read from the cache
                 typeof navigator !== 'undefined' &&
@@ -364,7 +365,7 @@ export async function loadResourceFile(
             ) {
                 // Due to bug in Firefox, we cannot display progress when loading from cache.
                 // Fortunately, since this should be instantaneous, this should not impact users too much.
-                buffer = new Uint8Array(await response.arrayBuffer());
+                buffer = new Uint8Array(await nonNullResponse.arrayBuffer());
 
                 // For completeness, we still fire the final progress callback
                 dispatchCallback(options.progress_callback, {
@@ -379,7 +380,7 @@ export async function loadResourceFile(
                 // Get expected file size from response headers or metadata
                 // This helps with progress tracking when content-length is missing
                 let expectedSize;
-                const contentLength = response.headers.get('content-length');
+                const contentLength = nonNullResponse.headers.get('content-length');
                 if (contentLength) {
                     expectedSize = parseInt(contentLength, 10);
                 } else {
@@ -395,7 +396,7 @@ export async function loadResourceFile(
                 }
 
                 buffer = await readResponse(
-                    response,
+                    nonNullResponse,
                     (data) => {
                         dispatchCallback(options.progress_callback, {
                             status: 'progress',
@@ -418,7 +419,7 @@ export async function loadResourceFile(
         cacheKey &&
         typeof response !== 'string'
     ) {
-        await storeCachedResource(path_or_repo_id, filename, cache, cacheKey, response, result, options);
+        await storeCachedResource(path_or_repo_id, filename, /** @type {import('./cache.js').CacheInterface} */ (cache), cacheKey, /** @type {import('./hub/FileResponse.js').FileResponse | Response} */ (response), result, options);
     }
 
     dispatchCallback(options.progress_callback, {
@@ -464,7 +465,7 @@ export async function loadResourceFile(
  * @param {boolean} [return_path=false] Whether to return the path of the file instead of the file content.
  *
  * @throws Will throw an error if the file is not found and `fatal` is true.
- * @returns {Promise<string|Uint8Array>} A Promise that resolves with the file content as a Uint8Array if `return_path` is false, or the file path as a string if `return_path` is true.
+ * @returns {Promise<string|Uint8Array|null>} A Promise that resolves with the file content as a Uint8Array if `return_path` is false, or the file path as a string if `return_path` is true.
  */
 export async function getModelFile(path_or_repo_id, filename, fatal = true, options = {}, return_path = false) {
     if (!env.allowLocalModels) {

@@ -3,7 +3,7 @@ import { hamming, hanning, mel_filter_bank } from "../../src/utils/audio.js";
 import { getFile } from "../../src/utils/hub.js";
 import { RawImage } from "../../src/utils/image.js";
 
-import { MAX_TEST_EXECUTION_TIME } from "../init.js";
+import { MAX_TEST_EXECUTION_TIME } from "../init.ts";
 
 describe("Utilities", () => {
   describe("Audio utilities", () => {

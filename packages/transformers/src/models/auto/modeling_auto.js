@@ -42,8 +42,12 @@ import { PreTrainedModel } from '../modeling_utils.js';
 
 import { CUSTOM_ARCHITECTURES, MODEL_CLASS_TYPE_MAPPING, MODEL_MAPPINGS } from '../registry.js';
 
-import * as ALL_MODEL_FILES from '../models.js';
 import { logger } from '../../utils/logger.js';
+import * as ALL_MODEL_FILES from '../models.js';
+
+/**
+ * @typedef {import('../../utils/hub.js').PretrainedModelOptions} PretrainedModelOptions
+ */
 
 /**
  * Base class of all AutoModels. Contains the `from_pretrained` function
@@ -52,7 +56,7 @@ import { logger } from '../../utils/logger.js';
 class PretrainedMixin {
     /**
      * Mapping from model type to model class.
-     * @type {Map<string, Object>[]}
+     * @type {Map<string, Object>[] | null}
      */
     static MODEL_CLASS_MAPPINGS = null;
 
@@ -79,16 +83,16 @@ class PretrainedMixin {
     static async from_pretrained(
         pretrained_model_name_or_path,
         {
-            progress_callback = null,
-            config = null,
-            cache_dir = null,
+            progress_callback = undefined,
+            config = undefined,
+            cache_dir = undefined,
             local_files_only = false,
             revision = 'main',
-            model_file_name = null,
+            model_file_name = undefined,
             subfolder = 'onnx',
-            device = null,
-            dtype = null,
-            use_external_data_format = null,
+            device = undefined,
+            dtype = undefined,
+            use_external_data_format = undefined,
             session_options = {},
         } = {},
     ) {
@@ -112,25 +116,25 @@ class PretrainedMixin {
         }
         const { model_type } = options.config;
         for (const MODEL_CLASS_MAPPING of this.MODEL_CLASS_MAPPINGS) {
-            let modelInfo = MODEL_CLASS_MAPPING.get(model_type);
+            let modelInfo = MODEL_CLASS_MAPPING.get(/** @type {string} */ (model_type));
             if (!modelInfo) {
                 // As a fallback, we check if model_type is specified as the exact class
                 for (const cls of MODEL_CLASS_MAPPING.values()) {
-                    if (cls[0] === model_type) {
+                    if (/** @type {any} */ (cls)[0] === model_type) {
                         modelInfo = cls;
                         break;
                     }
                 }
                 if (!modelInfo) continue; // Item not found in this mapping
             }
-            return await ALL_MODEL_FILES[modelInfo].from_pretrained(pretrained_model_name_or_path, options);
+            return await (/** @type {Record<string, typeof PreTrainedModel>} */ (/** @type {unknown} */ (ALL_MODEL_FILES)))[/** @type {any} */ (modelInfo)].from_pretrained(pretrained_model_name_or_path, /** @type {Record<string, unknown>} */ (options));
         }
 
         if (this.BASE_IF_FAIL) {
-            if (!CUSTOM_ARCHITECTURES.has(model_type)) {
+            if (!CUSTOM_ARCHITECTURES.has(/** @type {string} */ (model_type))) {
                 logger.warn(`Unknown model class "${model_type}", attempting to construct from base class.`);
             }
-            return await PreTrainedModel.from_pretrained(pretrained_model_name_or_path, options);
+            return await PreTrainedModel.from_pretrained(pretrained_model_name_or_path, /** @type {Record<string, unknown>} */ (options));
         } else {
             throw Error(`Unsupported model type: ${model_type}`);
         }
@@ -146,8 +150,7 @@ class PretrainedMixin {
  */
 export class AutoModel extends PretrainedMixin {
     /** @type {Map<string, Object>[]} */
-    // @ts-ignore
-    static MODEL_CLASS_MAPPINGS = MODEL_CLASS_TYPE_MAPPING.map((x) => x[0]);
+    static MODEL_CLASS_MAPPINGS = /** @type {Map<string, string>[]} */ (MODEL_CLASS_TYPE_MAPPING.map((x) => x[0]));
     static BASE_IF_FAIL = true;
 }
 

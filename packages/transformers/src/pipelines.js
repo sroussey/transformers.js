@@ -89,25 +89,25 @@ import { get_file_metadata } from './utils/model_registry/get_file_metadata.js';
  *  - `"zero-shot-audio-classification"`: will return a `ZeroShotAudioClassificationPipeline`.
  *  - `"zero-shot-image-classification"`: will return a `ZeroShotImageClassificationPipeline`.
  *  - `"zero-shot-object-detection"`: will return a `ZeroShotObjectDetectionPipeline`.
- * @param {string} [model=null] The name of the pre-trained model to use. If not specified, the default model for the task will be used.
+ * @param {string} [model] The name of the pre-trained model to use. If not specified, the default model for the task will be used.
  * @param {import('./utils/hub.js').PretrainedModelOptions} [options] Optional parameters for the pipeline.
  * @returns {Promise<AllTasks[T]>} A Pipeline object for the specified task.
  * @throws {Error} If an unsupported pipeline is requested.
  */
 export async function pipeline(
     task,
-    model = null,
+    model,
     {
-        progress_callback = null,
-        config = null,
-        cache_dir = null,
+        progress_callback,
+        config,
+        cache_dir,
         local_files_only = false,
         revision = 'main',
-        device = null,
-        dtype = null,
+        device,
+        dtype,
         subfolder = 'onnx',
-        use_external_data_format = null,
-        model_file_name = null,
+        use_external_data_format,
+        model_file_name,
         session_options = {},
     } = {},
 ) {
@@ -126,12 +126,14 @@ export async function pipeline(
         logger.info(`No model specified. Using default model: "${model}".`);
         const defaultConfig = pipelineInfo.default;
         if (!dtype && 'dtype' in defaultConfig && defaultConfig.dtype) {
-            dtype = /** @type {import('./utils/hub.js').PretrainedModelOptions['dtype']} */ (defaultConfig.dtype);
+            dtype = /** @type {NonNullable<import('./utils/hub.js').PretrainedModelOptions['dtype']>} */ (defaultConfig.dtype);
         }
     }
+    /** @type {string} */
+    const resolvedModel = model;
 
     // Determine which files the model needs
-    const expected_files = await get_pipeline_files(task, model, {
+    const expected_files = await get_pipeline_files(task, resolvedModel, {
         device,
         dtype,
     });
@@ -141,7 +143,7 @@ export async function pipeline(
     let files_loading = {};
     if (progress_callback) {
         /** @type {Array<{exists: boolean, size?: number, contentType?: string, fromCache?: boolean}>} */
-        const metadata = await Promise.all(expected_files.map(async (file) => get_file_metadata(model, file)));
+        const metadata = await Promise.all(expected_files.map(async (file) => get_file_metadata(resolvedModel, file)));
         metadata.forEach((m, i) => {
             if (m.exists) {
                 files_loading[expected_files[i]] = {
@@ -198,24 +200,24 @@ export async function pipeline(
     const modelClasses = pipelineInfo.model;
     let modelPromise;
     if (Array.isArray(modelClasses)) {
-        const resolvedConfig = config ?? (await AutoConfig.from_pretrained(model, pretrainedOptions));
+        const resolvedConfig = config ?? (await AutoConfig.from_pretrained(resolvedModel, pretrainedOptions));
         const { model_type } = resolvedConfig;
-        const matchedClass = modelClasses.find((cls) => cls.supports(model_type));
+        const matchedClass = modelClasses.find((cls) => cls.supports(/** @type {string} */ (model_type)));
         if (!matchedClass) {
             throw Error(
                 `Unsupported model type "${model_type}" for task "${task}". ` +
                     `None of the candidate model classes support this type.`,
             );
         }
-        modelPromise = matchedClass.from_pretrained(model, { ...pretrainedOptions, config: resolvedConfig });
+        modelPromise = matchedClass.from_pretrained(resolvedModel, { ...pretrainedOptions, config: resolvedConfig });
     } else {
-        modelPromise = modelClasses.from_pretrained(model, pretrainedOptions);
+        modelPromise = modelClasses.from_pretrained(resolvedModel, pretrainedOptions);
     }
 
     // Load all components in parallel
     const [tokenizer, processor, model_loaded] = await Promise.all([
-        hasTokenizer ? AutoTokenizer.from_pretrained(model, pretrainedOptions) : null,
-        hasProcessor ? AutoProcessor.from_pretrained(model, pretrainedOptions) : null,
+        hasTokenizer ? AutoTokenizer.from_pretrained(resolvedModel, pretrainedOptions) : null,
+        hasProcessor ? AutoProcessor.from_pretrained(resolvedModel, pretrainedOptions) : null,
         modelPromise,
     ]);
 
@@ -227,7 +229,7 @@ export async function pipeline(
     dispatchCallback(progress_callback, {
         status: 'ready',
         task: task,
-        model: model,
+        model: resolvedModel,
     });
 
     const pipelineClass = pipelineInfo.pipeline;

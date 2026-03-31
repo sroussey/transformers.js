@@ -4,7 +4,7 @@ import {
   TextGenerationPipeline,
 } from "../../src/transformers.js";
 
-import { init } from "../init.js";
+import { init } from "../init.ts";
 init();
 
 const MAX_MODEL_LOAD_TIME = 10_000; // 10 seconds

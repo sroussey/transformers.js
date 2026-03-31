@@ -18,8 +18,8 @@
  */
 export function interpolate_data(
     input,
-    [in_channels, in_height, in_width],
-    [out_height, out_width],
+    [in_channels, in_height, in_width] = /** @type {[number, number, number]} */ (/** @type {unknown} */ ([])),
+    [out_height, out_width] = /** @type {[number, number]} */ (/** @type {unknown} */ ([])),
     mode = 'bilinear',
     align_corners = false,
 ) {
@@ -30,8 +30,8 @@ export function interpolate_data(
     const y_scale = out_height / in_height;
 
     // Output image
-    // @ts-ignore
-    const out_img = new input.constructor(out_height * out_width * in_channels);
+    const OutImgCtor = /** @type {new (size: number) => TypedArray} */ (input.constructor);
+    const out_img = new OutImgCtor(out_height * out_width * in_channels);
 
     // Pre-calculate strides
     const inStride = in_height * in_width;
@@ -111,11 +111,11 @@ export function permute_data(array, dims, axes) {
     }
 
     // Precompute inverse mapping of stride
-    const invStride = axes.map((_, i) => stride[axes.indexOf(i)]);
+    const invStride = axes.map((/** @type {number} */ _, /** @type {number} */ i) => stride[axes.indexOf(i)]);
 
     // Create the permuted array with the new shape
-    // @ts-ignore
-    const permutedData = new array.constructor(array.length);
+    const PermuteCtor = /** @type {new (size: number) => AnyTypedArray} */ (array.constructor);
+    const permutedData = new PermuteCtor(array.length);
 
     // Permute the original array to the new array
     for (let i = 0; i < array.length; ++i) {
@@ -127,7 +127,7 @@ export function permute_data(array, dims, axes) {
         permutedData[newIndex] = array[i];
     }
 
-    return [permutedData, shape];
+    return [/** @type {T} */ (permutedData), shape];
 }
 
 /**
@@ -141,14 +141,13 @@ export function softmax(arr) {
     const maxVal = max(arr)[0];
 
     // Compute the exponentials of the array values
-    const exps = arr.map((x) => Math.exp(x - maxVal));
+    const exps = arr.map((/** @type {number} */ x) => Math.exp(x - maxVal));
 
     // Compute the sum of the exponentials
-    // @ts-ignore
-    const sumExps = exps.reduce((acc, val) => acc + val, 0);
+    const sumExps = /** @type {number[]} */ (/** @type {unknown} */ (exps)).reduce((/** @type {number} */ acc, /** @type {number} */ val) => acc + val, 0);
 
     // Compute the softmax values
-    const softmaxArr = exps.map((x) => x / sumExps);
+    const softmaxArr = exps.map((/** @type {number} */ x) => x / sumExps);
 
     return /** @type {T} */ (softmaxArr);
 }
@@ -173,7 +172,7 @@ export function log_softmax(arr) {
     const logSum = Math.log(sumExps);
 
     // Compute the softmax values
-    const logSoftmaxArr = arr.map((x) => x - maxVal - logSum);
+    const logSoftmaxArr = arr.map((/** @type {number} */ x) => x - maxVal - logSum);
 
     return /** @type {T} */ (logSoftmaxArr);
 }
@@ -221,7 +220,7 @@ export function cos_sim(arr1, arr2) {
  * @returns {number} The magnitude of the array.
  */
 function magnitude(arr) {
-    return Math.sqrt(arr.reduce((acc, val) => acc + val * val, 0));
+    return Math.sqrt(arr.reduce((/** @type {number} */ acc, /** @type {number} */ val) => acc + val * val, 0));
 }
 
 /**
@@ -264,6 +263,7 @@ export function max(arr) {
     return /** @type {T extends bigint[]|BigTypedArray ? [bigint, number] : [number, number]} */ ([max, indexOfMax]);
 }
 
+/** @param {number} number @returns {boolean} */
 function isPowerOfTwo(number) {
     // Check if the number is greater than 0 and has only one bit set to 1
     return number > 0 && (number & (number - 1)) === 0;
@@ -277,6 +277,12 @@ function isPowerOfTwo(number) {
  * Code adapted from https://www.npmjs.com/package/fft.js
  */
 class P2FFT {
+    size;
+    _csize;
+    table;
+    _width;
+    _bitrev;
+
     /**
      * @param {number} size The size of the input array. Must be a power of two larger than 1.
      * @throws {Error} FFT size must be a power of two larger than 1.
@@ -767,6 +773,16 @@ class P2FFT {
  * For more information, see: https://math.stackexchange.com/questions/77118/non-power-of-2-ffts/77156#77156
  */
 class NP2FFT {
+    bufferSize;
+    _a;
+    _chirpBuffer;
+    _buffer1;
+    _buffer2;
+    _outBuffer1;
+    _outBuffer2;
+    _slicedChirpBuffer;
+    _f;
+
     /**
      * Constructs a new NP2FFT object.
      * @param {number} fft_length The length of the FFT
@@ -821,6 +837,11 @@ class NP2FFT {
         this._f.transform(this._chirpBuffer, ichirp);
     }
 
+    /**
+     * @param {Float64Array} output
+     * @param {Float64Array} input
+     * @param {boolean} real
+     */
     _transform(output, input, real) {
         const ib1 = this._buffer1;
         const ib2 = this._buffer2;
@@ -869,16 +890,30 @@ class NP2FFT {
         }
     }
 
+    /**
+     * @param {Float64Array} output
+     * @param {Float64Array} input
+     */
     transform(output, input) {
         this._transform(output, input, false);
     }
 
+    /**
+     * @param {Float64Array} output
+     * @param {Float64Array} input
+     */
     realTransform(output, input) {
         this._transform(output, input, true);
     }
 }
 
 export class FFT {
+    fft_length;
+    isPowerOfTwo;
+    fft;
+    outputBufferSize;
+
+    /** @param {number} fft_length */
     constructor(fft_length) {
         this.fft_length = fft_length;
         this.isPowerOfTwo = isPowerOfTwo(fft_length);
@@ -891,10 +926,18 @@ export class FFT {
         }
     }
 
+    /**
+     * @param {Float64Array} out
+     * @param {Float64Array} input
+     */
     realTransform(out, input) {
         this.fft.realTransform(out, input);
     }
 
+    /**
+     * @param {Float64Array} out
+     * @param {Float64Array} input
+     */
     transform(out, input) {
         this.fft.transform(out, input);
     }
@@ -910,11 +953,10 @@ export function medianFilter(data, windowSize) {
         throw new Error('Window size must be a positive odd number');
     }
 
-    // @ts-ignore
-    const outputArray = new data.constructor(data.length);
+    const MedianCtor = /** @type {new (size: number) => AnyTypedArray} */ (data.constructor);
+    const outputArray = new MedianCtor(data.length);
 
-    // @ts-ignore
-    const buffer = new data.constructor(windowSize); // Reusable array for storing values
+    const buffer = new MedianCtor(windowSize); // Reusable array for storing values
 
     const halfWindowSize = Math.floor(windowSize / 2);
 
@@ -1050,6 +1092,7 @@ export function dynamic_time_warping(matrix) {
  * This implementation uses a lazily initialized lookup table (LUT) for fast conversion.
  */
 export const uint16_to_float32 = (function () {
+    /** @type {Float32Array | null} */
     let float16LUT = null; // The Lookup Table
 
     return function (/** @type {Uint16Array} */ u16Array) {

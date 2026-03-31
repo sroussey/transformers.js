@@ -52,23 +52,28 @@ import { Tensor } from '../utils/tensor.js';
  * ```
  */
 export class ImageToTextPipeline
-    extends /** @type {new (options: TextImagePipelineConstructorArgs) => ImageToTextPipelineType} */ (Pipeline)
+    extends /** @type {new (options: TextImagePipelineConstructorArgs) => ImageToTextPipelineType} */ (/** @type {unknown} */ (Pipeline))
 {
+    /**
+     * @param {ImageInput | ImageInput[]} images
+     * @param {Record<string, unknown>} [generate_kwargs]
+     */
     async _call(images, generate_kwargs = {}) {
         const isBatched = Array.isArray(images);
         const preparedImages = await prepareImages(images);
 
-        const { pixel_values } = await this.processor(preparedImages);
+        const { pixel_values } = await /** @type {any} */ (this.processor)(preparedImages);
 
         const toReturn = [];
-        for (const batch of pixel_values) {
+        for (const batch_ of pixel_values) {
+            const batch = /** @type {Tensor} */ (batch_);
             batch.dims = [1, ...batch.dims];
             const output = await this.model.generate({ inputs: batch, ...generate_kwargs });
             const decoded = this.tokenizer
                 .batch_decode(/** @type {Tensor} */ (output), {
                     skip_special_tokens: true,
                 })
-                .map((x) => ({ generated_text: x.trim() }));
+                .map((/** @type {string} */ x) => ({ generated_text: x.trim() }));
             toReturn.push(decoded);
         }
 

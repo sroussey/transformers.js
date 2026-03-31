@@ -1,10 +1,10 @@
-import { PreTrainedModel } from '../modeling_utils.js';
 import {
-    SequenceClassifierOutput,
     MaskedLMOutput,
-    TokenClassifierOutput,
     QuestionAnsweringModelOutput,
+    SequenceClassifierOutput,
+    TokenClassifierOutput,
 } from '../modeling_outputs.js';
+import { PreTrainedModel } from '../modeling_utils.js';
 
 export class BertPreTrainedModel extends PreTrainedModel {}
 export class BertModel extends BertPreTrainedModel {}
@@ -20,7 +20,7 @@ export class BertForMaskedLM extends BertPreTrainedModel {
      * @returns {Promise<MaskedLMOutput>} An object containing the model's output logits for masked language modeling.
      */
     async _call(model_inputs) {
-        return new MaskedLMOutput(await super._call(model_inputs));
+        return new MaskedLMOutput(/** @type {any} */ (await super._call(model_inputs)));
     }
 }
 
@@ -35,7 +35,7 @@ export class BertForSequenceClassification extends BertPreTrainedModel {
      * @returns {Promise<SequenceClassifierOutput>} An object containing the model's output logits for sequence classification.
      */
     async _call(model_inputs) {
-        return new SequenceClassifierOutput(await super._call(model_inputs));
+        return new SequenceClassifierOutput(/** @type {any} */ (await super._call(model_inputs)));
     }
 }
 
@@ -50,7 +50,7 @@ export class BertForTokenClassification extends BertPreTrainedModel {
      * @returns {Promise<TokenClassifierOutput>} An object containing the model's output logits for token classification.
      */
     async _call(model_inputs) {
-        return new TokenClassifierOutput(await super._call(model_inputs));
+        return new TokenClassifierOutput(/** @type {any} */ (await super._call(model_inputs)));
     }
 }
 
@@ -65,6 +65,6 @@ export class BertForQuestionAnswering extends BertPreTrainedModel {
      * @returns {Promise<QuestionAnsweringModelOutput>} An object containing the model's output logits for question answering.
      */
     async _call(model_inputs) {
-        return new QuestionAnsweringModelOutput(await super._call(model_inputs));
+        return new QuestionAnsweringModelOutput(/** @type {any} */ (await super._call(model_inputs)));
     }
 }

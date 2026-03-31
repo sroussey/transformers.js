@@ -19,14 +19,14 @@ export class VitPoseImageProcessor extends ImageProcessor {
         outputs,
         boxes,
         {
-            threshold = null,
+            threshold = /** @type {number | null} */ (null),
             // TODO:
             // kernel_size = 11,
             // target_sizes = null,
         } = {},
     ) {
         // NOTE: boxes are 3D (batch_size, num_boxes, 4)
-        const heatmaps = outputs.tolist();
+        const heatmaps = /** @type {any} */ (outputs.tolist());
         const [batch_size, num_classes, height, width] = outputs.dims;
 
         const results = [];
@@ -42,8 +42,8 @@ export class VitPoseImageProcessor extends ImageProcessor {
                 const scores = [];
                 const labels = [];
 
-                const xScale = bbox.at(-2) / width;
-                const yScale = bbox.at(-1) / height;
+                const xScale = /** @type {number} */ (bbox.at(-2)) / width;
+                const yScale = /** @type {number} */ (bbox.at(-1)) / height;
                 for (let c = 0; c < heatmap.length; ++c) {
                     let [xWeightedSum, yWeightedSum] = [0, 0];
                     let sum = 0;

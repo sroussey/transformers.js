@@ -64,7 +64,7 @@ import { Tensor, mean_pooling, quantize_embeddings } from '../utils/tensor.js';
  * const output = await extractor('This is a simple test.', { pooling: 'mean', quantize: true, precision: 'binary' });
  * // Tensor {
  * //   type: 'int8',
- * //   data: Int8Array [49, 108, 25, ...],
+ * //   data: Int8Array [49, 108, 25, ...],
  * //   dims: [1, 48]
  * // }
  *
@@ -73,7 +73,7 @@ import { Tensor, mean_pooling, quantize_embeddings } from '../utils/tensor.js';
  * ```
  */
 export class FeatureExtractionPipeline
-    extends /** @type {new (options: TextPipelineConstructorArgs) => FeatureExtractionPipelineType} */ (Pipeline)
+    extends /** @type {new (options: TextPipelineConstructorArgs) => FeatureExtractionPipelineType} */ (/** @type {unknown} */ (Pipeline))
 {
     /** @type {FeatureExtractionPipelineCallback} */
     async _call(
@@ -82,17 +82,17 @@ export class FeatureExtractionPipeline
             pooling = /** @type {'none'} */ ('none'),
             normalize = false,
             quantize = false,
-            precision = /** @type {'binary'} */ ('binary'),
+            precision = /** @type {'binary' | 'ubinary'} */ ('binary'),
         } = {},
     ) {
         // Run tokenization
-        const model_inputs = this.tokenizer(texts, {
+        const model_inputs = /** @type {any} */ (this.tokenizer)(texts, {
             padding: true,
             truncation: true,
         });
 
         // Run model
-        const outputs = await this.model(model_inputs);
+        const outputs = await /** @type {any} */ (this.model)(model_inputs);
 
         // TODO: Provide warning to the user that they might be using model which was not exported
         // specifically for feature extraction

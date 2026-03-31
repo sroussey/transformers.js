@@ -8,16 +8,16 @@ export class LlavaPreTrainedModel extends PreTrainedModel {
  * The LLAVA model which consists of a vision backbone and a language model.
  */
 export class LlavaForConditionalGeneration extends LlavaPreTrainedModel {
+    /** @param {Record<string, any>} kwargs */
     _merge_input_ids_with_image_features(kwargs) {
         const vision_hidden_size = kwargs.image_features.dims.at(-1);
         const reshaped_image_hidden_states = kwargs.image_features.view(-1, vision_hidden_size);
 
-        return default_merge_input_ids_with_image_features({
-            // @ts-ignore
-            image_token_id: this.config.image_token_index ?? this.config.image_token_id,
+        return default_merge_input_ids_with_image_features(/** @type {Parameters<typeof default_merge_input_ids_with_image_features>[0]} */ ({
+            image_token_id: /** @type {number} */ (/** @type {any} */ (this.config).image_token_index ?? /** @type {any} */ (this.config).image_token_id),
             ...kwargs,
             image_features: reshaped_image_hidden_states,
-        });
+        }));
     }
 }
 

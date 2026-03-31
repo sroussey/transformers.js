@@ -3,7 +3,7 @@ import { ImageProcessor } from '../../image_processors_utils.js';
 export class PixtralImageProcessor extends ImageProcessor {
     /** @type {ImageProcessor['get_resize_output_image_size']} */
     get_resize_output_image_size(image, size) {
-        const { longest_edge } = size;
+        const { longest_edge } = /** @type {Record<string, number>} */ (size);
         if (longest_edge === undefined) {
             throw new Error("size must contain 'longest_edge'");
         }
@@ -19,12 +19,11 @@ export class PixtralImageProcessor extends ImageProcessor {
             newHeight = Math.floor(srcHeight / ratio);
         }
 
-        // @ts-expect-error TS2339
-        const { patch_size, spatial_merge_size } = this.config;
+        const { patch_size, spatial_merge_size } = /** @type {Record<string, number>} */ (this.config);
         if (!spatial_merge_size) {
             throw new Error("config must contain 'spatial_merge_size'");
         }
-        const real_patch_size = patch_size * spatial_merge_size;
+        const real_patch_size = /** @type {number} */ (patch_size) * /** @type {number} */ (spatial_merge_size);
 
         // Calculate number of tokens
         const num_width_tokens = Math.floor((newWidth - 1) / real_patch_size) + 1;

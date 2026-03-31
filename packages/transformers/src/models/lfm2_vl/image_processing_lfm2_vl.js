@@ -1,9 +1,6 @@
 import { ImageProcessor, smart_resize } from '../../image_processors_utils.js';
+import { RawImage } from '../../utils/image.js';
 import { Tensor, cat, interpolate_4d, stack } from '../../utils/tensor.js';
-
-/**
- * @typedef {import('../../utils/image.js').RawImage} RawImage
- */
 
 /**
  * Returns the closest integer to `number` that is divisible by `factor`.
@@ -95,7 +92,7 @@ function convert_image_to_patches(images, patch_size) {
                     for (let dx = 0; dx < patch_size; ++dx) {
                         const pixel = row + dx;
                         for (let c = 0; c < C; ++c) {
-                            result[off++] = data[b_src + c * ch_stride + pixel];
+                            result[off++] = /** @type {Float32Array} */ (data)[b_src + c * ch_stride + pixel];
                         }
                     }
                 }
@@ -128,7 +125,22 @@ function pad_along_first_dim(patches, target_length) {
 }
 
 export class Lfm2VlImageProcessor extends ImageProcessor {
-    constructor(/** @type {Record<string, any>} */ config) {
+    /** @type {Record<string, any>} */
+    config = /** @type {any} */ (undefined);
+    downsample_factor;
+    do_image_splitting;
+    min_tiles;
+    max_tiles;
+    use_thumbnail;
+    min_image_tokens;
+    max_image_tokens;
+    encoder_patch_size;
+    tile_size;
+    max_pixels_tolerance;
+    return_row_col_info;
+    max_num_patches;
+    /** @param {Record<string, any>} config */
+    constructor(config) {
         super(config);
         this.downsample_factor = config.downsample_factor ?? 2;
         this.do_image_splitting = config.do_image_splitting ?? true;
@@ -186,9 +198,9 @@ export class Lfm2VlImageProcessor extends ImageProcessor {
         };
     }
 
-    /** @param {RawImage|RawImage[]|RawImage[][]} images */
-    // @ts-expect-error
-    async _call(images, { return_row_col_info = null } = {}) {
+    /** @param {any} images @param {any[]} args @returns {Promise<any>} */
+    async _call(images, ...args) {
+        const { return_row_col_info = null } = /** @type {any} */ (args[0] ?? {});
         /** @type {RawImage[][]} */
         let batched_images;
         if (!Array.isArray(images)) {
@@ -213,9 +225,9 @@ export class Lfm2VlImageProcessor extends ImageProcessor {
         const all_image_sizes = [];
 
         for (const image_batch of batched_images) {
-            const preprocessed = await Promise.all(image_batch.map((x) => this.preprocess(x, { do_pad: false })));
+            const preprocessed = await Promise.all(image_batch.map((/** @type {RawImage} */ x) => this.preprocess(x, { do_pad: false })));
 
-            for (const { pixel_values } of preprocessed) {
+            for (const { pixel_values } of /** @type {{ pixel_values: Tensor }[]} */ (preprocessed)) {
                 const [, height, width] = pixel_values.dims;
                 const img = pixel_values.unsqueeze_(0);
 
@@ -227,7 +239,7 @@ export class Lfm2VlImageProcessor extends ImageProcessor {
                     total_factor,
                     this.min_image_tokens * f2,
                     this.max_image_tokens * f2,
-                ).map((x) => Math.max(total_factor, x));
+                ).map((/** @type {number} */ x) => Math.max(total_factor, x));
 
                 /** @type {Tensor[]} */
                 let tiles;
@@ -254,7 +266,7 @@ export class Lfm2VlImageProcessor extends ImageProcessor {
                         for (let c = 0; c < grid_width; ++c) {
                             const y = r * this.tile_size;
                             const x = c * this.tile_size;
-                            tiles.push(resized.slice(null, null, [y, y + this.tile_size], [x, x + this.tile_size]));
+                            tiles.push(/** @type {Tensor} */ (resized).slice(null, null, [y, y + this.tile_size], [x, x + this.tile_size]));
                         }
                     }
 
@@ -265,7 +277,7 @@ export class Lfm2VlImageProcessor extends ImageProcessor {
                     tiles = [await interpolate_4d(img, { size: [new_height, new_width] })];
                 }
 
-                for (const tile of tiles) {
+                for (const tile of /** @type {Tensor[]} */ (tiles)) {
                     const [, , th, tw] = tile.dims;
                     const patches = convert_image_to_patches(tile, this.encoder_patch_size);
                     const { padded, mask } = pad_along_first_dim(patches, this.max_num_patches);

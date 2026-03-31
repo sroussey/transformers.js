@@ -1,12 +1,13 @@
 import { ImageProcessor } from '../../image_processors_utils.js';
 
 export class EfficientNetImageProcessor extends ImageProcessor {
+    include_top;
+    /** @param {Record<string, unknown>} config */
     constructor(config) {
         super(config);
-        // @ts-expect-error TS2339
-        this.include_top = this.config.include_top ?? true;
+        this.include_top = /** @type {any} */ (this.config).include_top ?? true;
         if (this.include_top) {
-            this.image_std = this.image_std.map((x) => x * x);
+            this.image_std = /** @type {number[]} */ (this.image_std).map((/** @type {number} */ x) => x * x);
         }
     }
 }

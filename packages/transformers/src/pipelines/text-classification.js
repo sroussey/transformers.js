@@ -1,7 +1,8 @@
 import { Pipeline } from './_base.js';
 
-import { Tensor, topk } from '../utils/tensor.js';
 import { softmax } from '../utils/maths.js';
+import { Tensor, topk } from '../utils/tensor.js';
+/** @typedef {import('../utils/maths.js').TypedArray} TypedArray */
 
 /**
  * @typedef {import('./_base.js').TextPipelineConstructorArgs} TextPipelineConstructorArgs
@@ -83,35 +84,39 @@ import { softmax } from '../utils/maths.js';
  * ```
  */
 export class TextClassificationPipeline
-    extends /** @type {new (options: TextPipelineConstructorArgs) => TextClassificationPipelineType} */ (Pipeline)
+    extends /** @type {new (options: TextPipelineConstructorArgs) => TextClassificationPipelineType} */ (/** @type {unknown} */ (Pipeline))
 {
+    /**
+     * @param {string | string[]} texts
+     * @param {object} [options]
+     * @param {number} [options.top_k=1]
+     */
     async _call(texts, { top_k = 1 } = {}) {
         // Run tokenization
-        const model_inputs = this.tokenizer(texts, {
+        const model_inputs = /** @type {any} */ (this.tokenizer)(texts, {
             padding: true,
             truncation: true,
         });
 
         // Run model
-        const outputs = await this.model(model_inputs);
+        const outputs = await /** @type {any} */ (this.model)(model_inputs);
 
-        // @ts-expect-error TS2339
         const { problem_type, id2label } = this.model.config;
 
         // TODO: Use softmax tensor function
         const function_to_apply =
             problem_type === 'multi_label_classification'
-                ? (batch) => batch.sigmoid()
-                : (batch) => new Tensor('float32', softmax(batch.data), batch.dims); // single_label_classification (default)
+                ? (/** @type {Tensor} */ batch) => batch.sigmoid()
+                : (/** @type {Tensor} */ batch) => new Tensor('float32', softmax(/** @type {TypedArray | number[]} */ (batch.data)), batch.dims); // single_label_classification (default)
 
         const toReturn = [];
-        for (const batch of outputs.logits) {
-            const output = function_to_apply(batch);
-            const scores = await topk(output, top_k);
-            const values = scores[0].tolist();
-            const indices = scores[1].tolist();
-            const vals = indices.map((x, i) => ({
-                label: id2label ? id2label[x] : `LABEL_${x}`,
+        for (const batch_ of outputs.logits) {
+            const output = function_to_apply(/** @type {Tensor} */ (batch_));
+            const scores = /** @type {Tensor[]} */ (await topk(output, top_k));
+            const values = /** @type {number[]} */ (scores[0].tolist());
+            const indices = /** @type {number[]} */ (scores[1].tolist());
+            const vals = indices.map((/** @type {number} */ x, /** @type {number} */ i) => ({
+                label: id2label ? /** @type {Record<number, string>} */ (id2label)[x] : `LABEL_${x}`,
                 score: values[i],
             }));
             if (top_k === 1) {

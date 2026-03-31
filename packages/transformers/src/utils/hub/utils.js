@@ -1,5 +1,5 @@
-import { ERROR_MAPPING, REPO_ID_REGEX } from './constants.js';
 import { logger } from '../logger.js';
+import { ERROR_MAPPING, REPO_ID_REGEX } from './constants.js';
 
 /**
  * Joins multiple parts of a path into a single path, while handling leading and trailing slashes.
@@ -24,8 +24,8 @@ export function pathJoin(...parts) {
 /**
  * Determines whether the given string is a valid URL.
  * @param {string|URL} string The string to test for validity as an URL.
- * @param {string[]} [protocols=null] A list of valid protocols. If specified, the protocol must be in this list.
- * @param {string[]} [validHosts=null] A list of valid hostnames. If specified, the URL's hostname must be in this list.
+ * @param {string[] | null} [protocols=null] A list of valid protocols. If specified, the protocol must be in this list.
+ * @param {string[] | null} [validHosts=null] A list of valid hostnames. If specified, the URL's hostname must be in this list.
  * @returns {boolean} True if the string is a valid URL, false otherwise.
  */
 export function isValidUrl(string, protocols = null, validHosts = null) {
@@ -73,7 +73,7 @@ export function handleError(status, remoteURL, fatal) {
         return null;
     }
 
-    const message = ERROR_MAPPING[status] ?? `Error (${status}) occurred while trying to load file`;
+    const message = /** @type {Record<number, string>} */ (ERROR_MAPPING)[status] ?? `Error (${status}) occurred while trying to load file`;
     throw Error(`${message}: "${remoteURL}".`);
 }
 
@@ -98,7 +98,7 @@ export async function readResponse(response, progress_callback, expectedSize) {
     let buffer = new Uint8Array(total);
     let loaded = 0;
 
-    const reader = response.body.getReader();
+    const reader = /** @type {ReadableStream} */ (response.body).getReader();
     async function read() {
         const { done, value } = await reader.read();
         if (done) return;

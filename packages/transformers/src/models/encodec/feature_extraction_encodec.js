@@ -14,7 +14,7 @@ export class EncodecFeatureExtractor extends FeatureExtractor {
             audio = new Float32Array(audio);
         }
 
-        const num_channels = this.config.feature_size;
+        const num_channels = /** @type {number} */ (/** @type {any} */ (this.config).feature_size);
         if (audio.length % num_channels !== 0) {
             throw new Error(
                 `The length of the audio data must be a multiple of the number of channels (${num_channels}).`,

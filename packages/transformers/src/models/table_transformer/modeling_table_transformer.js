@@ -1,5 +1,5 @@
-import { PreTrainedModel } from '../modeling_utils.js';
 import { DetrObjectDetectionOutput } from '../detr/modeling_detr.js';
+import { PreTrainedModel } from '../modeling_utils.js';
 
 export class TableTransformerPreTrainedModel extends PreTrainedModel {}
 
@@ -15,10 +15,10 @@ export class TableTransformerModel extends TableTransformerPreTrainedModel {}
  */
 export class TableTransformerForObjectDetection extends TableTransformerPreTrainedModel {
     /**
-     * @param {any} model_inputs
+     * @param {Object} model_inputs
      */
     async _call(model_inputs) {
-        return new TableTransformerObjectDetectionOutput(await super._call(model_inputs));
+        return new TableTransformerObjectDetectionOutput(/** @type {any} */ (await super._call(model_inputs)));
     }
 }
 export class TableTransformerObjectDetectionOutput extends DetrObjectDetectionOutput {}

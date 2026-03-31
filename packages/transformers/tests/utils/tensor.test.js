@@ -1,5 +1,5 @@
 import { Tensor, cat, stack, layer_norm, ones_like, zeros_like, full_like, rand, std_mean } from "../../src/transformers.js";
-import { init } from "../init.js";
+import { init } from "../init.ts";
 
 init();
 

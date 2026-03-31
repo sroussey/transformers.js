@@ -1,5 +1,5 @@
-import { PreTrainedModel } from '../modeling_utils.js';
 import { SequenceClassifierOutput } from '../modeling_outputs.js';
+import { PreTrainedModel } from '../modeling_utils.js';
 
 /**
  * An abstract class to handle weights initialization and a simple interface for downloading and loading pretrained models.
@@ -16,9 +16,9 @@ export class ResNetModel extends ResNetPreTrainedModel {}
  */
 export class ResNetForImageClassification extends ResNetPreTrainedModel {
     /**
-     * @param {any} model_inputs
+     * @param {Object} model_inputs
      */
     async _call(model_inputs) {
-        return new SequenceClassifierOutput(await super._call(model_inputs));
+        return new SequenceClassifierOutput(/** @type {any} */ (await super._call(model_inputs)));
     }
 }

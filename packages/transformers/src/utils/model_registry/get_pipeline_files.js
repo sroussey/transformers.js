@@ -1,10 +1,8 @@
-import { get_files } from './get_files.js';
 import { SUPPORTED_TASKS, TASK_ALIASES } from '../../pipelines/index.js';
+import { get_files } from './get_files.js';
 
 /**
  * Get all files needed for a specific pipeline task.
- * Automatically detects which components (tokenizer, processor) are needed by checking
- * whether the model has the corresponding files (tokenizer_config.json, preprocessor_config.json).
  *
  * @param {string} task - The pipeline task (e.g., "text-generation", "image-classification")
  * @param {string} modelId - The model id (e.g., "Xenova/bert-base-uncased")
@@ -18,20 +16,16 @@ import { SUPPORTED_TASKS, TASK_ALIASES } from '../../pipelines/index.js';
  */
 export async function get_pipeline_files(task, modelId, options = {}) {
     // Apply task aliases
-    task = TASK_ALIASES[task] ?? task;
+    task = /** @type {Record<string, string>} */ (TASK_ALIASES)[task] ?? task;
 
     // Validate that the task is supported
-    const taskConfig = SUPPORTED_TASKS[task];
+    const taskConfig = /** @type {Record<string, { pipeline: unknown, model: unknown, default: unknown, type: string }>} */ (SUPPORTED_TASKS)[task];
     if (!taskConfig) {
         throw new Error(
             `Unsupported pipeline task: ${task}. Must be one of [${Object.keys(SUPPORTED_TASKS).join(', ')}]`,
         );
     }
 
-    // Use the task type to determine which components to auto-detect:
-    //  - 'text' tasks: always check tokenizer, skip processor (text models rarely have one)
-    //  - 'audio'/'image' tasks: skip tokenizer, always check processor
-    //  - 'multimodal' tasks: check both
     const { type } = taskConfig;
     const include_tokenizer = type !== 'audio' && type !== 'image';
     const include_processor = type !== 'text';

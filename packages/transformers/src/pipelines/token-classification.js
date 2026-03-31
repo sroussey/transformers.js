@@ -1,4 +1,4 @@
-import { Pipeline } from './_base.js';
+import { Pipeline, tensorAt } from './_base.js';
 
 import { max, softmax } from '../utils/maths.js';
 
@@ -69,49 +69,53 @@ import { max, softmax } from '../utils/maths.js';
  * ```
  */
 export class TokenClassificationPipeline
-    extends /** @type {new (options: TextPipelineConstructorArgs) => TokenClassificationPipelineType} */ (Pipeline)
+    extends /** @type {new (options: TextPipelineConstructorArgs) => TokenClassificationPipelineType} */ (/** @type {unknown} */ (Pipeline))
 {
+    /**
+     * @param {string | string[]} texts
+     * @param {object} [options]
+     * @param {string[]} [options.ignore_labels=['O']]
+     */
     async _call(texts, { ignore_labels = ['O'] } = {}) {
         const isBatched = Array.isArray(texts);
 
         // Run tokenization
-        const model_inputs = this.tokenizer(isBatched ? texts : [texts], {
+        const model_inputs = /** @type {any} */ (this.tokenizer)(isBatched ? texts : [texts], {
             padding: true,
             truncation: true,
         });
 
         // Run model
-        const outputs = await this.model(model_inputs);
+        const outputs = await /** @type {any} */ (this.model)(model_inputs);
 
         const logits = outputs.logits;
-        // @ts-expect-error TS2339
         const id2label = this.model.config.id2label;
 
         const toReturn = [];
         for (let i = 0; i < logits.dims[0]; ++i) {
-            const ids = model_inputs.input_ids[i];
-            const batch = logits[i];
+            const ids = tensorAt(model_inputs.input_ids, i);
+            const batch = tensorAt(logits, i);
 
             // List of tokens that aren't ignored
             const tokens = [];
             for (let j = 0; j < batch.dims[0]; ++j) {
-                const tokenData = batch[j];
-                const topScoreIndex = max(tokenData.data)[1];
+                const tokenData = tensorAt(batch, j);
+                const topScoreIndex = max(/** @type {Float32Array} */ (tokenData.data))[1];
 
-                const entity = id2label ? id2label[topScoreIndex] : `LABEL_${topScoreIndex}`;
+                const entity = id2label ? /** @type {Record<number, string>} */ (id2label)[topScoreIndex] : `LABEL_${topScoreIndex}`;
                 if (ignore_labels.includes(entity)) {
                     // We predicted a token that should be ignored. So, we skip it.
                     continue;
                 }
 
                 // TODO add option to keep special tokens?
-                const word = this.tokenizer.decode([ids[j].item()], { skip_special_tokens: true });
+                const word = this.tokenizer.decode([/** @type {bigint} */ (tensorAt(ids, j).item())], { skip_special_tokens: true });
                 if (word === '') {
                     // Was a special token. So, we skip it.
                     continue;
                 }
 
-                const scores = softmax(tokenData.data);
+                const scores = softmax(/** @type {Float32Array} */ (tokenData.data));
 
                 tokens.push({
                     entity: entity,

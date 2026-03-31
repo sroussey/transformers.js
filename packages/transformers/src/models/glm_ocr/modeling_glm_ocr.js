@@ -30,6 +30,12 @@ export class GlmOcrForConditionalGeneration extends Qwen2_5_VLForConditionalGene
      * GlmOcr uses mm_token_type_ids-style grouping (image tokens identified by image_token_id)
      * instead of vision_start_token_id scanning used by Qwen2VL.
      * After a vision segment, position advances by max(h, w) / spatial_merge_size.
+     * @param {object} params
+     * @param {number[]} params.filtered_ids
+     * @param {number[][]} params.image_grid_thw_list
+     * @param {number[][]} params.video_grid_thw_list
+     * @param {number} params.spatial_merge_size
+     * @param {{ image_index: number; video_index: number }} params.state
      */
     _get_multimodal_rope_positions({
         filtered_ids,
@@ -38,8 +44,7 @@ export class GlmOcrForConditionalGeneration extends Qwen2_5_VLForConditionalGene
         spatial_merge_size,
         state,
     }) {
-        // @ts-ignore
-        const { image_token_id } = this.config;
+        const { image_token_id } = /** @type {Record<string, number>} */ (/** @type {unknown} */ (this.config));
 
         // Build modality groups: 0=text, 1=image (by image_token_id)
         const groups = [];

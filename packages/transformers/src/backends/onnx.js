@@ -31,7 +31,7 @@ export { Tensor } from 'onnxruntime-common';
  * @typedef {import('onnxruntime-common').InferenceSession.ExecutionProviderConfig} ONNXExecutionProviders
  */
 
-/** @type {Record<import("../utils/devices.js").DeviceType, ONNXExecutionProviders>} */
+/** @type {Record<import("../utils/devices.js").DeviceType, ONNXExecutionProviders | null>} */
 const DEVICE_TO_EXECUTION_PROVIDER_MAPPING = Object.freeze({
     auto: null, // Auto-detect based on device and environment
     gpu: null, // Auto-detect GPU
@@ -333,7 +333,7 @@ const ONNX_ENV = ONNX?.env;
  */
 export function isONNXProxy() {
     // TODO: Update this when allowing non-WASM backends.
-    return ONNX_ENV?.wasm?.proxy;
+    return !!ONNX_ENV?.wasm?.proxy;
 }
 
 if (ONNX_ENV) {

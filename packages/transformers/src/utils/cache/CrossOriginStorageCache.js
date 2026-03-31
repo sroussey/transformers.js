@@ -3,7 +3,7 @@
 const HASH_ALGORITHM = 'SHA-256';
 
 /**
- * Name of the Cache API bucket used to persist the url→hash mapping.
+ * Name of the Cache API bucket used to persist the url->hash mapping.
  */
 const HASH_CACHE_NAME = 'experimental_transformers-hash-cache';
 
@@ -98,7 +98,7 @@ export class CrossOriginStorage {
             // Slow path: hash unknown. Process in the background so put() returns promptly.
             // The caller already holds a reference to the original response; we receive it
             // here only to buffer and hash its body.
-            this._processAndStore(request, response.body);
+            this._processAndStore(request, /** @type {ReadableStream<any>} */ (response.body));
         }
     };
 
@@ -124,7 +124,7 @@ export class CrossOriginStorage {
      * hash to `HASH_CACHE_NAME` keyed by `request` so future `match` calls can resolve the
      * file without a network round-trip.
      *
-     * Called fire-and-forget from `put` — errors are swallowed so failures never surface to
+     * Called fire-and-forget from `put` -- errors are swallowed so failures never surface to
      * the caller.
      *
      * @param {string} request The original resource URL.

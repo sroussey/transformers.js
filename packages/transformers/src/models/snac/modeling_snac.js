@@ -1,6 +1,6 @@
+import { Tensor } from '../../utils/tensor.js';
 import { PreTrainedModel } from '../modeling_utils.js';
 import { sessionRun } from '../session.js';
-import { Tensor } from '../../utils/tensor.js';
 
 export class SnacPreTrainedModel extends PreTrainedModel {
     main_input_name = 'input_values';
@@ -27,7 +27,7 @@ export class SnacModel extends SnacPreTrainedModel {
      * @returns {Promise<{audio_values: Tensor}>} The output tensor of shape `(batch_size, num_channels, sequence_length)`.
      */
     async decode(inputs) {
-        return await sessionRun(this.sessions['decoder_model'], inputs);
+        return /** @type {Promise<{audio_values: Tensor}>} */ (/** @type {unknown} */ (sessionRun(this.sessions['decoder_model'], inputs)));
     }
 }
 
@@ -37,7 +37,7 @@ export class SnacEncoderModel extends SnacPreTrainedModel {
         return super.from_pretrained(pretrained_model_name_or_path, {
             ...options,
             // Update default model file name if not provided
-            model_file_name: options.model_file_name ?? 'encoder_model',
+            model_file_name: /** @type {string} */ (options.model_file_name) ?? 'encoder_model',
         });
     }
 }
@@ -47,7 +47,7 @@ export class SnacDecoderModel extends SnacPreTrainedModel {
         return super.from_pretrained(pretrained_model_name_or_path, {
             ...options,
             // Update default model file name if not provided
-            model_file_name: options.model_file_name ?? 'decoder_model',
+            model_file_name: /** @type {string} */ (options.model_file_name) ?? 'decoder_model',
         });
     }
 }

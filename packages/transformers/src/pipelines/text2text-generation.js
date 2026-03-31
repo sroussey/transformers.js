@@ -35,7 +35,7 @@ import { Tensor } from '../utils/tensor.js';
  * ```
  */
 export class Text2TextGenerationPipeline
-    extends /** @type {new (options: TextPipelineConstructorArgs) => Text2TextGenerationPipelineType} */ (Pipeline)
+    extends /** @type {new (options: TextPipelineConstructorArgs) => Text2TextGenerationPipelineType} */ (/** @type {unknown} */ (Pipeline))
 {
     /** @type {'generated_text'} */
     _key = 'generated_text';
@@ -47,19 +47,16 @@ export class Text2TextGenerationPipeline
         }
 
         // Add global prefix, if present
-        // @ts-expect-error TS2339
         if (this.model.config.prefix) {
-            // @ts-expect-error TS2339
-            texts = texts.map((x) => this.model.config.prefix + x);
+            texts = texts.map((/** @type {string} */ x) => this.model.config.prefix + x);
         }
 
         // Handle task specific params:
-        // @ts-expect-error TS2339
-        const task_specific_params = this.model.config.task_specific_params;
+        const task_specific_params = /** @type {Record<string, Record<string, string>> | undefined} */ (this.model.config.task_specific_params);
         if (task_specific_params && task_specific_params[this.task]) {
             // Add prefixes, if present
             if (task_specific_params[this.task].prefix) {
-                texts = texts.map((x) => task_specific_params[this.task].prefix + x);
+                texts = texts.map((/** @type {string} */ x) => task_specific_params[this.task].prefix + x);
             }
 
             // TODO update generation config
@@ -70,14 +67,14 @@ export class Text2TextGenerationPipeline
             padding: true,
             truncation: true,
         };
+        /** @type {Record<string, unknown>} */
         let inputs;
         if (this.task === 'translation' && '_build_translation_inputs' in tokenizer) {
             // TODO: move to Translation pipeline?
             // Currently put here to avoid code duplication
-            // @ts-ignore
-            inputs = tokenizer._build_translation_inputs(texts, tokenizer_options, generate_kwargs);
+            inputs = /** @type {{ _build_translation_inputs: (...args: unknown[]) => Record<string, unknown> }} */ (/** @type {unknown} */ (tokenizer))._build_translation_inputs(texts, tokenizer_options, generate_kwargs);
         } else {
-            inputs = tokenizer(texts, tokenizer_options);
+            inputs = /** @type {any} */ (tokenizer)(texts, tokenizer_options);
         }
 
         const outputTokenIds = await this.model.generate({ ...inputs, ...generate_kwargs });
@@ -85,6 +82,6 @@ export class Text2TextGenerationPipeline
             .batch_decode(/** @type {Tensor} */ (outputTokenIds), {
                 skip_special_tokens: true,
             })
-            .map((text) => ({ [this._key]: text }));
+            .map((/** @type {string} */ text) => ({ [this._key]: text }));
     }
 }

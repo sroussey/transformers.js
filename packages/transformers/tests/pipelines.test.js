@@ -1,5 +1,5 @@
-import { init } from "./init.js";
-import { collect_and_execute_pipeline_tests } from "./test_utils.js";
+import { init } from "./init.ts";
+import { collect_and_execute_pipeline_tests } from "./test_utils.ts";
 
 // Initialise the testing environment
 init();

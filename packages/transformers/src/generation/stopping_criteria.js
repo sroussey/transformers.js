@@ -27,6 +27,9 @@ export class StoppingCriteria extends Callable {
 /**
  */
 export class StoppingCriteriaList extends Callable {
+    /** @type {StoppingCriteria[]} */
+    criteria;
+
     /**
      * Constructs a new instance of `StoppingCriteriaList`.
      */
@@ -58,10 +61,15 @@ export class StoppingCriteriaList extends Callable {
         this.criteria.push(...items);
     }
 
+    /**
+     * @param {number[][]} input_ids
+     * @param {number[][]} scores
+     */
     _call(input_ids, scores) {
         const is_done = new Array(input_ids.length).fill(false);
         for (const criterion of this.criteria) {
-            const criterion_done = criterion(input_ids, scores);
+            /** @type {boolean[]} */
+            const criterion_done = /** @type {any} */ (criterion)(input_ids, scores);
             for (let i = 0; i < is_done.length; ++i) {
                 is_done[i] ||= criterion_done[i];
             }
@@ -79,10 +87,13 @@ export class StoppingCriteriaList extends Callable {
  * Keep in mind for decoder-only type of transformers, this will include the initial prompted tokens.
  */
 export class MaxLengthCriteria extends StoppingCriteria {
+    max_length;
+    max_position_embeddings;
+
     /**
      *
      * @param {number} max_length The maximum length that the output sequence can have in number of tokens.
-     * @param {number} [max_position_embeddings=null] The maximum model length, as defined by the model's `config.max_position_embeddings` attribute.
+     * @param {number | null} [max_position_embeddings=null] The maximum model length, as defined by the model's `config.max_position_embeddings` attribute.
      */
     constructor(max_length, max_position_embeddings = null) {
         super();
@@ -90,6 +101,9 @@ export class MaxLengthCriteria extends StoppingCriteria {
         this.max_position_embeddings = max_position_embeddings;
     }
 
+    /**
+     * @param {number[][]} input_ids
+     */
     _call(input_ids) {
         return input_ids.map((ids) => ids.length >= this.max_length);
     }
@@ -102,6 +116,8 @@ export class MaxLengthCriteria extends StoppingCriteria {
  * By default, it uses the `model.generation_config.eos_token_id`.
  */
 export class EosTokenCriteria extends StoppingCriteria {
+    eos_token_id;
+
     /**
      *
      * @param {number|number[]} eos_token_id The id of the *end-of-sequence* token.
@@ -134,6 +150,8 @@ export class EosTokenCriteria extends StoppingCriteria {
  * This class can be used to stop generation whenever the user interrupts the process.
  */
 export class InterruptableStoppingCriteria extends StoppingCriteria {
+    interrupted;
+
     constructor() {
         super();
         this.interrupted = false;
@@ -147,6 +165,10 @@ export class InterruptableStoppingCriteria extends StoppingCriteria {
         this.interrupted = false;
     }
 
+    /**
+     * @param {number[][]} input_ids
+     * @param {number[][]} scores
+     */
     _call(input_ids, scores) {
         return new Array(input_ids.length).fill(this.interrupted);
     }

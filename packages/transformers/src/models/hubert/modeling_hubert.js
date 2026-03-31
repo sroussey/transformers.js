@@ -1,7 +1,7 @@
-import { PreTrainedModel } from '../modeling_utils.js';
-import { CausalLMOutput, SequenceClassifierOutput } from '../modeling_outputs.js';
-import { Wav2Vec2PreTrainedModel } from '../wav2vec2/modeling_wav2vec2.js';
 import { Tensor } from '../../utils/tensor.js';
+import { CausalLMOutput, SequenceClassifierOutput } from '../modeling_outputs.js';
+import { PreTrainedModel } from '../modeling_utils.js';
+import { Wav2Vec2PreTrainedModel } from '../wav2vec2/modeling_wav2vec2.js';
 
 export class HubertPreTrainedModel extends PreTrainedModel {}
 
@@ -43,7 +43,7 @@ export class HubertForCTC extends Wav2Vec2PreTrainedModel {
      * @param {Tensor} model_inputs.attention_mask Mask to avoid performing convolution and attention on padding token indices. Mask values selected in [0, 1]
      */
     async _call(model_inputs) {
-        return new CausalLMOutput(await super._call(model_inputs));
+        return new CausalLMOutput(/** @type {any} */ (await super._call(model_inputs)));
     }
 }
 
@@ -57,6 +57,6 @@ export class HubertForSequenceClassification extends Wav2Vec2PreTrainedModel {
      * @returns {Promise<SequenceClassifierOutput>} An object containing the model's output logits for sequence classification.
      */
     async _call(model_inputs) {
-        return new SequenceClassifierOutput(await super._call(model_inputs));
+        return new SequenceClassifierOutput(/** @type {any} */ (await super._call(model_inputs)));
     }
 }

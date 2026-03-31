@@ -2,20 +2,22 @@ import { FeatureExtractor, validate_audio_inputs } from '../../feature_extractio
 import { mel_filter_bank, spectrogram, window_function } from '../../utils/audio.js';
 
 export class VoxtralRealtimeFeatureExtractor extends FeatureExtractor {
+    window;
+    /** @param {Record<string, unknown>} config */
     constructor(config) {
         super(config);
 
-        this.config.mel_filters ??= mel_filter_bank(
-            Math.floor(1 + this.config.n_fft / 2), // num_frequency_bins
-            this.config.feature_size, // num_mel_filters
+        /** @type {any} */ (this.config).mel_filters ??= mel_filter_bank(
+            Math.floor(1 + /** @type {number} */ (/** @type {any} */ (this.config).n_fft) / 2), // num_frequency_bins
+            /** @type {number} */ (/** @type {any} */ (this.config).feature_size), // num_mel_filters
             0.0, // min_frequency
             8000.0, // max_frequency
-            this.config.sampling_rate, // sampling_rate
+            /** @type {number} */ (/** @type {any} */ (this.config).sampling_rate), // sampling_rate
             'slaney', // norm
             'slaney', // mel_scale
         );
 
-        this.window = window_function(this.config.n_fft, 'hann');
+        this.window = window_function(/** @type {number} */ (/** @type {any} */ (this.config).n_fft), 'hann');
     }
 
     /**
@@ -26,7 +28,10 @@ export class VoxtralRealtimeFeatureExtractor extends FeatureExtractor {
      * @returns {Promise<import('../../utils/tensor.js').Tensor>} The log-Mel spectrogram tensor of shape [num_mel_bins, num_frames].
      */
     async _extract_fbank_features(waveform, { center = true } = {}) {
-        const { n_fft, hop_length, mel_filters, global_log_mel_max } = this.config;
+        const n_fft = /** @type {number} */ (/** @type {any} */ (this.config).n_fft);
+        const hop_length = /** @type {number} */ (/** @type {any} */ (this.config).hop_length);
+        const mel_filters = /** @type {number[][]} */ (/** @type {any} */ (this.config).mel_filters);
+        const global_log_mel_max = /** @type {number} */ (/** @type {any} */ (this.config).global_log_mel_max);
 
         // torch.stft drops the last frame via [:-1]
         // center=True:  floor(signal_len / hop_length) frames

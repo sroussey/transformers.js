@@ -1,5 +1,5 @@
-import { PreTrainedModel } from '../modeling_utils.js';
 import { SequenceClassifierOutput } from '../modeling_outputs.js';
+import { PreTrainedModel } from '../modeling_utils.js';
 
 export class MobileNetV1PreTrainedModel extends PreTrainedModel {}
 
@@ -14,10 +14,10 @@ export class MobileNetV1Model extends MobileNetV1PreTrainedModel {}
  */
 export class MobileNetV1ForImageClassification extends MobileNetV1PreTrainedModel {
     /**
-     * @param {any} model_inputs
+     * @param {Record<string, unknown>} model_inputs
      */
     async _call(model_inputs) {
-        return new SequenceClassifierOutput(await super._call(model_inputs));
+        return new SequenceClassifierOutput(/** @type {any} */ (await super._call(model_inputs)));
     }
 }
 

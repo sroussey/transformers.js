@@ -1,5 +1,5 @@
 import { VitsTokenizer } from "../../../src/models/tokenizers.js";
-import { BASE_TEST_STRINGS, VITS_TEST_STRINGS } from "../test_strings.js";
+import { BASE_TEST_STRINGS, VITS_TEST_STRINGS } from "../test_strings.ts";
 
 export const TOKENIZER_CLASS = VitsTokenizer;
 export const TEST_CONFIG = {

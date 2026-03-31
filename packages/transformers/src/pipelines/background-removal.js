@@ -1,6 +1,6 @@
-import { ImageSegmentationPipeline } from './image-segmentation.js';
-import { prepareImages } from './_base.js';
 import { RawImage } from '../utils/image.js';
+import { prepareImages } from './_base.js';
+import { ImageSegmentationPipeline } from './image-segmentation.js';
 
 /**
  * @typedef {import('./_base.js').ImagePipelineConstructorArgs} ImagePipelineConstructorArgs
@@ -45,11 +45,15 @@ export class BackgroundRemovalPipeline
         /** @type {any} */ (ImageSegmentationPipeline)
     )
 {
+    /**
+     * @param {ImageInput | ImageInput[]} images
+     * @param {Record<string, unknown>} [options]
+     * @returns {Promise<any>}
+     */
     async _call(images, options = {}) {
         const preparedImages = await prepareImages(images);
 
-        // @ts-expect-error TS2339
-        const masks = await super._call(images, options);
+        const masks = await ImageSegmentationPipeline.prototype._call.call(/** @type {any} */ (this), images, options);
         const result = preparedImages.map((img, i) => {
             const cloned = img.clone();
             cloned.putAlpha(masks[i].mask);

@@ -1,12 +1,10 @@
+/** @typedef {import('../../configs.js').PretrainedConfig} PretrainedConfig */
+
 import { getSessionsConfig } from '../../models/modeling_utils.js';
 import { DEFAULT_DTYPE_SUFFIX_MAPPING } from '../dtypes.js';
 import { get_file_metadata } from './get_file_metadata.js';
 import { get_config } from './get_model_files.js';
 import { resolve_model_type } from './resolve_model_type.js';
-
-/**
- * @typedef {import('../../configs.js').PretrainedConfig} PretrainedConfig
- */
 
 /**
  * The dtypes to probe for availability (excludes 'auto' which is not a concrete dtype).
@@ -20,7 +18,7 @@ const CONCRETE_DTYPES = Object.keys(DEFAULT_DTYPE_SUFFIX_MAPPING);
  *
  * A dtype is considered available if *all* required model session files
  * exist for that dtype. For example, a Seq2Seq model needs both an encoder
- * and decoder file — the dtype is only listed if both are present.
+ * and decoder file -- the dtype is only listed if both are present.
  *
  * @param {string} modelId The model id (e.g., "onnx-community/all-MiniLM-L6-v2-ONNX")
  * @param {Object} [options] Optional parameters
@@ -33,7 +31,7 @@ const CONCRETE_DTYPES = Object.keys(DEFAULT_DTYPE_SUFFIX_MAPPING);
  */
 export async function get_available_dtypes(
     modelId,
-    { config = null, model_file_name = null, revision = 'main', cache_dir = null, local_files_only = false } = {},
+    { config = undefined, model_file_name = undefined, revision = 'main', cache_dir = undefined, local_files_only = false } = {},
 ) {
     config = await get_config(modelId, { config, cache_dir, local_files_only, revision });
 
@@ -52,7 +50,7 @@ export async function get_available_dtypes(
     // Probe all (dtype, baseName) combinations in parallel
     const probeResults = await Promise.all(
         CONCRETE_DTYPES.map(async (dtype) => {
-            const suffix = DEFAULT_DTYPE_SUFFIX_MAPPING[dtype] ?? '';
+            const suffix = /** @type {Record<string, string>} */ (DEFAULT_DTYPE_SUFFIX_MAPPING)[dtype] ?? '';
             const allExist = await Promise.all(
                 baseNames.map(async (baseName) => {
                     const filename = `${subfolder}/${baseName}${suffix}.onnx`;

@@ -228,7 +228,7 @@ export const LogLevel = Object.freeze({
  * Requires the Cross-Origin Storage Chrome extension: {@link https://chromewebstore.google.com/detail/cross-origin-storage/denpnpcgjgikjpoglpjefakmdcbmlgih}.
  * The `experimental_` prefix indicates that the underlying browser API is not yet standardised and may change or be
  * removed without a major version bump. For more information, see {@link https://github.com/WICG/cross-origin-storage}.
- * @property {(input: string | URL, init?: any) => Promise<any>} fetch The fetch function to use. Defaults to `fetch`.
+ * @property {((input: string | URL, init?: any) => Promise<any>) | undefined} fetch The fetch function to use. Defaults to `fetch`.
  */
 
 let logLevel = LogLevel.WARNING; // Default log level

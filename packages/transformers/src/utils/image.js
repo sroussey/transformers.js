@@ -7,18 +7,21 @@
  * @module utils/image
  */
 
+import { apis } from '../env.js';
 import { isNullishDimension } from './core.js';
 import { getFile } from './hub.js';
-import { apis } from '../env.js';
-import { Tensor } from './tensor.js';
 import { saveBlob } from './io.js';
+import { Tensor } from './tensor.js';
 
 // Will be empty (or not used) if running in browser or web-worker
 import sharp from 'sharp';
 import { logger } from './logger.js';
 
+/** @type {((width: number, height: number) => OffscreenCanvas | HTMLCanvasElement) | undefined} */
 let createCanvasFunction;
+/** @type {typeof ImageData | undefined} */
 let ImageDataClass;
+/** @type {((input: any) => Promise<RawImage | ImageBitmap>) | undefined} */
 let loadImageFunction;
 if (apis.IS_WEB_ENV) {
     // Running in browser or web-worker
@@ -28,7 +31,7 @@ if (apis.IS_WEB_ENV) {
         }
         return new self.OffscreenCanvas(width, height);
     };
-    loadImageFunction = self.createImageBitmap;
+    loadImageFunction = (input) => self.createImageBitmap(/** @type {ImageBitmapSource} */ (input));
     ImageDataClass = self.ImageData;
 } else if (sharp) {
     // Running in Node.js, electron, or other non-browser environment
@@ -52,6 +55,7 @@ if (apis.IS_WEB_ENV) {
 }
 
 // Defined here: https://github.com/python-pillow/Pillow/blob/a405e8406b83f8bfb8916e93971edc7407b8b1ff/src/libImaging/Imaging.h#L262-L268
+/** @type {Record<number, string>} */
 const RESAMPLING_MAPPING = {
     0: 'nearest',
     1: 'lanczos',
@@ -72,6 +76,11 @@ const CONTENT_TYPE_MAP = new Map([
 ]);
 
 export class RawImage {
+    data;
+    width;
+    height;
+    channels;
+
     /**
      * Create a new `RawImage` object.
      * @param {Uint8ClampedArray|Uint8Array} data The pixel data.
@@ -137,9 +146,7 @@ export class RawImage {
             throw new Error('fromCanvas() is only supported in browser environments.');
         }
 
-        const ctx = /** @type {CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D} */ (
-            canvas.getContext('2d')
-        );
+        const ctx = /** @type {CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D} */ (canvas.getContext('2d'));
         const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
         return new RawImage(data, canvas.width, canvas.height, 4);
     }
@@ -166,25 +173,26 @@ export class RawImage {
     static async fromBlob(blob) {
         if (apis.IS_WEB_ENV) {
             // Running in environment with canvas
-            const img = await loadImageFunction(blob);
+            const img = /** @type {ImageBitmap} */ (await /** @type {Function} */ (loadImageFunction)(blob));
 
-            const ctx = createCanvasFunction(img.width, img.height).getContext('2d');
+            const ctx = /** @type {CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D} */ (/** @type {Function} */ (createCanvasFunction)(img.width, img.height).getContext('2d'));
 
             // Draw image to context
-            ctx.drawImage(img, 0, 0);
+            ctx.drawImage(/** @type {CanvasImageSource} */ (/** @type {unknown} */ (img)), 0, 0);
 
             return new this(ctx.getImageData(0, 0, img.width, img.height).data, img.width, img.height, 4);
         } else {
             // Use sharp.js to read (and possible resize) the image.
             const img = sharp(await blob.arrayBuffer());
 
-            return await loadImageFunction(img);
+            return /** @type {RawImage} */ (await /** @type {Function} */ (loadImageFunction)(img));
         }
     }
 
     /**
      * Helper method to create a new Image from a tensor
      * @param {Tensor} tensor
+     * @param {string} [channel_format]
      */
     static fromTensor(tensor, channel_format = 'CHW') {
         if (tensor.dims.length !== 3) {
@@ -352,7 +360,7 @@ export class RawImage {
      * @param {number} width The width of the new image. `null` or `-1` will preserve the aspect ratio.
      * @param {number} height The height of the new image. `null` or `-1` will preserve the aspect ratio.
      * @param {Object} options Additional options for resizing.
-     * @param {0|1|2|3|4|5|string} [options.resample] The resampling method to use.
+     * @param {0|1|2|3|4|5|string} [options.resample=2] The resampling method to use.
      * @returns {Promise<RawImage>} `this` to support chaining.
      */
     async resize(width, height, { resample = 2 } = {}) {
@@ -362,7 +370,7 @@ export class RawImage {
         }
 
         // Ensure resample method is a string
-        let resampleMethod = RESAMPLING_MAPPING[resample] ?? resample;
+        let resampleMethod = (typeof resample === 'number' ? RESAMPLING_MAPPING[resample] : undefined) ?? resample;
 
         // Calculate width / height to maintain aspect ratio, in the event that
         // the user passed a null value in.
@@ -388,10 +396,10 @@ export class RawImage {
             const canvas = this.toCanvas();
 
             // Actually perform resizing using the canvas API
-            const ctx = createCanvasFunction(width, height).getContext('2d');
+            const ctx = /** @type {CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D} */ (/** @type {Function} */ (createCanvasFunction)(width, height).getContext('2d'));
 
             // Draw image to context, resizing in the process
-            ctx.drawImage(canvas, 0, 0, width, height);
+            ctx.drawImage(/** @type {CanvasImageSource} */ (/** @type {unknown} */ (canvas)), 0, 0, width, height);
 
             // Create image from the resized data
             const resizedImage = new RawImage(ctx.getImageData(0, 0, width, height).data, width, height, 4);
@@ -418,7 +426,7 @@ export class RawImage {
                     // Perform resizing using affine transform.
                     // This matches how the python Pillow library does it.
                     img = img.affine([width / this.width, 0, 0, height / this.height], {
-                        interpolator: resampleMethod,
+                        interpolator: /** @type {"bilinear" | "nearest" | "bicubic"} */ (resampleMethod),
                     });
                     break;
 
@@ -437,10 +445,13 @@ export class RawImage {
                     throw new Error(`Resampling method ${resampleMethod} is not supported.`);
             }
 
-            return await loadImageFunction(img);
+            return /** @type {RawImage} */ (await /** @type {Function} */ (loadImageFunction)(img));
         }
     }
 
+    /**
+     * @param {[number, number, number, number]} padding
+     */
     async pad([left, right, top, bottom]) {
         left = Math.max(left, 0);
         right = Math.max(right, 0);
@@ -463,10 +474,10 @@ export class RawImage {
             const newHeight = this.height + top + bottom;
 
             // Create a new canvas of the desired size.
-            const ctx = createCanvasFunction(newWidth, newHeight).getContext('2d');
+            const ctx = /** @type {CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D} */ (/** @type {Function} */ (createCanvasFunction)(newWidth, newHeight).getContext('2d'));
 
             // Draw image to context, padding in the process
-            ctx.drawImage(canvas, 0, 0, this.width, this.height, left, top, this.width, this.height);
+            ctx.drawImage(/** @type {CanvasImageSource} */ (/** @type {unknown} */ (canvas)), 0, 0, this.width, this.height, left, top, this.width, this.height);
 
             // Create image from the padded data
             const paddedImage = new RawImage(ctx.getImageData(0, 0, newWidth, newHeight).data, newWidth, newHeight, 4);
@@ -475,10 +486,13 @@ export class RawImage {
             return paddedImage.convert(numChannels);
         } else {
             const img = this.toSharp().extend({ left, right, top, bottom });
-            return await loadImageFunction(img);
+            return /** @type {RawImage} */ (await /** @type {Function} */ (loadImageFunction)(img));
         }
     }
 
+    /**
+     * @param {[number, number, number, number]} bounds
+     */
     async crop([x_min, y_min, x_max, y_max]) {
         // Ensure crop bounds are within the image
         x_min = Math.max(x_min, 0);
@@ -503,10 +517,10 @@ export class RawImage {
 
             // Create a new canvas of the desired size. This is needed since if the
             // image is too small, we need to pad it with black pixels.
-            const ctx = createCanvasFunction(crop_width, crop_height).getContext('2d');
+            const ctx = /** @type {CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D} */ (/** @type {Function} */ (createCanvasFunction)(crop_width, crop_height).getContext('2d'));
 
             // Draw image to context, cropping in the process
-            ctx.drawImage(canvas, x_min, y_min, crop_width, crop_height, 0, 0, crop_width, crop_height);
+            ctx.drawImage(/** @type {CanvasImageSource} */ (/** @type {unknown} */ (canvas)), x_min, y_min, crop_width, crop_height, 0, 0, crop_width, crop_height);
 
             // Create image from the resized data
             const resizedImage = new RawImage(
@@ -527,10 +541,14 @@ export class RawImage {
                 height: crop_height,
             });
 
-            return await loadImageFunction(img);
+            return /** @type {RawImage} */ (await /** @type {Function} */ (loadImageFunction)(img));
         }
     }
 
+    /**
+     * @param {number} crop_width
+     * @param {number} crop_height
+     */
     async center_crop(crop_width, crop_height) {
         // If the image is already the desired size, return it
         if (this.width === crop_width && this.height === crop_height) {
@@ -550,7 +568,7 @@ export class RawImage {
 
             // Create a new canvas of the desired size. This is needed since if the
             // image is too small, we need to pad it with black pixels.
-            const ctx = createCanvasFunction(crop_width, crop_height).getContext('2d');
+            const ctx = /** @type {CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D} */ (/** @type {Function} */ (createCanvasFunction)(crop_width, crop_height).getContext('2d'));
 
             let sourceX = 0;
             let sourceY = 0;
@@ -570,7 +588,7 @@ export class RawImage {
             }
 
             // Draw image to context, cropping in the process
-            ctx.drawImage(canvas, sourceX, sourceY, crop_width, crop_height, destX, destY, crop_width, crop_height);
+            ctx.drawImage(/** @type {CanvasImageSource} */ (/** @type {unknown} */ (canvas)), sourceX, sourceY, crop_width, crop_height, destX, destY, crop_width, crop_height);
 
             // Create image from the resized data
             const resizedImage = new RawImage(
@@ -644,7 +662,7 @@ export class RawImage {
                     });
             }
 
-            return await loadImageFunction(img);
+            return /** @type {RawImage} */ (await /** @type {Function} */ (loadImageFunction)(img));
         }
     }
 
@@ -653,7 +671,7 @@ export class RawImage {
             throw new Error('toBlob() is only supported in browser environments.');
         }
 
-        const canvas = this.toCanvas();
+        const canvas = /** @type {OffscreenCanvas} */ (this.toCanvas());
         return await canvas.convertToBlob({ type, quality });
     }
 
@@ -681,11 +699,11 @@ export class RawImage {
         const cloned = this.clone().rgba();
 
         // Create canvas object for the cloned image
-        const clonedCanvas = createCanvasFunction(cloned.width, cloned.height);
+        const clonedCanvas = /** @type {Function} */ (createCanvasFunction)(cloned.width, cloned.height);
 
         // Draw image to context
-        const data = new ImageDataClass(cloned.data, cloned.width, cloned.height);
-        clonedCanvas.getContext('2d').putImageData(data, 0, 0);
+        const data = new (/** @type {typeof ImageData} */ (ImageDataClass))(new Uint8ClampedArray(cloned.data), cloned.width, cloned.height);
+        /** @type {CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D} */ (/** @type {OffscreenCanvas | HTMLCanvasElement} */ (clonedCanvas).getContext('2d')).putImageData(data, 0, 0);
 
         return clonedCanvas;
     }
@@ -701,7 +719,7 @@ export class RawImage {
         const { data, width, height, channels } = this;
 
         /** @type {typeof Uint8Array | typeof Uint8ClampedArray} */
-        const data_type = /** @type {any} */ (data.constructor);
+        const data_type = /** @type {typeof Uint8Array | typeof Uint8ClampedArray} */ (data.constructor);
         const per_channel_length = data.length / channels;
 
         // Pre-allocate buffers for each channel
@@ -719,7 +737,7 @@ export class RawImage {
 
     /**
      * Helper method to update the image data.
-     * @param {Uint8ClampedArray} data The new image data.
+     * @param {Uint8ClampedArray|Uint8Array} data The new image data.
      * @param {number} width The new width of the image.
      * @param {number} height The new height of the image.
      * @param {1|2|3|4|null} [channels] The new number of channels of the image.
@@ -778,7 +796,7 @@ export class RawImage {
                 throw new Error('Unable to save an image from a Web Worker.');
             }
 
-            const extension = path.split('.').pop().toLowerCase();
+            const extension = /** @type {string} */ (path.split('.').pop()).toLowerCase();
             const mime = CONTENT_TYPE_MAP.get(extension) ?? 'image/png';
 
             // Convert image to Blob

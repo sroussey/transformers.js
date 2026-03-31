@@ -7,15 +7,9 @@ import { logger } from '../logger.js';
  */
 
 /**
- * Resolves the model type (e.g., EncoderOnly, DecoderOnly, Seq2Seq, …) from a
+ * Resolves the model type (e.g., EncoderOnly, DecoderOnly, Seq2Seq, ...) from a
  * model config by checking architectures and model_type against the known
  * MODEL_TYPE_MAPPING.
- *
- * Resolution order:
- *   1. `config.architectures` entries looked up in MODEL_TYPE_MAPPING
- *   2. `config.model_type` looked up directly in MODEL_TYPE_MAPPING
- *   3. `config.model_type` looked up via MODEL_MAPPING_NAMES → architecture → MODEL_TYPE_MAPPING
- *   4. Fallback to `MODEL_TYPES.EncoderOnly`
  *
  * @param {PretrainedConfig} config The model config object.
  * @param {{ warn?: boolean }} [options] Set `warn` to false to suppress the
@@ -23,7 +17,6 @@ import { logger } from '../logger.js';
  * @returns {number} One of the MODEL_TYPES enum values.
  */
 export function resolve_model_type(config, { warn = true } = {}) {
-    // @ts-ignore - architectures is set via Object.assign in PretrainedConfig constructor
     const architectures = /** @type {string[]} */ (config.architectures || []);
 
     // 1. Try architectures against MODEL_TYPE_MAPPING
@@ -42,9 +35,9 @@ export function resolve_model_type(config, { warn = true } = {}) {
         }
 
         // 3. Try MODEL_MAPPING_NAMES as a last resort
-        for (const mapping of Object.values(MODEL_MAPPING_NAMES)) {
+        for (const mapping of Object.values(/** @type {Record<string, Map<string, string>>} */ (MODEL_MAPPING_NAMES))) {
             if (mapping.has(config.model_type)) {
-                const resolved = MODEL_TYPE_MAPPING.get(mapping.get(config.model_type));
+                const resolved = MODEL_TYPE_MAPPING.get(/** @type {string} */ (mapping.get(config.model_type)));
                 if (resolved !== undefined) {
                     return resolved;
                 }

@@ -25,7 +25,7 @@ import { logger } from './utils/logger.js';
  * @param {number} val The value to constrain.
  * @param {number} multiple The number to constrain to.
  * @param {number} [minVal=0] The minimum value to constrain to.
- * @param {number} [maxVal=null] The maximum value to constrain to.
+ * @param {number | null} [maxVal=null] The maximum value to constrain to.
  * @returns {number} The constrained value.
  * @private
  */
@@ -72,7 +72,7 @@ export function center_to_corners_format([centerX, centerY, width, height]) {
  * @param {Tensor} outputs.logits The logits
  * @param {Tensor} outputs.pred_boxes The predicted boxes.
  * @param {number} [threshold=0.5] The threshold to use for the scores.
- * @param {[number, number][]} [target_sizes=null] The sizes of the original images.
+ * @param {[number, number][] | null} [target_sizes=null] The sizes of the original images.
  * @param {boolean} [is_zero_shot=false] Whether zero-shot object detection was performed.
  * @return {Object[]} An array of objects containing the post-processed outputs.
  */
@@ -150,7 +150,7 @@ export function post_process_object_detection(outputs, threshold = 0.5, target_s
 /**
  * Post-processes the outputs of the model (for semantic segmentation).
  * @param {*} outputs Raw outputs of the model.
- * @param {[number, number][]} [target_sizes=null] List of tuples corresponding to the requested final size
+ * @param {[number, number][] | null} [target_sizes=null] List of tuples corresponding to the requested final size
  * (height, width) of each prediction. If unset, predictions will not be resized.
  * @returns {{segmentation: Tensor; labels: number[]}[]} The semantic segmentation maps.
  */
@@ -452,8 +452,8 @@ export function smart_resize(
  * @param {number} [threshold=0.5] The probability score threshold to keep predicted instance masks.
  * @param {number} [mask_threshold=0.5] Threshold to use when turning the predicted masks into binary values.
  * @param {number} [overlap_mask_area_threshold=0.8] The overlap mask area threshold to merge or discard small disconnected parts within each binary instance mask.
- * @param {Set<number>} [label_ids_to_fuse=null] The labels in this state will have all their instances be fused together.
- * @param {[number, number][]} [target_sizes=null] The target sizes to resize the masks to.
+ * @param {Set<number> | null} [label_ids_to_fuse=null] The labels in this state will have all their instances be fused together.
+ * @param {[number, number][] | null} [target_sizes=null] The target sizes to resize the masks to.
  * @returns {Array<{ segmentation: Tensor, segments_info: Array<{id: number, label_id: number, score: number}>}>}
  */
 export function post_process_panoptic_segmentation(
@@ -531,7 +531,7 @@ export function post_process_panoptic_segmentation(
  * Post-processes the outputs of the model (for instance segmentation).
  * @param {*} outputs Raw outputs of the model.
  * @param {number} [threshold=0.5] The probability score threshold to keep predicted instance masks.
- * @param {[number, number][]} [target_sizes=null] List of tuples corresponding to the requested final size
+ * @param {[number, number][] | null} [target_sizes=null] List of tuples corresponding to the requested final size
  * (height, width) of each prediction. If unset, predictions will not be resized.
  * @returns {Array<{ segmentation: Tensor, segments_info: Array<{id: number, label_id: number, score: number}>}>}
  */
@@ -934,11 +934,11 @@ export class ImageProcessor extends Callable {
      *
      * @param {RawImage} image The image to preprocess.
      * @param {Object} [overrides] The overrides for the preprocessing options.
-     * @param {boolean|null} [overrides.do_normalize] Whether to normalize.
-     * @param {boolean|null} [overrides.do_pad] Whether to pad.
-     * @param {boolean|null} [overrides.do_convert_rgb] Whether to convert to RGB.
-     * @param {boolean|null} [overrides.do_convert_grayscale] Whether to convert to grayscale.
-     * @param {boolean|null} [overrides.do_flip_channel_order] Whether to flip channel order.
+     * @param {boolean|null} [overrides.do_normalize=null] Whether to normalize.
+     * @param {boolean|null} [overrides.do_pad=null] Whether to pad.
+     * @param {boolean|null} [overrides.do_convert_rgb=null] Whether to convert to RGB.
+     * @param {boolean|null} [overrides.do_convert_grayscale=null] Whether to convert to grayscale.
+     * @param {boolean|null} [overrides.do_flip_channel_order=null] Whether to flip channel order.
      * @returns {Promise<PreprocessedImage>} The preprocessed image.
      */
     async preprocess(

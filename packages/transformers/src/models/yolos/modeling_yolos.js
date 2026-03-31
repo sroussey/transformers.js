@@ -1,19 +1,21 @@
-import { PreTrainedModel } from '../modeling_utils.js';
-import { ModelOutput } from '../modeling_outputs.js';
 import { Tensor } from '../../utils/tensor.js';
+import { ModelOutput } from '../modeling_outputs.js';
+import { PreTrainedModel } from '../modeling_utils.js';
 
 export class YolosPreTrainedModel extends PreTrainedModel {}
 export class YolosModel extends YolosPreTrainedModel {}
 export class YolosForObjectDetection extends YolosPreTrainedModel {
     /**
-     * @param {any} model_inputs
+     * @param {Record<string, unknown>} model_inputs
      */
     async _call(model_inputs) {
-        return new YolosObjectDetectionOutput(await super._call(model_inputs));
+        return new YolosObjectDetectionOutput(/** @type {any} */ (await super._call(model_inputs)));
     }
 }
 
 export class YolosObjectDetectionOutput extends ModelOutput {
+    logits;
+    pred_boxes;
     /**
      * @param {Object} output The output of the model.
      * @param {Tensor} output.logits Classification logits (including no-object) for all queries.

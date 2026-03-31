@@ -14,12 +14,19 @@ import { PreTrainedTokenizer, _build_translation_inputs } from '../../tokenizati
  * @see {@link https://github.com/facebookresearch/flores/blob/main/flores200/README.md#languages-in-flores-200}
  */
 export class NllbTokenizer extends PreTrainedTokenizer {
+    languageRegex;
+    language_codes;
+    lang_to_token;
+    /**
+     * @param {Record<string, unknown>} tokenizerJSON
+     * @param {Record<string, unknown>} tokenizerConfig
+     */
     constructor(tokenizerJSON, tokenizerConfig) {
         super(tokenizerJSON, tokenizerConfig);
 
         this.languageRegex = /^[a-z]{3}_[A-Z][a-z]{3}$/;
-        this.language_codes = this.all_special_tokens.filter((x) => this.languageRegex.test(x));
-        this.lang_to_token = (x) => x; // Identity function
+        this.language_codes = this.all_special_tokens.filter((/** @type {string} */ x) => this.languageRegex.test(x));
+        this.lang_to_token = (/** @type {string} */ x) => x; // Identity function
     }
 
     /**

@@ -1,6 +1,6 @@
+import { Tensor } from '../../utils/tensor.js';
 import { PreTrainedModel, decoder_forward } from '../modeling_utils.js';
 import { sessionRun } from '../session.js';
-import { Tensor } from '../../utils/tensor.js';
 
 export class Phi3VPreTrainedModel extends PreTrainedModel {
     forward_params = [
@@ -16,26 +16,26 @@ export class Phi3VPreTrainedModel extends PreTrainedModel {
 export class Phi3VForCausalLM extends Phi3VPreTrainedModel {
     async forward({
         // Produced by the tokenizer/processor:
-        input_ids = null,
-        attention_mask = null,
-        pixel_values = null,
-        image_sizes = null,
+        input_ids = /** @type {import('../../utils/tensor.js').Tensor | null} */ (null),
+        attention_mask = /** @type {import('../../utils/tensor.js').Tensor | null} */ (null),
+        pixel_values = /** @type {import('../../utils/tensor.js').Tensor | null} */ (null),
+        image_sizes = /** @type {import('../../utils/tensor.js').Tensor | null} */ (null),
 
         // Used during generation:
-        position_ids = null,
-        inputs_embeds = null,
-        past_key_values = null,
+        position_ids = /** @type {import('../../utils/tensor.js').Tensor | null} */ (null),
+        inputs_embeds = /** @type {import('../../utils/tensor.js').Tensor | null} */ (null),
+        past_key_values = /** @type {import('../../cache_utils.js').DynamicCache | null} */ (null),
 
         // Generic generation parameters
-        generation_config = null,
-        logits_processor = null,
+        generation_config = /** @type {import('../../generation/configuration_utils.js').GenerationConfig | null} */ (null),
+        logits_processor = /** @type {import('../../generation/logits_process.js').LogitsProcessorList | null} */ (null),
 
         // TODO: needed?
         ...kwargs
     }) {
         if (!inputs_embeds) {
-            let image_features;
-            if (pixel_values && input_ids.dims[1] !== 1) {
+            let /** @type {any} */ image_features;
+            if (pixel_values && /** @type {import('../../utils/tensor.js').Tensor} */ (input_ids).dims[1] !== 1) {
                 if (!image_sizes) {
                     throw new Error('`image_sizes` must be provided when `pixel_values` is provided.');
                 }
@@ -46,12 +46,12 @@ export class Phi3VForCausalLM extends Phi3VPreTrainedModel {
                     image_sizes,
                 }));
             } else {
-                const hidden_size = this.config.normalized_config.hidden_size;
-                image_features = new Tensor('float32', [], [0, hidden_size]);
+                const hidden_size = /** @type {Record<string, number>} */ (this.config.normalized_config).hidden_size;
+                image_features = new Tensor('float32', new Float32Array(0), [0, hidden_size]);
             }
 
             ({ inputs_embeds } = await sessionRun(this.sessions['prepare_inputs_embeds'], {
-                input_ids,
+                input_ids: /** @type {import('../../utils/tensor.js').Tensor} */ (input_ids),
                 image_features,
             }));
         }

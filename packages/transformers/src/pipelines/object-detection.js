@@ -1,4 +1,4 @@
-import { Pipeline, prepareImages, get_bounding_box } from './_base.js';
+import { get_bounding_box, Pipeline, prepareImages } from './_base.js';
 
 /**
  * @typedef {import('./_base.js').ImagePipelineConstructorArgs} ImagePipelineConstructorArgs
@@ -58,8 +58,14 @@ import { Pipeline, prepareImages, get_bounding_box } from './_base.js';
  * ```
  */
 export class ObjectDetectionPipeline
-    extends /** @type {new (options: ImagePipelineConstructorArgs) => ObjectDetectionPipelineType} */ (Pipeline)
+    extends /** @type {new (options: ImagePipelineConstructorArgs) => ObjectDetectionPipelineType} */ (/** @type {unknown} */ (Pipeline))
 {
+    /**
+     * @param {ImageInput | ImageInput[]} images
+     * @param {object} [options]
+     * @param {number} [options.threshold=0.9]
+     * @param {boolean} [options.percentage=false]
+     */
     async _call(images, { threshold = 0.9, percentage = false } = {}) {
         const isBatched = Array.isArray(images);
 
@@ -70,22 +76,20 @@ export class ObjectDetectionPipeline
 
         const imageSizes = percentage ? null : preparedImages.map((x) => [x.height, x.width]);
 
-        const { pixel_values, pixel_mask } = await this.processor(preparedImages);
-        const output = await this.model({ pixel_values, pixel_mask });
+        const { pixel_values, pixel_mask } = await /** @type {any} */ (this.processor)(preparedImages);
+        const output = await /** @type {any} */ (this.model)({ pixel_values, pixel_mask });
 
-        // @ts-ignore
-        const processed = this.processor.image_processor.post_process_object_detection(output, threshold, imageSizes);
+        const processed = /** @type {{ post_process_object_detection: (...args: unknown[]) => { boxes: number[][]; scores: number[]; classes: number[] }[] }} */ (/** @type {unknown} */ (this.processor.image_processor)).post_process_object_detection(output, threshold, imageSizes);
 
         // Add labels
-        // @ts-expect-error TS2339
         const { id2label } = this.model.config;
 
         // Format output
         /** @type {ObjectDetectionOutput[]} */
-        const result = processed.map((batch) =>
-            batch.boxes.map((box, i) => ({
+        const result = processed.map((/** @type {{ boxes: number[][]; scores: number[]; classes: number[] }} */ batch) =>
+            batch.boxes.map((/** @type {number[]} */ box, /** @type {number} */ i) => ({
                 score: batch.scores[i],
-                label: id2label[batch.classes[i]],
+                label: /** @type {Record<number, string>} */ (id2label)[batch.classes[i]],
                 box: get_bounding_box(box, !percentage),
             })),
         );

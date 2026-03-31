@@ -2,9 +2,10 @@
  * @module generation/streamers
  */
 
-import { mergeArrays } from '../utils/core.js';
 import { apis } from '../env.js';
+import { mergeArrays } from '../utils/core.js';
 
+/** @param {number} cp */
 const is_chinese_char = (cp) =>
     (cp >= 0x4e00 && cp <= 0x9fff) ||
     (cp >= 0x3400 && cp <= 0x4dbf) ||
@@ -32,21 +33,32 @@ export class BaseStreamer {
     }
 }
 
-const stdout_write = apis.IS_PROCESS_AVAILABLE ? (x) => process.stdout.write(x) : (x) => console.log(x);
+const stdout_write = apis.IS_PROCESS_AVAILABLE ? (/** @type {string} */ x) => process.stdout.write(x) : (/** @type {string} */ x) => console.log(x);
 
 /**
  * Simple text streamer that prints the token(s) to stdout as soon as entire words are formed.
  */
 export class TextStreamer extends BaseStreamer {
+    tokenizer;
+    skip_prompt;
+    callback_function;
+    token_callback_function;
+    decode_kwargs;
+    /** @type {bigint[]} */
+    token_cache;
+    print_len;
+    next_tokens_are_prompt;
+    special_ids;
+
     /**
      *
      * @param {import('../tokenization_utils.js').PreTrainedTokenizer} tokenizer
-     * @param {Object} options
+     * @param {object} [options]
      * @param {boolean} [options.skip_prompt=false] Whether to skip the prompt tokens
      * @param {boolean} [options.skip_special_tokens=true] Whether to skip special tokens when decoding
-     * @param {function(string): void} [options.callback_function=null] Function to call when a piece of text is ready to display
-     * @param {function(bigint[]): void} [options.token_callback_function=null] Function to call when a new token is generated
-     * @param {Object} [options.decode_kwargs={}] Additional keyword arguments to pass to the tokenizer's decode method
+     * @param {((text: string) => void) | null} [options.callback_function=null] Function to call when a piece of text is ready to display
+     * @param {((tokens: bigint[]) => void) | null} [options.token_callback_function=null] Function to call when a new token is generated
+     * @param {Record<string, unknown>} [options.decode_kwargs={}] Additional keyword arguments to pass to the tokenizer's decode method
      */
     constructor(
         tokenizer,
@@ -112,7 +124,7 @@ export class TextStreamer extends BaseStreamer {
         }
 
         // Add the new token to the cache and decodes the entire thing.
-        this.token_cache = mergeArrays(this.token_cache, tokens);
+        this.token_cache = /** @type {bigint[]} */ (mergeArrays(this.token_cache, tokens));
         const text = this.tokenizer.decode(this.token_cache, this.decode_kwargs);
 
         let printable_text;
@@ -176,18 +188,25 @@ export class TextStreamer extends BaseStreamer {
  *  - The stream is finalized (on_finalize)
  */
 export class WhisperTextStreamer extends TextStreamer {
+    timestamp_begin;
+    on_chunk_start;
+    on_chunk_end;
+    on_finalize;
+    time_precision;
+    waiting_for_timestamp;
+
     /**
      * @param {import('../models/whisper/tokenization_whisper.js').WhisperTokenizer} tokenizer
-     * @param {Object} options
+     * @param {object} [options]
      * @param {boolean} [options.skip_prompt=false] Whether to skip the prompt tokens
-     * @param {function(string): void} [options.callback_function=null] Function to call when a piece of text is ready to display
-     * @param {function(bigint[]): void} [options.token_callback_function=null] Function to call when a new token is generated
-     * @param {function(number): void} [options.on_chunk_start=null] Function to call when a new chunk starts
-     * @param {function(number): void} [options.on_chunk_end=null] Function to call when a chunk ends
-     * @param {function(): void} [options.on_finalize=null] Function to call when the stream is finalized
+     * @param {((text: string) => void) | null} [options.callback_function=null] Function to call when a piece of text is ready to display
+     * @param {((tokens: bigint[]) => void) | null} [options.token_callback_function=null] Function to call when a new token is generated
+     * @param {((time: number) => void) | null} [options.on_chunk_start=null] Function to call when a new chunk starts
+     * @param {((time: number) => void) | null} [options.on_chunk_end=null] Function to call when a chunk ends
+     * @param {(() => void) | null} [options.on_finalize=null] Function to call when the stream is finalized
      * @param {number} [options.time_precision=0.02] Precision of the timestamps
      * @param {boolean} [options.skip_special_tokens=true] Whether to skip special tokens when decoding
-     * @param {Object} [options.decode_kwargs={}] Additional keyword arguments to pass to the tokenizer's decode method
+     * @param {Record<string, unknown>} [options.decode_kwargs={}] Additional keyword arguments to pass to the tokenizer's decode method
      */
     constructor(
         tokenizer,

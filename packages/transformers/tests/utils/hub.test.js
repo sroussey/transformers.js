@@ -1,6 +1,6 @@
 import { AutoModel, PreTrainedModel } from "../../src/transformers.js";
 
-import { MAX_TEST_EXECUTION_TIME, DEFAULT_MODEL_OPTIONS } from "../init.js";
+import { MAX_TEST_EXECUTION_TIME, DEFAULT_MODEL_OPTIONS } from "../init.ts";
 import fs from "node:fs";
 
 // TODO: Set cache folder to a temp directory

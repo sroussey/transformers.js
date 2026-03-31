@@ -10,7 +10,7 @@ import { logger } from '../../utils/logger.js';
 async function loadAndCacheFile(url) {
     const fileName = url.split('/').pop();
 
-    /** @type {import('../../utils/cache.js').CacheInterface|undefined} */
+    /** @type {import('../../utils/cache.js').CacheInterface|null|undefined} */
     let cache;
     try {
         cache = await getCache();
@@ -27,7 +27,7 @@ async function loadAndCacheFile(url) {
     }
 
     // If not in cache, fetch it
-    const response = await env.fetch(url);
+    const response = await /** @type {Function} */ (env.fetch)(url);
 
     if (!response.ok) {
         throw new Error(`Failed to fetch ${fileName}: ${response.status} ${response.statusText}`);

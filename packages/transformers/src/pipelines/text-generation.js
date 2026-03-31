@@ -8,6 +8,10 @@ import { Tensor } from '../utils/tensor.js';
  * @typedef {import('../tokenization_utils.js').Message[]} Chat
  */
 
+/**
+ * @param {unknown} x
+ * @returns {x is import('../tokenization_utils.js').Message[]}
+ */
 function isChat(x) {
     return Array.isArray(x) && x.every((x) => 'role' in x && 'content' in x);
 }
@@ -98,23 +102,24 @@ function isChat(x) {
  * ```
  */
 export class TextGenerationPipeline
-    extends /** @type {new (options: TextPipelineConstructorArgs) => TextGenerationPipelineType} */ (Pipeline)
+    extends /** @type {new (options: TextPipelineConstructorArgs) => TextGenerationPipelineType} */ (/** @type {unknown} */ (Pipeline))
 {
     /**
      * @param {string | string[] | import('../tokenization_utils.js').Message[] | import('../tokenization_utils.js').Message[][]} texts
-     * @param {Partial<TextGenerationConfig>} generate_kwargs
+     * @param {Record<string, unknown>} [generate_kwargs]
      */
     async _call(texts, generate_kwargs = {}) {
+        const gen_kwargs = generate_kwargs;
         let isBatched = false;
         let isChatInput = false;
 
         // By default, do not add special tokens, unless the tokenizer specifies otherwise
         let add_special_tokens =
-            generate_kwargs.add_special_tokens ??
+            gen_kwargs.add_special_tokens ??
             (this.tokenizer.add_bos_token || this.tokenizer.add_eos_token) ??
             false;
 
-        let tokenizer_kwargs = generate_kwargs.tokenizer_encode_kwargs;
+        let tokenizer_kwargs = /** @type {Record<string, unknown> | undefined} */ (gen_kwargs.tokenizer_encode_kwargs);
 
         // Normalize inputs
         /** @type {string[]} */
@@ -136,11 +141,11 @@ export class TextGenerationPipeline
 
             // If the input is a chat, we need to apply the chat template
             inputs = /** @type {string[]} */ (
-                /** @type {Chat[]} */ (texts).map((x) =>
+                /** @type {Chat[]} */ (texts).map((/** @type {import('../tokenization_utils.js').Message[]} */ x) =>
                     this.tokenizer.apply_chat_template(x, {
                         tokenize: false,
                         add_generation_prompt: true,
-                        ...tokenizer_kwargs,
+                        ...(tokenizer_kwargs ?? {}),
                     }),
                 )
             );
@@ -150,14 +155,14 @@ export class TextGenerationPipeline
         }
 
         // By default, return full text
-        const return_full_text = isChatInput ? false : (generate_kwargs.return_full_text ?? true);
+        const return_full_text = isChatInput ? false : (gen_kwargs.return_full_text ?? true);
 
         this.tokenizer.padding_side = 'left';
-        const text_inputs = this.tokenizer(inputs, {
+        const text_inputs = /** @type {any} */ (this.tokenizer)(inputs, {
             add_special_tokens,
             padding: true,
             truncation: true,
-            ...tokenizer_kwargs,
+            ...(tokenizer_kwargs ?? {}),
         });
 
         const outputTokenIds = /** @type {Tensor} */ (
@@ -177,11 +182,11 @@ export class TextGenerationPipeline
                 .batch_decode(text_inputs.input_ids, {
                     skip_special_tokens: true,
                 })
-                .map((x) => x.length);
+                .map((/** @type {string} */ x) => x.length);
         }
 
-        /** @type {TextGenerationOutput[]} */
-        const toReturn = Array.from({ length: texts.length }, (_) => []);
+        /** @type {any[]} */
+        const toReturn = Array.from({ length: texts.length }, () => /** @type {any[]} */ ([]));
         for (let i = 0; i < decoded.length; ++i) {
             const textIndex = Math.floor((i / outputTokenIds.dims[0]) * texts.length);
 
@@ -192,7 +197,7 @@ export class TextGenerationPipeline
             toReturn[textIndex].push(
                 /** @type {TextGenerationSingle} */ ({
                     generated_text: isChatInput
-                        ? [.../** @type {Chat[]} */ (texts)[textIndex], { role: 'assistant', content: decoded[i] }]
+                        ? /** @type {import('../tokenization_utils.js').Message[]} */ ([.../** @type {import('../tokenization_utils.js').Message[][]} */ (texts)[textIndex], { role: 'assistant', content: decoded[i] }])
                         : decoded[i],
                 }),
             );

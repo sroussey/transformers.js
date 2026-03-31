@@ -307,7 +307,7 @@ function getNormalizedConfig(config) {
 
 /**
  *
- * @param {PretrainedConfig} config
+ * @param {PretrainedConfig | undefined} config
  * @param {Object} [options]
  * @param {number} [options.batch_size]
  * @param {string} [options.prefix]
@@ -316,11 +316,11 @@ function getNormalizedConfig(config) {
  */
 export function getCacheShapes(config, options) {
     if (!(config instanceof PretrainedConfig)) {
-        config = new PretrainedConfig(config);
+        config = new PretrainedConfig(/** @type {Object} */ (/** @type {unknown} */ (config)));
     }
 
     const batch_size = options?.batch_size ?? 1;
-    if (['lfm2', 'lfm2_moe'].includes(config.model_type)) {
+    if (['lfm2', 'lfm2_moe'].includes(/** @type {string} */ (config.model_type))) {
         const pkv_prefix = options?.prefix ?? 'past_key_values';
         const conv_prefix = pkv_prefix === 'present' ? 'present' : 'past';
 
@@ -341,7 +341,7 @@ export function getCacheShapes(config, options) {
             }
         }
         return cache_values;
-    } else if (['granitemoehybrid', 'falcon_h1', 'nemotron_h'].includes(config.model_type)) {
+    } else if (['granitemoehybrid', 'falcon_h1', 'nemotron_h'].includes(/** @type {string} */ (config.model_type))) {
         const pkv_prefix = options?.prefix ?? 'past_key_values';
         const conv_prefix = pkv_prefix === 'present' ? 'present' : 'past';
 
@@ -376,7 +376,7 @@ export function getCacheShapes(config, options) {
             }
         }
         return cache_values;
-    } else if (['qwen3_next', 'qwen3_5_text', 'qwen3_5_moe_text', 'olmo_hybrid'].includes(config.model_type)) {
+    } else if (['qwen3_next', 'qwen3_5_text', 'qwen3_5_moe_text', 'olmo_hybrid'].includes(/** @type {string} */ (config.model_type))) {
         const pkv_prefix = options?.prefix ?? 'past_key_values';
         const conv_prefix = pkv_prefix === 'present' ? 'present' : 'past';
 
@@ -424,7 +424,7 @@ export function getCacheShapes(config, options) {
             }
         }
         return cache_values;
-    } else if (['lfm2_vl', 'qwen3_5', 'qwen3_5_moe', 'voxtral_realtime'].includes(config.model_type)) {
+    } else if (['lfm2_vl', 'qwen3_5', 'qwen3_5_moe', 'voxtral_realtime'].includes(/** @type {string} */ (config.model_type))) {
         let subConfig;
         if (config.model_type === 'voxtral_realtime' && options?.session_name === 'audio_encoder') {
             subConfig = /** @type {any} */ (config).audio_config;
@@ -532,7 +532,7 @@ export class PretrainedConfig {
     /** @type {boolean} */
     is_encoder_decoder = false;
 
-    /** @type {number} */
+    /** @type {number|undefined} */
     max_position_embeddings;
 
     /** @type {TransformersJSConfig} */
@@ -580,7 +580,7 @@ export class PretrainedConfig {
      */
     static async from_pretrained(
         pretrained_model_name_or_path,
-        { progress_callback = null, config = null, cache_dir = null, local_files_only = false, revision = 'main' } = {},
+        { progress_callback = /** @type {import('./utils/core.js').ProgressCallback | undefined} */ (undefined), config = /** @type {import('./configs.js').PretrainedConfig | undefined} */ (undefined), cache_dir = /** @type {string | undefined} */ (undefined), local_files_only = false, revision = 'main' } = {},
     ) {
         if (config && !(config instanceof PretrainedConfig)) {
             config = new PretrainedConfig(config);

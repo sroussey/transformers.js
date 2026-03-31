@@ -1,5 +1,5 @@
 import { random } from "../../src/utils/random.js";
-import { init } from "../init.js";
+import { init } from "../init.ts";
 
 // Initialise the testing environment
 init();

@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import { Readable } from 'node:stream';
 import { pipeline as pipe } from 'node:stream/promises';
+/** @typedef {import('node:stream/web').ReadableStream} NodeReadableStream */
 
 import { apis } from '../env.js';
 
@@ -36,7 +37,7 @@ export async function saveBlob(path, blob) {
     } else if (apis.IS_FS_AVAILABLE) {
         // Convert Blob to a Node.js Readable Stream
         const webStream = blob.stream();
-        const nodeStream = Readable.fromWeb(webStream);
+        const nodeStream = Readable.fromWeb(/** @type {NodeReadableStream} */ (webStream));
 
         // Create the file write stream
         const fileStream = fs.createWriteStream(path);

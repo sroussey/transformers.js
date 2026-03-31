@@ -2,14 +2,15 @@
   // Only include files in the src directory
   "include": ["src/**/*"],
   "compilerOptions": {
-    // Tells the compiler to check JS files
+    "allowJs": true,
     "checkJs": true,
     "target": "esnext",
     "module": "esnext",
     "moduleResolution": "bundler",
     "outDir": "types",
     "rootDir": "src",
-    "strict": false,
+    "strict": true,
+    "noImplicitAny": true,
     "skipLibCheck": true,
     "declaration": true,
     "declarationMap": true,

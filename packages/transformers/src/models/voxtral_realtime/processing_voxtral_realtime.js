@@ -1,8 +1,8 @@
-import { AutoFeatureExtractor } from '../auto/feature_extraction_auto.js';
-import { AutoTokenizer } from '../auto/tokenization_auto.js';
+import { validate_audio_inputs } from '../../feature_extraction_utils.js';
 import { Processor } from '../../processing_utils.js';
 import { Tensor } from '../../utils/tensor.js';
-import { validate_audio_inputs } from '../../feature_extraction_utils.js';
+import { AutoFeatureExtractor } from '../auto/feature_extraction_auto.js';
+import { AutoTokenizer } from '../auto/tokenization_auto.js';
 
 // Voxtral Realtime audio config constants (from mistral_common AudioConfig)
 const NUM_LEFT_PAD_TOKENS = 32;
@@ -25,14 +25,14 @@ export class VoxtralRealtimeProcessor extends Processor {
 
     /** Number of raw audio samples in the first audio chunk. */
     get num_samples_first_audio_chunk() {
-        const { hop_length, n_fft } = this.feature_extractor.config;
-        return (this.num_mel_frames_first_audio_chunk - 1) * hop_length + Math.floor(n_fft / 2);
+        const { hop_length, n_fft } = /** @type {Record<string, number>} */ (/** @type {any} */ (this.feature_extractor).config);
+        return (this.num_mel_frames_first_audio_chunk - 1) * /** @type {number} */ (hop_length) + Math.floor(/** @type {number} */ (n_fft) / 2);
     }
 
     /** Number of raw audio samples per subsequent audio chunk. */
     get num_samples_per_audio_chunk() {
-        const { hop_length, n_fft } = this.feature_extractor.config;
-        return AUDIO_LENGTH_PER_TOK * hop_length + n_fft;
+        const { hop_length, n_fft } = /** @type {Record<string, number>} */ (/** @type {any} */ (this.feature_extractor).config);
+        return AUDIO_LENGTH_PER_TOK * /** @type {number} */ (hop_length) + /** @type {number} */ (n_fft);
     }
 
     /** Number of right-pad tokens for non-streaming mode. */
@@ -47,7 +47,7 @@ export class VoxtralRealtimeProcessor extends Processor {
 
     /** Number of raw audio samples per token. */
     get raw_audio_length_per_tok() {
-        return AUDIO_LENGTH_PER_TOK * this.feature_extractor.config.hop_length;
+        return AUDIO_LENGTH_PER_TOK * /** @type {number} */ (/** @type {any} */ (/** @type {any} */ (this.feature_extractor).config).hop_length);
     }
 
     /**
@@ -84,7 +84,7 @@ export class VoxtralRealtimeProcessor extends Processor {
                 const padded_audio = new Float32Array(num_left_pad_samples + audio.length);
                 padded_audio.set(audio, num_left_pad_samples);
 
-                const audio_encoding = await this.feature_extractor(padded_audio, { center: true });
+                const audio_encoding = await /** @type {any} */ (this.feature_extractor)(padded_audio, { center: true });
 
                 // Build input_ids: BOS + (num_left_pad_tokens + num_delay_tokens) * [STREAMING_PAD]
                 const num_pad_tokens = NUM_LEFT_PAD_TOKENS + NUM_DELAY_TOKENS;
@@ -103,11 +103,11 @@ export class VoxtralRealtimeProcessor extends Processor {
                 const padded_audio = new Float32Array(audio.length + right_pad_samples);
                 padded_audio.set(audio);
 
-                return await this.feature_extractor(padded_audio, { center: true });
+                return await /** @type {any} */ (this.feature_extractor)(padded_audio, { center: true });
             }
         } else {
             // Subsequent streaming chunks: extract mel with center=false
-            return await this.feature_extractor(audio, { center: false });
+            return await /** @type {any} */ (this.feature_extractor)(audio, { center: false });
         }
     }
 }

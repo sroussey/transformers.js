@@ -1,13 +1,14 @@
-import { PreTrainedModel, encoder_forward } from '../modeling_utils.js';
-import { ones } from '../../utils/tensor.js';
-import { sessionRun } from '../session.js';
+import { Tensor, ones } from '../../utils/tensor.js';
 import { ModelOutput } from '../modeling_outputs.js';
-import { Tensor } from '../../utils/tensor.js';
+import { PreTrainedModel, encoder_forward } from '../modeling_utils.js';
+import { sessionRun } from '../session.js';
 
 /**
  * Base class for Segment-Anything model's output.
  */
 export class SamImageSegmentationOutput extends ModelOutput {
+    iou_scores;
+    pred_masks;
     /**
      * @param {Object} output The output of the model.
      * @param {Tensor} output.iou_scores The output logits of the model.
@@ -19,6 +20,16 @@ export class SamImageSegmentationOutput extends ModelOutput {
         this.pred_masks = pred_masks;
     }
 }
+
+/**
+ * @typedef {Object} SamModelInputsInternal
+ * @property {Tensor} pixel_values
+ * @property {Tensor} [input_points]
+ * @property {Tensor} [input_labels]
+ * @property {Tensor} [input_boxes]
+ * @property {Tensor} [image_embeddings]
+ * @property {Tensor} [image_positional_embeddings]
+ */
 
 export class SamPreTrainedModel extends PreTrainedModel {}
 
@@ -76,7 +87,7 @@ export class SamModel extends SamPreTrainedModel {
         // out:
         //  - image_embeddings: tensor.float32[batch_size,256,64,64]
         //  - image_positional_embeddings: tensor.float32[batch_size,256,64,64]
-        return await encoder_forward(this, { pixel_values });
+        return /** @type {Promise<{ image_embeddings: Tensor, image_positional_embeddings: Tensor }>} */ (/** @type {unknown} */ (encoder_forward(this, { pixel_values })));
     }
 
     /**
@@ -105,19 +116,19 @@ export class SamModel extends SamPreTrainedModel {
             // Compute the image embeddings if they are missing
             model_inputs = {
                 ...model_inputs,
-                ...(await this.get_image_embeddings(model_inputs)),
+                ...(await this.get_image_embeddings(/** @type {{ pixel_values: Tensor }} */ (model_inputs))),
             };
         } else {
             model_inputs = { ...model_inputs };
         }
 
         // Set default input labels if they are missing
-        model_inputs.input_labels ??= ones(model_inputs.input_points.dims.slice(0, -1));
+        model_inputs.input_labels ??= ones(/** @type {Tensor} */ (model_inputs.input_points).dims.slice(0, -1));
 
-        const decoder_inputs = {
+        const decoder_inputs = /** @type {any} */ ({
             image_embeddings: model_inputs.image_embeddings,
             image_positional_embeddings: model_inputs.image_positional_embeddings,
-        };
+        });
         if (model_inputs.input_points) {
             decoder_inputs.input_points = model_inputs.input_points;
         }
@@ -140,6 +151,6 @@ export class SamModel extends SamPreTrainedModel {
      * @returns {Promise<SamImageSegmentationOutput>} Object containing segmentation outputs
      */
     async _call(model_inputs) {
-        return new SamImageSegmentationOutput(await super._call(model_inputs));
+        return new SamImageSegmentationOutput(/** @type {any} */ (await super._call(model_inputs)));
     }
 }

@@ -1,7 +1,10 @@
+import { apis, env } from '../env.js';
 import { RawImage } from './image.js';
-import { env, apis } from '../env.js';
 
 export class RawVideoFrame {
+    image;
+    timestamp;
+
     /**
      * @param {RawImage} image
      * @param {number} timestamp
@@ -13,6 +16,11 @@ export class RawVideoFrame {
 }
 
 export class RawVideo {
+    /** @type {RawVideoFrame[]} */
+    frames;
+    /** @type {number} */
+    duration;
+
     /**
      * @param {RawVideoFrame[]|RawImage[]} frames
      * @param {number} duration
@@ -20,7 +28,7 @@ export class RawVideo {
     constructor(frames, duration) {
         if (frames.length > 0 && frames[0] instanceof RawImage) {
             // Assume uniform timestamps
-            frames = frames.map((image, i) => new RawVideoFrame(image, ((i + 1) / (frames.length + 1)) * duration));
+            frames = /** @type {RawImage[]} */ (frames).map((/** @type {RawImage} */ image, /** @type {number} */ i) => new RawVideoFrame(image, ((i + 1) / (frames.length + 1)) * duration));
         }
         this.frames = /** @type {RawVideoFrame[]} */ (frames);
         this.duration = duration;
@@ -43,12 +51,12 @@ export class RawVideo {
  *
  * @param {string|Blob|HTMLVideoElement} src The video to process.
  * @param {Object} [options] Optional parameters.
- * @param {number} [options.num_frames=null] The number of frames to sample uniformly.
- * @param {number} [options.fps=null] The number of frames to sample per second.
+ * @param {number | null} [options.num_frames=null] The number of frames to sample uniformly.
+ * @param {number | null} [options.fps=null] The number of frames to sample per second.
  *
  * @returns {Promise<RawVideo>} The loaded video.
  */
-export async function load_video(src, { num_frames = null, fps = null } = {}) {
+export async function load_video(src, { num_frames = /** @type {number | null} */ (null), fps = /** @type {number | null} */ (null) } = {}) {
     if (!apis.IS_BROWSER_ENV) {
         throw new Error('`load_video` is currently only supported in browser environments.');
     }
@@ -79,7 +87,7 @@ export async function load_video(src, { num_frames = null, fps = null } = {}) {
 
     if (video.seekable.start(0) === video.seekable.end(0)) {
         // Fallback: Download entire video if not seekable
-        const response = await env.fetch(video.src);
+        const response = await /** @type {Function} */ (env.fetch)(video.src);
         const blob = await response.blob();
         video.src = URL.createObjectURL(blob);
         await new Promise((resolve) => (video.onloadedmetadata = resolve));
@@ -92,7 +100,7 @@ export async function load_video(src, { num_frames = null, fps = null } = {}) {
         count = num_frames;
         step = num_frames === 1 ? 0 : duration / (num_frames - 1);
     } else {
-        step = 1 / fps;
+        step = 1 / /** @type {number} */ (fps);
         count = Math.floor(duration / step);
     }
 
@@ -105,7 +113,7 @@ export async function load_video(src, { num_frames = null, fps = null } = {}) {
     const canvas = document.createElement('canvas');
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
-    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    const ctx = /** @type {CanvasRenderingContext2D} */ (canvas.getContext('2d', { willReadFrequently: true }));
     for (const t of sampleTimes) {
         video.currentTime = t;
         await new Promise((resolve) => {

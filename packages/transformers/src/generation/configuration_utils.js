@@ -20,10 +20,10 @@ export class GenerationConfig {
 
     /**
      * The maximum numbers of tokens to generate, ignoring the number of tokens in the prompt.
-     * @type {number}
+     * @type {number | null}
      * @default null
      */
-    max_new_tokens = null;
+    max_new_tokens = /** @type {number|null} */ (null);
 
     /**
      * The minimum length of the sequence to be generated.
@@ -36,10 +36,10 @@ export class GenerationConfig {
 
     /**
      * The minimum numbers of tokens to generate, ignoring the number of tokens in the prompt.
-     * @type {number}
+     * @type {number | null}
      * @default null
      */
-    min_new_tokens = null;
+    min_new_tokens = /** @type {number|null} */ (null);
 
     /**
      * Controls the stopping condition for beam-based methods, like beam-search. It accepts the following values:
@@ -54,10 +54,10 @@ export class GenerationConfig {
     /**
      * The maximum amount of time you allow the computation to run for in seconds.
      * Generation will still finish the current pass after allocated time has been passed.
-     * @type {number}
+     * @type {number | null}
      * @default null
      */
-    max_time = null;
+    max_time = /** @type {number|null} */ (null);
 
     // Parameters that control the generation strategy used
     /**
@@ -84,10 +84,10 @@ export class GenerationConfig {
 
     /**
      * The values balance the model confidence and the degeneration penalty in contrastive search decoding.
-     * @type {number}
+     * @type {number | null}
      * @default null
      */
-    penalty_alpha = null;
+    penalty_alpha = /** @type {number|null} */ (null);
 
     /**
      * Whether or not the model should use the past last key/values attentions (if applicable to the model) to speed up decoding.
@@ -191,19 +191,19 @@ export class GenerationConfig {
      * List of token ids that are not allowed to be generated.
      * In order to get the token ids of the words that should not appear in the generated text, use
      * `tokenizer(bad_words, { add_prefix_space: true, add_special_tokens: false }).input_ids`.
-     * @type {number[][]}
+     * @type {number[][] | null}
      * @default null
      */
-    bad_words_ids = null;
+    bad_words_ids = /** @type {number[][]|null} */ (null);
 
     /**
      * List of token ids that must be generated.
      * If given a `number[][]`, this is treated as a simple list of words that must be included, the opposite to `bad_words_ids`.
      * If given `number[][][]`, this triggers a [disjunctive constraint](https://github.com/huggingface/transformers/issues/14081), where one can allow different forms of each word.
-     * @type {number[][]|number[][][]}
+     * @type {number[][]|number[][][]|null}
      * @default null
      */
-    force_words_ids = null;
+    force_words_ids = /** @type {number[][]|number[][][]|null} */ (null);
 
     /**
      * Whether to renormalize the logits after applying all the logits processors or warpers (including the custom ones).
@@ -215,26 +215,26 @@ export class GenerationConfig {
 
     /**
      * Custom constraints that can be added to the generation to ensure that the output will contain the use of certain tokens as defined by `Constraint` objects, in the most sensible way possible.
-     * @type {Object[]}
+     * @type {Object[] | null}
      * @default null
      */
-    constraints = null;
+    constraints = /** @type {object[]|null} */ (null);
 
     /**
      * The id of the token to force as the first generated token after the `decoder_start_token_id`.
      * Useful for multilingual models like mBART where the first generated token needs to be the target language token.
-     * @type {number}
+     * @type {number | null}
      * @default null
      */
-    forced_bos_token_id = null;
+    forced_bos_token_id = /** @type {number|null} */ (null);
 
     /**
      * The id of the token to force as the last generated token when `max_length` is reached.
      * Optionally, use a list to set multiple *end-of-sequence* tokens.
-     * @type {number|number[]}
+     * @type {number|number[]|null}
      * @default null
      */
-    forced_eos_token_id = null;
+    forced_eos_token_id = /** @type {number|number[]|null} */ (null);
 
     /**
      * Whether to remove possible *nan* and *inf* outputs of the model to prevent the generation method to crash. Note that using `remove_invalid_values` can slow down generation.
@@ -245,50 +245,50 @@ export class GenerationConfig {
     /**
      * This Tuple adds an exponentially increasing length penalty, after a certain amount of tokens have been generated.
      * The tuple shall consist of: `(start_index, decay_factor)` where `start_index` indicates where penalty starts and `decay_factor` represents the factor of exponential decay.
-     * @type {[number, number]}
+     * @type {[number, number] | null}
      * @default null
      */
-    exponential_decay_length_penalty = null;
+    exponential_decay_length_penalty = /** @type {[number, number]|null} */ (null);
 
     /**
      * A list of tokens that will be suppressed at generation.
      * The `SuppressTokens` logit processor will set their log probs to `-inf` so that they are not sampled.
-     * @type {number[]}
+     * @type {number[] | null}
      * @default null
      */
-    suppress_tokens = null;
+    suppress_tokens = /** @type {number[]|null} */ (null);
 
     /**
      * A streamer that will be used to stream the generation.
-     * @type {import('./streamers.js').TextStreamer}
+     * @type {import('./streamers.js').TextStreamer | null}
      * @default null
      */
-    streamer = null;
+    streamer = /** @type {import('./streamers.js').TextStreamer|null} */ (null);
 
     /**
      * A list of tokens that will be suppressed at the beginning of the generation.
      * The `SuppressBeginTokens` logit processor will set their log probs to `-inf` so that they are not sampled.
-     * @type {number[]}
+     * @type {number[] | null}
      * @default null
      */
-    begin_suppress_tokens = null;
+    begin_suppress_tokens = /** @type {number[]|null} */ (null);
 
     /**
      * A list of pairs of integers which indicates a mapping from generation indices to token indices that will be forced before sampling.
      * For example, `[[1, 123]]` means the second generated token will always be a token of index 123.
-     * @type {[number, number][]}
+     * @type {[number, number][] | null}
      * @default null
      */
-    forced_decoder_ids = null;
+    forced_decoder_ids = /** @type {[number, number][]|null} */ (null);
 
     /**
      * The guidance scale for classifier free guidance (CFG). CFG is enabled by setting `guidance_scale > 1`.
      * Higher guidance scale encourages the model to generate samples that are more closely linked to the input
      * prompt, usually at the expense of poorer quality.
-     * @type {number}
+     * @type {number | null}
      * @default null
      */
-    guidance_scale = null;
+    guidance_scale = /** @type {number|null} */ (null);
 
     // Parameters that define the output variables of `generate`
     /**
@@ -332,25 +332,25 @@ export class GenerationConfig {
     // Special tokens that can be used at generation time
     /**
      * The id of the *padding* token.
-     * @type {number}
+     * @type {number | null}
      * @default null
      */
-    pad_token_id = null;
+    pad_token_id = /** @type {number|null} */ (null);
 
     /**
      * The id of the *beginning-of-sequence* token.
-     * @type {number}
+     * @type {number | null}
      * @default null
      */
-    bos_token_id = null;
+    bos_token_id = /** @type {number|null} */ (null);
 
     /**
      * The id of the *end-of-sequence* token.
      * Optionally, use a list to set multiple *end-of-sequence* tokens.
-     * @type {number|number[]}
+     * @type {number|number[]|null}
      * @default null
      */
-    eos_token_id = null;
+    eos_token_id = /** @type {number|number[]|null} */ (null);
 
     // Generation parameters exclusive to encoder-decoder models
     /**
@@ -362,10 +362,10 @@ export class GenerationConfig {
 
     /**
      * If an encoder-decoder model starts decoding with a different token than *bos*, the id of that token.
-     * @type {number}
+     * @type {number | null}
      * @default null
      */
-    decoder_start_token_id = null;
+    decoder_start_token_id = /** @type {number|null} */ (null);
 
     // Wild card
     /**
@@ -381,6 +381,6 @@ export class GenerationConfig {
      * @param {GenerationConfig|import('../configs.js').PretrainedConfig} config
      */
     constructor(config) {
-        Object.assign(this, pick(config, Object.getOwnPropertyNames(this)));
+        Object.assign(this, pick(/** @type {Record<string, unknown>} */ (/** @type {unknown} */ (config)), Object.getOwnPropertyNames(this)));
     }
 }

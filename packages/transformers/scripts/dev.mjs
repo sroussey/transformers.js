@@ -37,7 +37,7 @@ log.section("TYPES");
 log.info("Generating initial type declarations...");
 
 await new Promise((resolve, reject) => {
-  const tscBuild = spawn("tsc", ["--build"], {
+  const tscBuild = spawn("tsgo", ["--build"], {
     cwd: ROOT_DIR,
     stdio: "pipe",
     shell: true,
@@ -69,7 +69,7 @@ await new Promise((resolve, reject) => {
 
 log.info("Starting TypeScript watch mode...\n");
 
-const tscWatch = spawn("tsc", ["--build", "--watch", "--preserveWatchOutput"], {
+const tscWatch = spawn("tsgo", ["--build", "--watch", "--preserveWatchOutput"], {
   cwd: ROOT_DIR,
   stdio: "pipe",
   shell: true,

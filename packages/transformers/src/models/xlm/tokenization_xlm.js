@@ -4,6 +4,10 @@ import { logger } from '../../utils/logger.js';
 export class XLMTokenizer extends PreTrainedTokenizer {
     return_token_type_ids = true;
 
+    /**
+     * @param {Record<string, any>} tokenizerJSON
+     * @param {Record<string, any>} tokenizerConfig
+     */
     constructor(tokenizerJSON, tokenizerConfig) {
         super(tokenizerJSON, tokenizerConfig);
         logger.warn(

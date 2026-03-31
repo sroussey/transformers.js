@@ -1,7 +1,7 @@
 import { apis, env } from '../env.js';
+import { CrossOriginStorage } from './cache/CrossOriginStorageCache.js';
 import { FileCache } from './cache/FileCache.js';
 import { logger } from './logger.js';
-import { CrossOriginStorage } from './cache/CrossOriginStorageCache.js';
 
 /**
  * @typedef {Object} CacheInterface
@@ -17,7 +17,7 @@ import { CrossOriginStorage } from './cache/CrossOriginStorageCache.js';
  * Retrieves an appropriate caching backend based on the environment configuration.
  * Attempts to use custom cache, browser cache, or file system cache in that order of priority.
  * @returns {Promise<CacheInterface | null>}
- * @param file_cache_dir {string|null} Path to a directory in which a downloaded pretrained model configuration should be cached if using the file system cache.
+ * @param {string|null} [file_cache_dir] Path to a directory in which a downloaded pretrained model configuration should be cached if using the file system cache.
  */
 export async function getCache(file_cache_dir = null) {
     // First, check if the a caching backend is available
@@ -65,7 +65,7 @@ export async function getCache(file_cache_dir = null) {
         }
 
         // If `cache_dir` is not specified, use the default cache directory
-        cache = new FileCache(file_cache_dir ?? env.cacheDir);
+        cache = new FileCache(/** @type {string} */ (file_cache_dir ?? env.cacheDir));
     }
 
     return cache;

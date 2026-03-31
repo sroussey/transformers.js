@@ -7,6 +7,8 @@ import { softmax } from '../utils/maths.js';
  * @typedef {import('./_base.js').Disposable} Disposable
  * @typedef {import('./_base.js').ImagePipelineInputs} ImagePipelineInputs
  * @typedef {import('./_base.js').ImageInput} ImageInput
+ * @typedef {import('../utils/tensor.js').Tensor} Tensor
+ * @typedef {import('../utils/maths.js').TypedArray} TypedArray
  */
 
 /**
@@ -58,44 +60,50 @@ import { softmax } from '../utils/maths.js';
  */
 export class ZeroShotImageClassificationPipeline
     extends /** @type {new (options: TextImagePipelineConstructorArgs) => ZeroShotImageClassificationPipelineType} */ (
-        Pipeline
+        /** @type {unknown} */ (Pipeline)
     )
 {
+    /**
+     * @param {ImageInput | ImageInput[]} images
+     * @param {string[]} candidate_labels
+     * @param {object} [options]
+     * @param {string} [options.hypothesis_template='This is a photo of {}']
+     */
     async _call(images, candidate_labels, { hypothesis_template = 'This is a photo of {}' } = {}) {
         const isBatched = Array.isArray(images);
         const preparedImages = await prepareImages(images);
 
         // Insert label into hypothesis template
-        const texts = candidate_labels.map((x) => hypothesis_template.replace('{}', x));
+        const texts = candidate_labels.map((/** @type {string} */ x) => hypothesis_template.replace('{}', x));
 
         // Run tokenization
-        const text_inputs = this.tokenizer(texts, {
+        const text_inputs = /** @type {any} */ (this.tokenizer)(texts, {
             padding: this.model.config.model_type === 'siglip' ? 'max_length' : true,
             truncation: true,
         });
 
         // Run processor
-        const { pixel_values } = await this.processor(preparedImages);
+        const { pixel_values } = await /** @type {any} */ (this.processor)(preparedImages);
 
         // Run model with both text and pixel inputs
-        const output = await this.model({ ...text_inputs, pixel_values });
+        const output = await /** @type {any} */ (this.model)({ ...text_inputs, pixel_values });
 
         const function_to_apply =
             this.model.config.model_type === 'siglip'
-                ? (batch) => batch.sigmoid().data
-                : (batch) => softmax(batch.data);
+                ? (/** @type {Tensor} */ batch) => batch.sigmoid().data
+                : (/** @type {Tensor} */ batch) => softmax(/** @type {TypedArray | number[]} */ (batch.data));
 
         // Compare each image with each candidate label
         const toReturn = [];
-        for (const batch of output.logits_per_image) {
+        for (const batch_ of output.logits_per_image) {
             // Compute softmax per image
-            const probs = function_to_apply(batch);
+            const probs = function_to_apply(/** @type {Tensor} */ (batch_));
 
-            const result = [...probs].map((x, i) => ({
+            const result = /** @type {number[]} */ ([...probs]).map((x, i) => ({
                 score: x,
                 label: candidate_labels[i],
             }));
-            result.sort((a, b) => b.score - a.score); // sort by score in descending order
+            result.sort((a, b) => /** @type {number} */ (b.score) - /** @type {number} */ (a.score)); // sort by score in descending order
             toReturn.push(result);
         }
 

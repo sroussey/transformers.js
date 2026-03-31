@@ -1,22 +1,31 @@
 import { Processor } from '../../processing_utils.js';
+import { mergeArrays } from '../../utils/core.js';
+import { RawImage } from '../../utils/image.js';
+import { Tensor } from '../../utils/tensor.js';
 import { AutoImageProcessor } from '../auto/image_processing_auto.js';
 import { AutoTokenizer } from '../auto/tokenization_auto.js';
-import { mergeArrays } from '../../utils/core.js';
-import { Tensor } from '../../utils/tensor.js';
-import { RawImage } from '../../utils/image.js';
 
 export class VLChatProcessor extends Processor {
     static image_processor_class = AutoImageProcessor;
     static tokenizer_class = AutoTokenizer;
     static uses_processor_config = true;
 
+    image_tag;
+    image_start_tag;
+    image_end_tag;
+    num_image_tokens;
+    /**
+     * @param {Record<string, unknown>} config
+     * @param {Record<string, object>} components
+     * @param {string | null} chat_template
+     */
     constructor(config, components, chat_template) {
         super(config, components, chat_template);
 
-        this.image_tag = this.config.image_tag;
-        this.image_start_tag = this.config.image_start_tag;
-        this.image_end_tag = this.config.image_end_tag;
-        this.num_image_tokens = this.config.num_image_tokens;
+        this.image_tag = /** @type {any} */ (this.config).image_tag;
+        this.image_start_tag = /** @type {any} */ (this.config).image_start_tag;
+        this.image_end_tag = /** @type {any} */ (this.config).image_end_tag;
+        this.num_image_tokens = /** @type {any} */ (this.config).num_image_tokens;
     }
 
     /**
@@ -36,29 +45,30 @@ export class VLChatProcessor extends Processor {
     /**
      * @param {MultimodalConversation} conversation The chat messages to process.
      * @param {Object} options Additional options for processing.
-     * @param {RawImage|RawImage[]} [options.images] The images to process, if not set in the conversation.
-     * @param {string} [options.chat_template="default"] The chat template to use.
+     * @param {RawImage|RawImage[]|null} [options.images=null] The images to process, if not set in the conversation.
+     * @param {string} [options.chat_template='default'] The chat template to use.
      * @returns {Promise<VLCChatProcessorResult | VLCChatProcessorResult & import('../../image_processors_utils.js').ImageProcessorResult>} The processed input.
      */
     async _call(conversation, { images = null, chat_template = 'default' } = {}) {
         if (!images) {
             images = await Promise.all(
                 conversation
-                    .filter((msg) => msg.images)
-                    .flatMap((msg) => msg.images)
-                    .map((img) => RawImage.read(img)),
+                    .filter((/** @type {Record<string, unknown>} */ msg) => msg.images)
+                    .flatMap((/** @type {Record<string, unknown>} */ msg) => /** @type {(RawImage | string | URL)[]} */ (msg.images))
+                    .map((/** @type {RawImage | string | URL} */ img) => RawImage.read(img)),
             );
         } else if (!Array.isArray(images)) {
             images = [images];
         }
 
-        const tokenizer = this.tokenizer;
-        const result = tokenizer.apply_chat_template(conversation, {
+        const tokenizer = /** @type {import('../../tokenization_utils.js').PreTrainedTokenizer} */ (this.tokenizer);
+        const result = tokenizer.apply_chat_template(/** @type {import('../../tokenization_utils.js').Message[]} */ (/** @type {unknown} */ (conversation)), {
             tokenize: false,
             add_generation_prompt: true,
             chat_template,
         });
 
+        /** @param {string} text */
         const encode = (text) => tokenizer.encode(text, { add_special_tokens: false });
         const parts = /** @type {string} */ (result).split(this.image_tag);
         const num_images = parts.length - 1;
@@ -68,25 +78,28 @@ export class VLChatProcessor extends Processor {
             );
         }
 
-        const [image_placeholder_tag_id, image_start_tag_id, image_end_tag_id] = tokenizer.convert_tokens_to_ids([
-            this.image_tag,
-            this.image_start_tag,
-            this.image_end_tag,
-        ]);
+        const [image_placeholder_tag_id, image_start_tag_id, image_end_tag_id] = /** @type {number[]} */ (tokenizer.convert_tokens_to_ids([
+            /** @type {string} */ (this.image_tag),
+            /** @type {string} */ (this.image_start_tag),
+            /** @type {string} */ (this.image_end_tag),
+        ]));
 
+        const num_image_tokens = /** @type {number} */ (this.num_image_tokens);
+        /** @type {number[]} */
         let input_ids = encode(parts[0]);
         let images_seq_mask = new Array(input_ids.length).fill(false);
         for (let i = 1; i < parts.length; ++i) {
-            const placeholder_image_tokens = new Array(this.num_image_tokens).fill(image_placeholder_tag_id);
+            /** @type {number[]} */
+            const placeholder_image_tokens = new Array(num_image_tokens).fill(image_placeholder_tag_id);
             const tokens = encode(parts[i]);
-            input_ids = mergeArrays(
+            input_ids = /** @type {number[]} */ (mergeArrays(
                 input_ids,
                 [image_start_tag_id],
                 placeholder_image_tokens,
                 [image_end_tag_id],
                 tokens,
-            );
-            const image_mask = new Array(this.num_image_tokens).fill(true);
+            ));
+            const image_mask = new Array(num_image_tokens).fill(true);
             images_seq_mask = mergeArrays(
                 images_seq_mask,
                 [false],
@@ -100,18 +113,18 @@ export class VLChatProcessor extends Processor {
         const final = {
             input_ids: new Tensor('int64', input_ids, dims),
             attention_mask: new Tensor('int64', new Array(input_ids.length).fill(1), dims),
-            images_seq_mask: new Tensor('bool', images_seq_mask, dims),
-            images_emb_mask: new Tensor('bool', new Array(num_images * this.num_image_tokens).fill(true), [
+            images_seq_mask: new Tensor('bool', /** @type {import('../../utils/tensor.js').DataArray} */ (/** @type {unknown} */ (images_seq_mask)), dims),
+            images_emb_mask: new Tensor('bool', new Array(num_images * num_image_tokens).fill(true), [
                 1,
                 num_images,
-                this.num_image_tokens,
+                num_image_tokens,
             ]),
         };
 
         if (images && images.length > 0) {
-            const image_inputs = await this.image_processor(images);
+            const image_inputs = await /** @type {any} */ (this.image_processor)(images);
             // Set the batch_size dimension to 1
-            image_inputs.pixel_values.unsqueeze_(0);
+            /** @type {Tensor} */ (image_inputs.pixel_values).unsqueeze_(0);
             return { ...final, ...image_inputs };
         }
 

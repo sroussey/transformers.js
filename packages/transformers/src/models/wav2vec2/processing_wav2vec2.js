@@ -1,6 +1,6 @@
-import { AutoTokenizer } from '../auto/tokenization_auto.js';
-import { AutoFeatureExtractor } from '../auto/feature_extraction_auto.js';
 import { Processor } from '../../processing_utils.js';
+import { AutoFeatureExtractor } from '../auto/feature_extraction_auto.js';
+import { AutoTokenizer } from '../auto/tokenization_auto.js';
 
 export class Wav2Vec2Processor extends Processor {
     static tokenizer_class = AutoTokenizer;
@@ -12,6 +12,6 @@ export class Wav2Vec2Processor extends Processor {
      * @returns {Promise<any>} A Promise that resolves with the extracted features.
      */
     async _call(audio) {
-        return await this.feature_extractor(audio);
+        return await /** @type {any} */ (this.feature_extractor)(audio);
     }
 }

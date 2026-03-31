@@ -4,16 +4,16 @@
  * @module tokenizers
  */
 
-import { Tokenizer } from '@huggingface/tokenizers';
 import { Template } from '@huggingface/jinja';
+import { Tokenizer } from '@huggingface/tokenizers';
 import { Callable } from './utils/generic.js';
 
 import { isIntegralNumber, mergeArrays } from './utils/core.js';
 import { getModelJSON } from './utils/hub.js';
-import { max } from './utils/maths.js';
-import { Tensor } from './utils/tensor.js';
 import { logger } from './utils/logger.js';
+import { max } from './utils/maths.js';
 import { get_tokenizer_files } from './utils/model_registry/get_tokenizer_files.js';
+import { Tensor } from './utils/tensor.js';
 
 /**
  * @typedef {import('./utils/hub.js').PretrainedOptions} PretrainedTokenizerOptions
@@ -28,7 +28,7 @@ import { get_tokenizer_files } from './utils/model_registry/get_tokenizer_files.
 export async function loadTokenizer(pretrained_model_name_or_path, options) {
     const tokenizerFiles = await get_tokenizer_files(pretrained_model_name_or_path);
     return await Promise.all(
-        tokenizerFiles.map((file) => getModelJSON(pretrained_model_name_or_path, file, true, options)),
+        tokenizerFiles.map((file) => getModelJSON(pretrained_model_name_or_path, file, true, /** @type {Record<string, unknown>} */ (options))),
     );
 }
 
@@ -41,14 +41,14 @@ export function prepareTensorForDecode(tensor) {
     const dims = tensor.dims;
     switch (dims.length) {
         case 1:
-            return tensor.tolist();
+            return /** @type {number[]} */ (tensor.tolist());
         case 2:
             if (dims[0] !== 1) {
                 throw new Error(
                     'Unable to decode tensor with `batch size !== 1`. Use `tokenizer.batch_decode(...)` for batched inputs.',
                 );
             }
-            return tensor.tolist()[0];
+            return /** @type {number[][]} */ (tensor.tolist())[0];
         default:
             throw new Error(`Expected tensor to have 1-2 dimensions, got ${dims.length}.`);
     }
@@ -137,12 +137,12 @@ function truncateHelper(item, length) {
 function getTokenFromConfig(config, ...keys) {
     for (const key of keys) {
         if (!Object.hasOwn(config, key)) continue;
-        const item = config[key];
+        const item = /** @type {Record<string, any>} */ (config)[key];
         if (!item) continue;
 
         if (typeof item === 'object') {
-            if (item.__type === 'AddedToken') {
-                return item.content;
+            if (/** @type {Record<string, unknown>} */ (item).__type === 'AddedToken') {
+                return /** @type {string} */ (/** @type {Record<string, unknown>} */ (item).content);
             } else {
                 throw Error(`Unknown token: ${item}`);
             }
@@ -171,6 +171,28 @@ export class PreTrainedTokenizer extends Callable {
     return_token_type_ids = false;
 
     padding_side = 'right';
+
+    _tokenizerJSON;
+    _tokenizerConfig;
+    _tokenizer;
+    config;
+    mask_token;
+    mask_token_id;
+    pad_token;
+    pad_token_id;
+    sep_token;
+    sep_token_id;
+    unk_token;
+    unk_token_id;
+    bos_token;
+    bos_token_id;
+    eos_token;
+    eos_token_id;
+    chat_template;
+    _compiled_template_cache;
+    all_special_ids;
+    all_special_tokens;
+
     /**
      * Create a new PreTrainedTokenizer instance.
      * @param {Object} tokenizerJSON The JSON of the tokenizer.
@@ -185,28 +207,28 @@ export class PreTrainedTokenizer extends Callable {
 
         this.config = tokenizerConfig;
 
-        this.padding_side = tokenizerConfig.padding_side ?? this.padding_side;
+        this.padding_side = /** @type {string} */ (/** @type {Record<string, any>} */ (tokenizerConfig).padding_side) ?? this.padding_side;
 
         // Set mask token if present (otherwise will be undefined, which is fine)
         this.mask_token = getTokenFromConfig(tokenizerConfig, 'mask_token');
-        this.mask_token_id = this._tokenizer.token_to_id(this.mask_token);
+        this.mask_token_id = this._tokenizer.token_to_id(/** @type {string} */ (this.mask_token));
 
         this.pad_token = getTokenFromConfig(tokenizerConfig, 'pad_token', 'eos_token');
-        this.pad_token_id = this._tokenizer.token_to_id(this.pad_token);
+        this.pad_token_id = this._tokenizer.token_to_id(/** @type {string} */ (this.pad_token));
 
         this.sep_token = getTokenFromConfig(tokenizerConfig, 'sep_token');
-        this.sep_token_id = this._tokenizer.token_to_id(this.sep_token);
+        this.sep_token_id = this._tokenizer.token_to_id(/** @type {string} */ (this.sep_token));
 
         this.unk_token = getTokenFromConfig(tokenizerConfig, 'unk_token');
-        this.unk_token_id = this._tokenizer.token_to_id(this.unk_token);
+        this.unk_token_id = this._tokenizer.token_to_id(/** @type {string} */ (this.unk_token));
 
         this.bos_token = getTokenFromConfig(tokenizerConfig, 'bos_token');
-        this.bos_token_id = this._tokenizer.token_to_id(this.bos_token);
+        this.bos_token_id = this._tokenizer.token_to_id(/** @type {string} */ (this.bos_token));
 
         this.eos_token = getTokenFromConfig(tokenizerConfig, 'eos_token');
-        this.eos_token_id = this._tokenizer.token_to_id(this.eos_token);
+        this.eos_token_id = this._tokenizer.token_to_id(/** @type {string} */ (this.eos_token));
 
-        this.chat_template = tokenizerConfig.chat_template ?? null;
+        this.chat_template = /** @type {Record<string, any>} */ (tokenizerConfig).chat_template ?? null;
         if (Array.isArray(this.chat_template)) {
             // Chat templates are stored as lists of dicts with fixed key names,
             // we reconstruct that into a single dict while loading them.
@@ -237,7 +259,7 @@ export class PreTrainedTokenizer extends Callable {
      */
     static async from_pretrained(
         pretrained_model_name_or_path,
-        { progress_callback = null, config = null, cache_dir = null, local_files_only = false, revision = 'main' } = {},
+        { progress_callback = undefined, config = undefined, cache_dir = undefined, local_files_only = false, revision = 'main' } = {},
     ) {
         const info = await loadTokenizer(pretrained_model_name_or_path, {
             progress_callback,
@@ -247,23 +269,23 @@ export class PreTrainedTokenizer extends Callable {
             revision,
         });
 
-        // @ts-ignore
-        return new this(...info);
+        return new (/** @type {new (...args: unknown[]) => PreTrainedTokenizer} */ (this))(...info);
     }
 
     get_vocab() {
         return this._tokenizer.get_vocab();
     }
 
+    /** @returns {number} */
     get model_max_length() {
-        return this._tokenizerConfig.model_max_length ?? Infinity;
+        return /** @type {number} */ (/** @type {Record<string, any>} */ (this._tokenizerConfig).model_max_length) ?? Infinity;
     }
 
     get add_eos_token() {
-        return this._tokenizerConfig.add_eos_token;
+        return /** @type {Record<string, any>} */ (this._tokenizerConfig).add_eos_token;
     }
     get add_bos_token() {
-        return this._tokenizerConfig.add_bos_token;
+        return /** @type {Record<string, any>} */ (this._tokenizerConfig).add_bos_token;
     }
 
     /**
@@ -294,7 +316,7 @@ export class PreTrainedTokenizer extends Callable {
      * Encode/tokenize the given text(s).
      * @param {string|string[]} text The text to tokenize.
      * @param {Object} options An optional object containing the following properties:
-     * @param {string|string[]} [options.text_pair=null] Optional second sequence to be encoded. If set, must be the same type as text.
+     * @param {string|string[]|null} [options.text_pair=null] Optional second sequence to be encoded. If set, must be the same type as text.
      * @param {boolean|'max_length'} [options.padding=false] Whether to pad the input sequences.
      * @param {boolean} [options.add_special_tokens=true] Whether or not to add the special tokens associated with the corresponding model.
      * @param {boolean|null} [options.truncation=null] Whether to truncate the input sequences.
@@ -407,6 +429,7 @@ export class PreTrainedTokenizer extends Callable {
             }
         }
 
+        /** @type {Record<string, Tensor | number[] | number[][]>} */
         const result = {};
 
         if (return_tensor) {
@@ -416,8 +439,8 @@ export class PreTrainedTokenizer extends Callable {
 
                 if (
                     encodedTokens.some((x) => {
-                        for (const key of Object.keys(x)) {
-                            if (x[key].length !== encodedTokens[0][key]?.length) {
+                        for (const key of /** @type {string[]} */ (Object.keys(x))) {
+                            if (/** @type {Record<string, number[]>} */ (x)[key].length !== /** @type {Record<string, number[]>} */ (encodedTokens[0])[key]?.length) {
                                 return true;
                             }
                         }
@@ -439,20 +462,20 @@ export class PreTrainedTokenizer extends Callable {
             for (const key of Object.keys(encodedTokens[0])) {
                 result[key] = new Tensor(
                     'int64',
-                    BigInt64Array.from(encodedTokens.flatMap((x) => x[key]).map(BigInt)),
+                    BigInt64Array.from(encodedTokens.flatMap((x) => /** @type {Record<string, number[]>} */ (x)[key]).map(BigInt)),
                     dims,
                 );
             }
         } else {
             for (const key of Object.keys(encodedTokens[0])) {
-                result[key] = encodedTokens.map((x) => x[key]);
+                result[key] = encodedTokens.map((x) => /** @type {Record<string, number[]>} */ (x)[key]);
             }
 
             // If not returning a tensor, we match the input type
             if (!isBatched) {
                 // Input was not batched, so we unwrap
                 for (const key of Object.keys(result)) {
-                    result[key] = result[key][0];
+                    result[key] = /** @type {number[][]} */ (result[key])[0];
                 }
             }
         }
@@ -499,7 +522,7 @@ export class PreTrainedTokenizer extends Callable {
      * Converts a string into a sequence of tokens.
      * @param {string} text The sequence to be encoded.
      * @param {Object} options An optional object containing the following properties:
-     * @param {string|null} [options.pair] A second sequence to be encoded with the first.
+     * @param {string|null} [options.pair=null] A second sequence to be encoded with the first.
      * @param {boolean} [options.add_special_tokens=false] Whether or not to add the special tokens associated with the corresponding model.
      * @returns {string[]} The list of tokens.
      */
@@ -533,9 +556,9 @@ export class PreTrainedTokenizer extends Callable {
      */
     batch_decode(batch, decode_args = {}) {
         if (batch instanceof Tensor) {
-            batch = batch.tolist();
+            batch = /** @type {number[][]} */ (batch.tolist());
         }
-        return batch.map((x) => this.decode(x, decode_args));
+        return /** @type {number[][]} */ (batch).map((x) => this.decode(x, decode_args));
     }
 
     /**
@@ -587,7 +610,7 @@ export class PreTrainedTokenizer extends Callable {
      * A Jinja template or the name of a template to use for this conversion.
      * It is usually not necessary to pass anything to this argument,
      * as the model's template will be used by default.
-     * @param {Object[]} [options.tools=null]
+     * @param {Object[]|null} [options.tools=null]
      * A list of tools (callable functions) that will be accessible to the model. If the template does not
      * support function calling, this argument will have no effect. Each tool should be passed as a JSON Schema,
      * giving the name, description and argument types for the tool. See our
@@ -630,7 +653,7 @@ export class PreTrainedTokenizer extends Callable {
                 );
             }
         }
-        return chat_template;
+        return /** @type {string} */ (chat_template);
     }
 
     /**
@@ -665,13 +688,13 @@ export class PreTrainedTokenizer extends Callable {
      * @param {Object} options An optional object containing the following properties:
      * @param {string|null} [options.chat_template=null] A Jinja template to use for this conversion. If
      * this is not passed, the model's chat template will be used instead.
-     * @param {Object[]} [options.tools=null]
+     * @param {Object[]|null} [options.tools=null]
      * A list of tools (callable functions) that will be accessible to the model. If the template does not
      * support function calling, this argument will have no effect. Each tool should be passed as a JSON Schema,
      * giving the name, description and argument types for the tool. See our
      * [chat templating guide](https://huggingface.co/docs/transformers/main/en/chat_templating#automated-function-conversion-for-tool-use)
      * for more information.
-     * @param {Record<string, string>[]} [options.documents=null]
+     * @param {Record<string, string>[]|null} [options.documents=null]
      * A list of dicts representing documents that will be accessible to the model if it is performing RAG
      * (retrieval-augmented generation). If the template does not support RAG, this argument will have no
      * effect. We recommend that each document should be a dict containing "title" and "text" keys. Please
@@ -748,7 +771,7 @@ export class PreTrainedTokenizer extends Callable {
                 return_tensor,
                 ...tokenizer_kwargs,
             });
-            return return_dict ? out : out.input_ids;
+            return return_dict ? out : /** @type {string | Tensor | number[] | number[][] | BatchEncoding} */ (/** @type {{ input_ids: unknown }} */ (out).input_ids);
         }
 
         return rendered;
@@ -775,8 +798,8 @@ export function _build_translation_inputs(self, raw_inputs, tokenizer_options, g
     if (!('lang_to_token' in self) || typeof self.lang_to_token !== 'function') {
         throw new Error('Tokenizer must have `lang_to_token` attribute set and it should be a function.');
     }
-    const src_lang_token = generate_kwargs.src_lang;
-    const tgt_lang_token = generate_kwargs.tgt_lang;
+    const src_lang_token = /** @type {Record<string, any>} */ (generate_kwargs).src_lang;
+    const tgt_lang_token = /** @type {Record<string, any>} */ (generate_kwargs).tgt_lang;
 
     // Check that the target language is valid:
     if (!self.language_codes.includes(tgt_lang_token)) {
@@ -796,7 +819,7 @@ export function _build_translation_inputs(self, raw_inputs, tokenizer_options, g
 
         // In the same way as the Python library, we override the post-processor
         // to force the source language to be first:
-        for (const item of self._tokenizer.post_processor.config.single) {
+        for (const item of /** @type {NonNullable<typeof self._tokenizer.post_processor>} */ (self._tokenizer.post_processor).config.single) {
             if ('SpecialToken' in item && self.languageRegex.test(item.SpecialToken.id)) {
                 item.SpecialToken.id = self.lang_to_token(src_lang_token);
                 break;
@@ -806,7 +829,7 @@ export function _build_translation_inputs(self, raw_inputs, tokenizer_options, g
     }
 
     // Override the `forced_bos_token_id` to force the correct language
-    generate_kwargs.forced_bos_token_id = self._tokenizer.token_to_id(self.lang_to_token(tgt_lang_token));
+    /** @type {Record<string, any>} */ (generate_kwargs).forced_bos_token_id = self._tokenizer.token_to_id(self.lang_to_token(tgt_lang_token));
 
     return self._call(raw_inputs, tokenizer_options);
 }

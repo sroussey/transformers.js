@@ -42,7 +42,17 @@ import { apis } from '../env.js';
  * rng1.random() === rng2.random(); // true (same seed, independent state)
  */
 export class Random {
-    constructor(seed) {
+    _mt;
+    _idx;
+    /** @type {number|null} */
+    _gauss_next;
+    /** @type {() => number} */
+    _random_fn;
+
+    /**
+     * @param {number | undefined} [seed]
+     */
+    constructor(seed = undefined) {
         this._mt = new Uint32Array(624);
         this._idx = 625;
         this._gauss_next = null;
@@ -57,9 +67,9 @@ export class Random {
      * When called with no arguments (or `undefined`/`null`), seeds from OS entropy
      * via `crypto.getRandomValues`, matching Python's `random.seed()` behaviour.
      *
-     * @param {number} [n] The seed value. Omit to seed from OS entropy.
+     * @param {number | undefined} [n] The seed value. Omit to seed from OS entropy.
      */
-    seed(n) {
+    seed(n = undefined) {
         if (n === undefined || n === null) {
             if (apis.IS_CRYPTO_AVAILABLE) {
                 const buf = new Uint32Array(1);
@@ -70,6 +80,7 @@ export class Random {
             }
         }
         const mt = this._mt;
+        /** @param {number} a @param {number} b @returns {number} */
         const u = (a, b) => Math.imul(a, b) >>> 0,
             key = [];
         for (let v = n || 0; v > 0; v = Math.floor(v / 0x100000000)) key.push(v & 0xffffffff);
@@ -222,4 +233,5 @@ export const random = Object.freeze({
 });
 
 // Private helper function, used by LogitsSampler, but not exported as part of the public API.
+/** @param {ArrayLike<number>} weights */
 export const _weightedIndex = (weights) => _weightedIndexWith(random.random, weights);

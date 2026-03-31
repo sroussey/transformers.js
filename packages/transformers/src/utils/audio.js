@@ -7,12 +7,12 @@
  * @module utils/audio
  */
 
-import { getFile } from './hub.js';
-import { FFT, max } from './maths.js';
 import { calculateReflectOffset } from './core.js';
+import { getFile } from './hub.js';
 import { saveBlob } from './io.js';
-import { Tensor, matmul } from './tensor.js';
 import { logger } from './logger.js';
+import { FFT, max } from './maths.js';
+import { Tensor, matmul } from './tensor.js';
 
 /**
  * Helper function to read audio from a path/URL.
@@ -140,8 +140,7 @@ function hertz_to_mel(freq, mel_scale = 'htk') {
         throw new Error('mel_scale should be one of "htk", "slaney" or "kaldi".');
     }
 
-    // @ts-expect-error ts(2322)
-    return typeof freq === 'number' ? fn(freq) : freq.map((x) => fn(x));
+    return /** @type {T} */ (typeof freq === 'number' ? fn(freq) : freq.map((/** @type {number} */ x) => fn(x)));
 }
 
 const MEL_TO_HERTZ_MAPPING = {
@@ -163,8 +162,7 @@ function mel_to_hertz(mels, mel_scale = 'htk') {
         throw new Error('mel_scale should be one of "htk", "slaney" or "kaldi".');
     }
 
-    // @ts-expect-error ts(2322)
-    return typeof mels === 'number' ? fn(mels) : mels.map((x) => fn(x));
+    return /** @type {T} */ (typeof mels === 'number' ? fn(mels) : mels.map((/** @type {number} */ x) => fn(x)));
 }
 
 /**
@@ -310,8 +308,8 @@ export function mel_filter_bank(
  * @returns {T} The padded array.
  */
 function padReflect(array, left, right) {
-    // @ts-ignore
-    const padded = new array.constructor(array.length + left + right);
+    const PadCtor = /** @type {new (size: number) => Float32Array|Float64Array} */ (array.constructor);
+    const padded = new PadCtor(array.length + left + right);
     const w = array.length - 1;
 
     for (let i = 0; i < array.length; ++i) {
@@ -326,7 +324,7 @@ function padReflect(array, left, right) {
         padded[w + left + i] = array[calculateReflectOffset(w - i, w)];
     }
 
-    return padded;
+    return /** @type {T} */ (padded);
 }
 
 /**
@@ -336,7 +334,7 @@ function padReflect(array, left, right) {
  * @param {number} factor
  * @param {number} reference
  * @param {number} min_value
- * @param {number} db_range
+ * @param {number | null} db_range
  * @returns {T}
  */
 function _db_conversion_helper(spectrogram, factor, reference, min_value, db_range) {
@@ -383,7 +381,7 @@ function _db_conversion_helper(spectrogram, factor, reference, min_value, db_ran
  * For example, use `np.max(spectrogram)` to set the loudest part to 0 dB. Must be greater than zero.
  * @param {number} [min_value=1e-5] The spectrogram will be clipped to this minimum value before conversion to decibels,
  * to avoid taking `log(0)`. The default of `1e-5` corresponds to a minimum of -100 dB. Must be greater than zero.
- * @param {number} [db_range=null] Sets the maximum dynamic range in decibels. For example, if `db_range = 80`, the
+ * @param {number | null} [db_range=null] Sets the maximum dynamic range in decibels. For example, if `db_range = 80`, the
  * difference between the peak value and the smallest value will never be more than 80 dB. Must be greater than zero.
  * @returns {T} The modified spectrogram in decibels.
  */
@@ -408,7 +406,7 @@ function amplitude_to_db(spectrogram, reference = 1.0, min_value = 1e-5, db_rang
  * For example, use `np.max(spectrogram)` to set the loudest part to 0 dB. Must be greater than zero.
  * @param {number} [min_value=1e-10] The spectrogram will be clipped to this minimum value before conversion to decibels,
  * to avoid taking `log(0)`. The default of `1e-10` corresponds to a minimum of -100 dB. Must be greater than zero.
- * @param {number} [db_range=null] Sets the maximum dynamic range in decibels. For example, if `db_range = 80`, the
+ * @param {number | null} [db_range=null] Sets the maximum dynamic range in decibels. For example, if `db_range = 80`, the
  * difference between the peak value and the smallest value will never be more than 80 dB. Must be greater than zero.
  * @returns {T} The modified spectrogram in decibels.
  */
@@ -437,7 +435,7 @@ function power_to_db(spectrogram, reference = 1.0, min_value = 1e-10, db_range =
  * @param {number} frame_length The length of the analysis frames in samples (a.k.a., `fft_length`).
  * @param {number} hop_length The stride between successive analysis frames in samples.
  * @param {Object} options
- * @param {number} [options.fft_length=null] The size of the FFT buffer in samples. This determines how many frequency bins the spectrogram will have.
+ * @param {number | null} [options.fft_length=null] The size of the FFT buffer in samples. This determines how many frequency bins the spectrogram will have.
  * For optimal speed, this should be a power of two. If `null`, uses `frame_length`.
  * @param {number} [options.power=1.0] If 1.0, returns the amplitude spectrogram. If 2.0, returns the power spectrogram. If `null`, returns complex numbers.
  * @param {boolean} [options.center=true] Whether to pad the waveform so that frame `t` is centered around time `t * hop_length`. If `false`, frame
@@ -446,27 +444,27 @@ function power_to_db(spectrogram, reference = 1.0, min_value = 1e-10, db_range =
  * `"edge"` (pad with edge values), `"reflect"` (pads with mirrored values).
  * @param {boolean} [options.onesided=true] If `true`, only computes the positive frequencies and returns a spectrogram containing `fft_length // 2 + 1`
  * frequency bins. If `false`, also computes the negative frequencies and returns `fft_length` frequency bins.
- * @param {number} [options.preemphasis=null] Coefficient for a low-pass filter that applies pre-emphasis before the DFT.
+ * @param {number | null} [options.preemphasis=null] Coefficient for a low-pass filter that applies pre-emphasis before the DFT.
  * @param {boolean} [options.preemphasis_htk_flavor=true] Whether to apply the pre-emphasis filter in the HTK flavor.
- * @param {number[][]} [options.mel_filters=null] The mel filter bank of shape `(num_freq_bins, num_mel_filters)`.
+ * @param {number[][] | null} [options.mel_filters=null] The mel filter bank of shape `(num_freq_bins, num_mel_filters)`.
  * If supplied, applies this filter bank to create a mel spectrogram.
  * @param {number} [options.mel_floor=1e-10] Minimum value of mel frequency banks.
- * @param {string} [options.log_mel=null] How to convert the spectrogram to log scale. Possible options are:
+ * @param {string | null} [options.log_mel=null] How to convert the spectrogram to log scale. Possible options are:
  * `null` (don't convert), `"log"` (take the natural logarithm), `"log10"` (take the base-10 logarithm), `"dB"` (convert to decibels),
  * `"log10_max_norm"` (take `log10`, then apply `(max(x, maxVal - 8) + 4) / 4` normalization, where `maxVal` is computed from data or given by `max_log_mel`).
  * Can only be used when `power` is not `null`.
- * @param {number} [options.max_log_mel=null] When `log_mel` is `"log10_max_norm"`, use this fixed value as the max instead of computing from data.
+ * @param {number | null} [options.max_log_mel=null] When `log_mel` is `"log10_max_norm"`, use this fixed value as the max instead of computing from data.
  * @param {number} [options.reference=1.0] Sets the input spectrogram value that corresponds to 0 dB. For example, use `max(spectrogram)[0]` to set
  * the loudest part to 0 dB. Must be greater than zero.
  * @param {number} [options.min_value=1e-10] The spectrogram will be clipped to this minimum value before conversion to decibels, to avoid taking `log(0)`.
  * For a power spectrogram, the default of `1e-10` corresponds to a minimum of -100 dB. For an amplitude spectrogram, the value `1e-5` corresponds to -100 dB.
  * Must be greater than zero.
- * @param {number} [options.db_range=null] Sets the maximum dynamic range in decibels. For example, if `db_range = 80`, the difference between the
+ * @param {number | null} [options.db_range=null] Sets the maximum dynamic range in decibels. For example, if `db_range = 80`, the difference between the
  * peak value and the smallest value will never be more than 80 dB. Must be greater than zero.
- * @param {boolean} [options.remove_dc_offset=null] Subtract mean from waveform on each frame, applied before pre-emphasis. This should be set to `true` in
+ * @param {boolean | null} [options.remove_dc_offset=null] Subtract mean from waveform on each frame, applied before pre-emphasis. This should be set to `true` in
  * order to get the same results as `torchaudio.compliance.kaldi.fbank` when computing mel filters.
- * @param {number} [options.max_num_frames=null] If provided, limits the number of frames to compute to this value.
- * @param {number} [options.min_num_frames=null] If provided, ensures the number of frames to compute is at least this value.
+ * @param {number | null} [options.max_num_frames=null] If provided, limits the number of frames to compute to this value.
+ * @param {number | null} [options.min_num_frames=null] If provided, ensures the number of frames to compute is at least this value.
  * @param {boolean} [options.do_pad=true] If `true`, pads the output spectrogram to have `max_num_frames` frames.
  * @param {boolean} [options.transpose=false] If `true`, the returned spectrogram will have shape `(num_frames, num_frequency_bins/num_mel_filters)`. If `false`, the returned spectrogram will have shape `(num_frequency_bins/num_mel_filters, num_frames)`.
  * @param {number} [options.mel_offset=0] Offset to add to the mel spectrogram to avoid taking the log of zero.
@@ -538,8 +536,7 @@ export async function spectrogram(
             }
             case 'constant': {
                 const padding = Math.floor(fft_length / 2);
-                // @ts-expect-error ts(2351)
-                const padded = new waveform.constructor(waveform.length + 2 * padding);
+                const padded = new (/** @type {{ new(length: number): Float32Array | Float64Array }} */ (waveform.constructor))(waveform.length + 2 * padding);
                 padded.set(waveform, padding);
                 waveform = padded;
                 break;
@@ -637,7 +634,7 @@ export async function spectrogram(
     }
 
     // TODO: What if `mel_filters` is null?
-    const num_mel_filters = mel_filters.length;
+    const num_mel_filters = /** @type {number[][]} */ (mel_filters).length;
 
     // Perform matrix muliplication:
     // mel_spec = mel_filters @ magnitudes.T
@@ -646,7 +643,7 @@ export async function spectrogram(
     //  - mel_spec.shape=(80, 3000)
     let mel_spec = await matmul(
         // TODO: Make `mel_filters` a Tensor during initialization
-        new Tensor('float32', mel_filters.flat(), [num_mel_filters, num_frequency_bins]),
+        new Tensor('float32', /** @type {number[][]} */ (mel_filters).flat(), [num_mel_filters, num_frequency_bins]),
         new Tensor('float32', transposedMagnitudeData, [num_frequency_bins, d1Max]),
     );
     if (transpose) {
@@ -708,7 +705,7 @@ export async function spectrogram(
  * @param {string} name The name of the window function.
  * @param {Object} options Additional options.
  * @param {boolean} [options.periodic=true] Whether the window is periodic or symmetric.
- * @param {number} [options.frame_length=null] The length of the analysis frames in samples.
+ * @param {number | null} [options.frame_length=null] The length of the analysis frames in samples.
  * Provide a value for `frame_length` if the window is smaller than the frame length, so that it will be zero-padded.
  * @param {boolean} [options.center=true] Whether to center the window inside the FFT buffer. Only used when `frame_length` is provided.
  * @returns {Float64Array} The window of shape `(window_length,)` or `(frame_length,)`.
@@ -758,7 +755,7 @@ export function window_function(window_length, name, { periodic = true, frame_le
  * @returns {Blob} The WAV file as a Blob.
  */
 function encodeWAV(chunks, rate) {
-    const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0);
+    const totalLength = chunks.reduce((/** @type {number} */ acc, /** @type {Float32Array} */ chunk) => acc + chunk.length, 0);
 
     const buffer = new ArrayBuffer(44);
     const view = new DataView(buffer);
@@ -790,11 +787,16 @@ function encodeWAV(chunks, rate) {
     /* data chunk length */
     view.setUint32(40, totalLength * 4, true);
 
-    return new Blob([buffer, ...chunks.map((chunk) => /** @type {ArrayBuffer} */ (chunk.buffer))], {
+    return new Blob([buffer, ...chunks.map((/** @type {Float32Array} */ chunk) => /** @type {ArrayBuffer} */ (chunk.buffer))], {
         type: 'audio/wav',
     });
 }
 
+/**
+ * @param {DataView} view
+ * @param {number} offset
+ * @param {string} string
+ */
 function writeString(view, offset, string) {
     for (let i = 0; i < string.length; ++i) {
         view.setUint8(offset + i, string.charCodeAt(i));
@@ -802,6 +804,9 @@ function writeString(view, offset, string) {
 }
 
 export class RawAudio {
+    audio;
+    sampling_rate;
+
     /**
      * Create a new `RawAudio` object.
      * @param {Float32Array|Float32Array[]} audio Audio data, either as a single `Float32Array` chunk or multiple `Float32Array` chunks.

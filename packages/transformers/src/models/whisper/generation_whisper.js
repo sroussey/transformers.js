@@ -3,7 +3,7 @@ import { GenerationConfig } from '../../generation/configuration_utils.js';
 export class WhisperGenerationConfig extends GenerationConfig {
     /**
      * Whether to return the timestamps with the text. This enables the `WhisperTimestampsLogitsProcessor`.
-     * @type {boolean}
+     * @type {boolean | string | null}
      */
     return_timestamps = null;
 
@@ -11,39 +11,39 @@ export class WhisperGenerationConfig extends GenerationConfig {
      * Whether to return token-level timestamps
      * with the text. This can be used with or without the `return_timestamps` option. To get word-level
      * timestamps, use the tokenizer to group the tokens into words.
-     * @type {boolean}
+     * @type {boolean | null}
      */
     return_token_timestamps = null;
 
     /**
      * The number of audio frames available in this chunk. This is only used generating word-level timestamps.
-     * @type {number}
+     * @type {number | null}
      */
     num_frames = null;
 
     /**
      * Alignment heads to predict word-level timestamps. This is a list of [layer, head] pairs that
      * select the cross-attention heads that are highly correlated to word-level timing.
-     * @type {[number, number][]}
+     * @type {[number, number][] | null}
      */
     alignment_heads = null;
 
     /**
      * Task to use for generation, either "translate" or "transcribe".
-     * @type {string}
+     * @type {string | null}
      */
     task = null;
 
     /**
      * Language token to use for generation, can be either in the form of `<|en|>`, `en` or `english`.
      * You can find all the possible language tokens in the `model.generation_config.lang_to_id` dictionary.
-     * @type {string}
+     * @type {string | null}
      */
     language = null;
 
     /**
      * The id of the `"<|notimestamps|>"` token.
-     * @type {number}
+     * @type {number | null}
      */
     no_timestamps_token_id = null;
 
@@ -52,13 +52,13 @@ export class WhisperGenerationConfig extends GenerationConfig {
      * provided as a prompt to each chunk. This can be used to provide or "prompt-engineer" a context for
      * transcription, e.g. custom vocabularies or proper nouns to make it more likely to predict those words
      * correctly. It cannot be used in conjunction with `decoder_start_token_id` as it overwrites this value.
-     * @type {number[]}
+     * @type {number[] | null}
      */
     prompt_ids = null;
 
     /**
      * Whether the model is multilingual or not.
-     * @type {boolean}
+     * @type {boolean | null}
      */
     is_multilingual = null;
 
@@ -84,5 +84,5 @@ export class WhisperGenerationConfig extends GenerationConfig {
 }
 
 /**
- * @typedef {import('../../generation/parameters.js').GenerationFunctionParameters & {generation_config: WhisperGenerationConfig} & WhisperGenerationConfig} WhisperGenerationFunctionParameters
+ * @typedef {import('../../generation/parameters.js').GenerationFunctionParameters & {generation_config: WhisperGenerationConfig | null} & WhisperGenerationConfig} WhisperGenerationFunctionParameters
  */

@@ -3,23 +3,28 @@ import { AutoImageProcessor } from '../auto/image_processing_auto.js';
 import { AutoTokenizer } from '../auto/tokenization_auto.js';
 
 /**
- * @typedef {import('../../utils/image.js').RawImage} RawImage
+ * 
  */
 
 export class Lfm2VlProcessor extends Processor {
+    /** @type {Record<string, any>} */
+    config = /** @type {any} */ (undefined);
     static tokenizer_class = AutoTokenizer;
     static image_processor_class = AutoImageProcessor;
 
     /**
-     * @param {RawImage|RawImage[]} images
+     * @param {import('../../utils/image.js').RawImage|import('../../utils/image.js').RawImage[]} images
      * @param {string|string[]|null} [text]
      * @param {Record<string, any>} [kwargs]
      */
     async _call(images, text = null, kwargs = {}) {
-        const { image_rows, image_cols, image_sizes, ...image_inputs } = await this.image_processor(images, {
+        const { image_rows: _image_rows, image_cols: _image_cols, image_sizes: _image_sizes, ...image_inputs } = await /** @type {any} */ (this.image_processor)(images, {
             ...kwargs,
             return_row_col_info: true,
         });
+        const image_rows = /** @type {number[]} */ (_image_rows);
+        const image_cols = /** @type {number[]} */ (_image_cols);
+        const image_sizes = /** @type {number[][]} */ (_image_sizes);
 
         if (text) {
             const image_token = this.config.image_token ?? '<image>';
@@ -28,9 +33,10 @@ export class Lfm2VlProcessor extends Processor {
                 downsample_factor = 2,
                 encoder_patch_size = 16,
                 use_thumbnail = true,
-            } = /** @type {Record<string, any>} */ (this.image_processor.config);
+            } = /** @type {Record<string, number>} */ (/** @type {any} */ (this.image_processor).config);
 
-            const ds = (/** @type {number} */ s) => Math.ceil(Math.floor(s / encoder_patch_size) / downsample_factor);
+            /** @param {number} s */
+            const ds = (s) => Math.ceil(Math.floor(s / encoder_patch_size) / downsample_factor);
             const tokens_per_tile = ds(tile_size) ** 2;
             const image_start = this.config.image_start_token ?? '<|image_start|>';
             const image_end = this.config.image_end_token ?? '<|image_end|>';
@@ -39,13 +45,13 @@ export class Lfm2VlProcessor extends Processor {
             if (!Array.isArray(text)) text = [text];
 
             let image_idx = 0;
-            text = text.map((sample) => {
+            text = text.map((/** @type {string} */ sample) => {
                 const parts = sample.split(image_token);
                 return (
                     parts[0] +
                     parts
                         .slice(1)
-                        .map((part) => {
+                        .map((/** @type {string} */ part) => {
                             const idx = image_idx++;
                             const [h, w] = image_sizes[idx];
                             const rows = image_rows[idx],
@@ -71,7 +77,7 @@ export class Lfm2VlProcessor extends Processor {
 
         return {
             ...image_inputs,
-            ...(text ? this.tokenizer(text, kwargs) : {}),
+            ...(text ? /** @type {any} */ (this.tokenizer)(text, kwargs) : {}),
         };
     }
 }

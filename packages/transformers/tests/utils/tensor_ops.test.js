@@ -1,5 +1,5 @@
 import { Tensor, interpolate_4d, matmul, rfft, slice } from "../../src/transformers.js";
-import { init } from "../init.js";
+import { init } from "../init.ts";
 
 // Initialise the testing environment
 init();

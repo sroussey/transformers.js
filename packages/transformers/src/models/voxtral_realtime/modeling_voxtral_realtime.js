@@ -1,11 +1,11 @@
+import { DynamicCache } from '../../cache_utils.js';
+import { getCacheShapes } from '../../configs.js';
+import { StoppingCriteria, StoppingCriteriaList } from '../../generation/stopping_criteria.js';
+import { pick } from '../../utils/core.js';
+import { DataTypeMap } from '../../utils/dtypes.js';
+import { Tensor, ones } from '../../utils/tensor.js';
 import { PreTrainedModel } from '../modeling_utils.js';
 import { sessionRun } from '../session.js';
-import { getCacheShapes } from '../../configs.js';
-import { Tensor, ones } from '../../utils/tensor.js';
-import { DataTypeMap } from '../../utils/dtypes.js';
-import { pick } from '../../utils/core.js';
-import { DynamicCache } from '../../cache_utils.js';
-import { StoppingCriteria, StoppingCriteriaList } from '../../generation/stopping_criteria.js';
 
 // Causal conv padding constants
 const CONV1_LEFT_PAD = 2;
@@ -16,7 +16,7 @@ const CONV2_LEFT_PAD = 1;
  * This allows the state to be accessed and modified across the generation process
  * without exposing it on the model instance itself.
  * @private
- * @type {WeakMap<VoxtralRealtimeForConditionalGeneration, Object>}
+ * @type {WeakMap<VoxtralRealtimeForConditionalGeneration, Record<string, any>>}
  */
 const states = new WeakMap();
 
@@ -24,14 +24,14 @@ const states = new WeakMap();
  * Creates encoder streaming state for a VoxtralRealtime generation session.
  * @param {VoxtralRealtimeForConditionalGeneration} model
  * @param {Iterable<Tensor>|AsyncIterable<Tensor>} input_features
- * @returns {Object} Encoder state object.
+ * @returns {Record<string, any>} Encoder state object.
  * @private
  */
 function createEncoderState(model, input_features) {
-    const { text_config, audio_config } = /** @type {any} */ (model.config);
+    const { text_config, audio_config } = /** @type {Record<string, any>} */ (model.config);
     const encoder_session = model.sessions['audio_encoder'];
 
-    const { num_mel_bins, hidden_size: enc_hidden_size } = audio_config;
+    const { num_mel_bins, hidden_size: enc_hidden_size } = /** @type {Record<string, number>} */ (audio_config);
     const PADDING_CACHE_CHANNELS = num_mel_bins + enc_hidden_size;
 
     // Initialize encoder KV cache
@@ -41,17 +41,17 @@ function createEncoderState(model, input_features) {
     const enc_shapes = getCacheShapes(audio_config, { batch_size: 1 });
     for (const name in enc_shapes) {
         const size = enc_shapes[name].reduce((a, b) => a * b, 1);
-        enc_kv_cache[name] = new Tensor(enc_dtype, new enc_cls(size), enc_shapes[name]);
+        enc_kv_cache[name] = new Tensor(/** @type {import('../../utils/tensor.js').DataType} */ (enc_dtype), new enc_cls(size), enc_shapes[name]);
     }
 
-    const enc_padding_cache = new Tensor(enc_dtype, new enc_cls(PADDING_CACHE_CHANNELS * CONV1_LEFT_PAD), [
+    const enc_padding_cache = new Tensor(/** @type {import('../../utils/tensor.js').DataType} */ (enc_dtype), new enc_cls(PADDING_CACHE_CHANNELS * CONV1_LEFT_PAD), [
         1,
         PADDING_CACHE_CHANNELS,
         CONV1_LEFT_PAD,
     ]);
 
     // Set up iterator from input_features
-    const chunks_iter = input_features[Symbol.asyncIterator]?.() ?? input_features[Symbol.iterator]?.();
+    const chunks_iter = /** @type {AsyncIterable<Tensor>} */ (input_features)[Symbol.asyncIterator]?.() ?? /** @type {Iterable<Tensor>} */ (input_features)[Symbol.iterator]?.();
     if (!chunks_iter) {
         throw new Error('input_features must be iterable or async iterable');
     }
@@ -61,19 +61,19 @@ function createEncoderState(model, input_features) {
         enc_kv_cache,
         enc_padding_cache,
         enc_past_seq_len: 0,
-        audio_embed_queue: [],
+        audio_embed_queue: /** @type {{ data: import('../../utils/tensor.js').DataArray; tokens: number }[]} */ ([]),
         audio_embed_total_tokens: 0,
         audio_queue_offset: 0,
         audio_consumed: 0,
         stream_exhausted: false,
         chunks_iter,
-        text_hidden_size: text_config.hidden_size,
+        text_hidden_size: /** @type {number} */ (/** @type {Record<string, any>} */ (text_config).hidden_size),
     };
 }
 
 /**
  * Encodes one audio chunk through the audio encoder.
- * @param {Object} s Encoder state.
+ * @param {Record<string, any>} s Encoder state.
  * @param {Tensor} chunk_features Mel spectrogram chunk [1, num_mel_bins, seq_len].
  * @returns {Promise<Tensor>} Audio embeddings.
  * @private
@@ -90,16 +90,16 @@ async function encodeChunk(s, chunk_features) {
 
     const total_seq_len = s.enc_past_seq_len + conv2_output_len;
     const attention_mask = ones([1, total_seq_len]);
-    const { audio_embeds, present_padding_cache, ...present_cache } = await sessionRun(s.encoder_session, {
+    const { audio_embeds, present_padding_cache, ...present_cache } = /** @type {any} */ (await sessionRun(s.encoder_session, {
         input_features: chunk_features,
         attention_mask,
         position_ids,
         past_padding_cache: s.enc_padding_cache,
         ...s.enc_kv_cache,
-    });
+    }));
     // Dispose previous padding cache and update
-    if (s.enc_padding_cache.location === 'gpu-buffer') {
-        s.enc_padding_cache.dispose();
+    if (/** @type {Tensor} */ (s.enc_padding_cache).location === 'gpu-buffer') {
+        /** @type {Tensor} */ (s.enc_padding_cache).dispose();
     }
     s.enc_padding_cache = present_padding_cache;
 
@@ -107,7 +107,7 @@ async function encodeChunk(s, chunk_features) {
     for (const name in present_cache) {
         if (name.startsWith('present.')) {
             const pastName = name.replace('present', 'past_key_values');
-            const prev = s.enc_kv_cache[pastName];
+            const prev = /** @type {Tensor | undefined} */ (s.enc_kv_cache[pastName]);
             if (prev?.location === 'gpu-buffer') {
                 prev.dispose();
             }
@@ -115,12 +115,12 @@ async function encodeChunk(s, chunk_features) {
         }
     }
     s.enc_past_seq_len = total_seq_len;
-    return audio_embeds;
+    return /** @type {Tensor} */ (audio_embeds);
 }
 
 /**
  * Fills the audio embedding buffer until it has enough tokens.
- * @param {Object} s Encoder state.
+ * @param {Record<string, any>} s Encoder state.
  * @param {number} needed Total number of audio tokens needed.
  * @private
  */
@@ -139,7 +139,7 @@ async function fillAudioBuffer(s, needed) {
 
 /**
  * Adds audio embeddings to text embeddings from the queue.
- * @param {Object} s Encoder state.
+ * @param {Record<string, any>} s Encoder state.
  * @param {Tensor} inputs_embeds Text embeddings tensor (modified in-place).
  * @param {number} current_len Number of tokens to consume.
  * @private
@@ -147,7 +147,7 @@ async function fillAudioBuffer(s, needed) {
 function addAudioEmbeddings(s, inputs_embeds, current_len) {
     if (s.audio_embed_queue.length === 0) return;
 
-    const embed_data = inputs_embeds.data;
+    const embed_data = /** @type {Float32Array} */ (inputs_embeds.data);
     let embed_write_pos = 0;
     let remaining = current_len;
 
@@ -158,7 +158,7 @@ function addAudioEmbeddings(s, inputs_embeds, current_len) {
 
         const src_offset = s.audio_queue_offset * s.text_hidden_size;
         for (let i = 0; i < n * s.text_hidden_size; ++i) {
-            embed_data[embed_write_pos * s.text_hidden_size + i] += front.data[src_offset + i];
+            embed_data[embed_write_pos * s.text_hidden_size + i] += /** @type {Float32Array} */ (front.data)[src_offset + i];
         }
 
         embed_write_pos += n;
@@ -179,10 +179,13 @@ function addAudioEmbeddings(s, inputs_embeds, current_len) {
  * @private
  */
 class AudioExhaustedCriteria extends StoppingCriteria {
+    _s;
+    /** @param {any} enc_state */
     constructor(enc_state) {
         super();
         this._s = enc_state;
     }
+    /** @param {any} input_ids */
     _call(input_ids) {
         const done = this._s.stream_exhausted && this._s.audio_embed_queue.length === 0;
         return input_ids.map(() => done);
@@ -194,6 +197,7 @@ export class VoxtralRealtimePreTrainedModel extends PreTrainedModel {
 }
 
 export class VoxtralRealtimeForConditionalGeneration extends VoxtralRealtimePreTrainedModel {
+    /** @param {{ input_ids: any, past_key_values: any, [key: string]: any }} params */
     async forward({ input_ids, past_key_values, ...kwargs }) {
         const current_len = input_ids.dims[1];
 
@@ -203,19 +207,20 @@ export class VoxtralRealtimeForConditionalGeneration extends VoxtralRealtimePreT
             await fillAudioBuffer(enc, enc.audio_consumed + current_len);
         }
 
-        const { inputs_embeds } = await sessionRun(this.sessions['embed_tokens'], { input_ids });
+        const { inputs_embeds } = /** @type {any} */ (await sessionRun(this.sessions['embed_tokens'], { input_ids }));
         if (enc) {
-            addAudioEmbeddings(enc, inputs_embeds, current_len);
+            addAudioEmbeddings(enc, /** @type {Tensor} */ (inputs_embeds), current_len);
         }
 
-        const decoder_feeds = { inputs_embeds, ...kwargs };
-        this.addPastKeyValues(decoder_feeds, past_key_values);
+        const /** @type {Record<string, any>} */ decoder_feeds = { inputs_embeds, ...kwargs };
+        this.addPastKeyValues(decoder_feeds, /** @type {InstanceType<typeof import('../../cache_utils.js').DynamicCache> | null} */ (past_key_values));
 
         const session = this.sessions['decoder_model_merged'];
         const fixed = pick(decoder_feeds, session.inputNames);
-        return await sessionRun(session, fixed);
+        return await sessionRun(session, /** @type {Record<string, Tensor>} */ (fixed));
     }
 
+    /** @param {{ input_features: any, stopping_criteria?: any, [key: string]: any }} params */
     async generate({ input_features, stopping_criteria: userStoppingCriteria, ...kwargs }) {
         if (!input_features) {
             throw new Error('input_features (generator/iterable) must be provided');

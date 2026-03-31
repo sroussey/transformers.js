@@ -5,14 +5,16 @@
 import { Callable } from '../utils/generic.js';
 import { Tensor, topk } from '../utils/tensor.js';
 
+import { GenerationConfig } from '../generation/configuration_utils.js';
 import { max, softmax } from '../utils/maths.js';
 import { _weightedIndex } from '../utils/random.js';
-import { GenerationConfig } from '../generation/configuration_utils.js';
 
 /**
  * Sampler is a base class for all sampling methods used for text generation.
  */
 export class LogitsSampler extends Callable {
+    generation_config;
+
     /**
      * Creates a new Sampler object with the specified generation config.
      * @param {GenerationConfig} generation_config The generation config.
@@ -50,7 +52,7 @@ export class LogitsSampler extends Callable {
      * @returns {Float32Array}
      */
     getLogits(logits, index) {
-        let vocabSize = logits.dims.at(-1);
+        let vocabSize = /** @type {number} */ (logits.dims.at(-1));
 
         let logs = /** @type {Float32Array} */ (logits.data);
 
@@ -113,11 +115,11 @@ class GreedySampler extends LogitsSampler {
      */
     async sample(logits) {
         // NOTE: no need to do log_softmax here since we only take the maximum
-        const argmax = max(logits.data)[1];
+        const argmax = max(/** @type {Float32Array} */ (logits.data))[1];
 
         // Note: score is meaningless in this context, since we are performing
         // greedy search (p = 1 => log(p) = 0)
-        return [[BigInt(argmax), 0]];
+        return /** @type {[bigint, number][]} */ ([[BigInt(argmax), 0]]);
     }
 }
 
@@ -131,23 +133,23 @@ class MultinomialSampler extends LogitsSampler {
      * @returns {Promise<[bigint, number][]>}
      */
     async sample(logits) {
-        let k = logits.dims.at(-1); // defaults to vocab size
+        let k = /** @type {number} */ (logits.dims.at(-1)); // defaults to vocab size
         if (this.generation_config.top_k > 0) {
             k = Math.min(this.generation_config.top_k, k);
         }
 
         // Get top k tokens
-        const [v, i] = await topk(logits, k);
+        const [v, i] = /** @type {[Tensor, Tensor]} */ (await topk(logits, k));
 
         // Compute softmax over logits
         const probabilities = softmax(/** @type {Float32Array} */ (v.data));
 
         return Array.from({ length: this.generation_config.num_beams }, () => {
             const sampledIndex = this.randomSelect(probabilities);
-            return [
-                i.data[sampledIndex], // token id
+            return /** @type {[bigint, number]} */ ([
+                /** @type {BigInt64Array} */ (i.data)[sampledIndex], // token id
                 Math.log(probabilities[sampledIndex]), // score
-            ];
+            ]);
         });
     }
 }
@@ -162,22 +164,22 @@ class BeamSearchSampler extends LogitsSampler {
      * @returns {Promise<[bigint, number][]>}
      */
     async sample(logits) {
-        let k = logits.dims.at(-1); // defaults to vocab size
+        let k = /** @type {number} */ (logits.dims.at(-1)); // defaults to vocab size
         if (this.generation_config.top_k > 0) {
             k = Math.min(this.generation_config.top_k, k);
         }
 
         // Get top k tokens
-        const [v, i] = await topk(logits, k);
+        const [v, i] = /** @type {[Tensor, Tensor]} */ (await topk(logits, k));
 
         // Compute softmax over logits
         const probabilities = softmax(/** @type {Float32Array} */ (v.data));
 
         return Array.from({ length: this.generation_config.num_beams }, (_, x) => {
-            return [
-                i.data[x], // token id
+            return /** @type {[bigint, number]} */ ([
+                /** @type {BigInt64Array} */ (i.data)[x], // token id
                 Math.log(probabilities[x]), // score
-            ];
+            ]);
         });
     }
 }

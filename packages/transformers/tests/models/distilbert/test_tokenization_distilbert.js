@@ -1,5 +1,5 @@
 import { DistilBertTokenizer } from "../../../src/models/tokenizers.js";
-import { BASE_TEST_STRINGS, BERT_TEST_STRINGS } from "../test_strings.js";
+import { BASE_TEST_STRINGS, BERT_TEST_STRINGS } from "../test_strings.ts";
 
 export const TOKENIZER_CLASS = DistilBertTokenizer;
 export const TEST_CONFIG = {

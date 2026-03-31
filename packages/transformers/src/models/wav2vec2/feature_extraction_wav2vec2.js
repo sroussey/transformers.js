@@ -8,10 +8,10 @@ export class Wav2Vec2FeatureExtractor extends FeatureExtractor {
      */
     _zero_mean_unit_var_norm(input_values) {
         // TODO support batch?
-        const sum = input_values.reduce((a, b) => a + b, 0);
+        const sum = input_values.reduce((/** @type {number} */ a, /** @type {number} */ b) => a + b, 0);
         const mean = sum / input_values.length;
-        const variance = input_values.reduce((a, b) => a + (b - mean) ** 2, 0) / input_values.length;
-        return input_values.map((x) => (x - mean) / Math.sqrt(variance + 1e-7));
+        const variance = input_values.reduce((/** @type {number} */ a, /** @type {number} */ b) => a + (b - mean) ** 2, 0) / input_values.length;
+        return input_values.map((/** @type {number} */ x) => (x - mean) / Math.sqrt(variance + 1e-7));
     }
 
     /**
@@ -29,7 +29,7 @@ export class Wav2Vec2FeatureExtractor extends FeatureExtractor {
         let input_values = audio;
 
         // zero-mean and unit-variance normalization
-        if (this.config.do_normalize) {
+        if (/** @type {any} */ (this.config).do_normalize) {
             input_values = this._zero_mean_unit_var_norm(input_values);
         }
 

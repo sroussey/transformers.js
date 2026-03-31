@@ -1,7 +1,13 @@
-import { PreTrainedModel } from '../modeling_utils.js';
 import { ModelOutput } from '../modeling_outputs.js';
+import { PreTrainedModel } from '../modeling_utils.js';
 
 export class MgpstrModelOutput extends ModelOutput {
+    char_logits;
+    bpe_logits;
+    wp_logits;
+    /**
+     * @param {{ char_logits: import('../../utils/tensor.js').Tensor, bpe_logits: import('../../utils/tensor.js').Tensor, wp_logits: import('../../utils/tensor.js').Tensor }} param0
+     */
     constructor({ char_logits, bpe_logits, wp_logits }) {
         super();
         this.char_logits = char_logits;
@@ -25,6 +31,6 @@ export class MgpstrForSceneTextRecognition extends MgpstrPreTrainedModel {
      * @param {any} model_inputs
      */
     async _call(model_inputs) {
-        return new MgpstrModelOutput(await super._call(model_inputs));
+        return new MgpstrModelOutput(/** @type {any} */ (await super._call(model_inputs)));
     }
 }

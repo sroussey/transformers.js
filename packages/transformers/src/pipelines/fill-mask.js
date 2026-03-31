@@ -1,7 +1,7 @@
-import { Pipeline } from './_base.js';
+import { Pipeline, tensorAt } from './_base.js';
 
-import { Tensor, topk } from '../utils/tensor.js';
 import { softmax } from '../utils/maths.js';
+import { Tensor, topk } from '../utils/tensor.js';
 
 /**
  * @typedef {import('./_base.js').TextPipelineConstructorArgs} TextPipelineConstructorArgs
@@ -78,43 +78,47 @@ import { softmax } from '../utils/maths.js';
  * ```
  */
 export class FillMaskPipeline
-    extends /** @type {new (options: TextPipelineConstructorArgs) => FillMaskPipelineType} */ (Pipeline)
+    extends /** @type {new (options: TextPipelineConstructorArgs) => FillMaskPipelineType} */ (/** @type {unknown} */ (Pipeline))
 {
+    /**
+     * @param {string | string[]} texts
+     * @param {object} [options]
+     * @param {number} [options.top_k=5]
+     */
     async _call(texts, { top_k = 5 } = {}) {
         const { mask_token_id, mask_token } = this.tokenizer;
 
         // Run tokenization
-        const model_inputs = this.tokenizer(texts, {
+        const model_inputs = /** @type {any} */ (this.tokenizer)(texts, {
             padding: true,
             truncation: true,
         });
 
         // Run model
-        const { logits } = await this.model(model_inputs);
+        const { logits } = await /** @type {any} */ (this.model)(model_inputs);
 
         const toReturn = [];
 
         /** @type {bigint[][]} */
-        const input_ids = model_inputs.input_ids.tolist();
+        const input_ids = /** @type {bigint[][]} */ (model_inputs.input_ids.tolist());
         for (let i = 0; i < input_ids.length; ++i) {
             const ids = input_ids[i];
             const mask_token_index = ids.findIndex(
-                (x) =>
+                (/** @type {bigint} */ x) =>
                     // We use == to match bigint with number
-                    // @ts-ignore - TS2367: Intentional loose equality for bigint/number comparison
-                    x == mask_token_id,
+                    x == /** @type {unknown} */ (mask_token_id),
             );
             if (mask_token_index === -1) {
                 throw Error(`Mask token (${mask_token}) not found in text.`);
             }
-            const itemLogits = logits[i][mask_token_index];
+            const itemLogits = tensorAt(tensorAt(logits, i), mask_token_index);
 
-            const scores = await topk(new Tensor('float32', softmax(itemLogits.data), itemLogits.dims), top_k);
-            const values = scores[0].tolist();
-            const indices = scores[1].tolist();
+            const scores = /** @type {Tensor[]} */ (await topk(new Tensor('float32', softmax(/** @type {Float32Array} */ (itemLogits.data)), itemLogits.dims), top_k));
+            const values = /** @type {number[]} */ (scores[0].tolist());
+            const indices = /** @type {bigint[]} */ (scores[1].tolist());
 
             toReturn.push(
-                indices.map((x, i) => {
+                indices.map((/** @type {bigint} */ x, /** @type {number} */ i) => {
                     const sequence = ids.slice();
                     sequence[mask_token_index] = x;
 

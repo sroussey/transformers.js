@@ -32,11 +32,11 @@ export class ClapModel extends ClapPreTrainedModel {}
  */
 export class ClapTextModelWithProjection extends ClapPreTrainedModel {
     /** @type {typeof PreTrainedModel.from_pretrained} */
-    static async from_pretrained(pretrained_model_name_or_path, options = {}) {
+    static async from_pretrained(pretrained_model_name_or_path, options = /** @type {Record<string, unknown>} */ ({})) {
         return super.from_pretrained(pretrained_model_name_or_path, {
             ...options,
             // Update default model file name if not provided
-            model_file_name: options.model_file_name ?? 'text_model',
+            model_file_name: /** @type {string} */ (options.model_file_name) ?? 'text_model',
         });
     }
 }
@@ -69,11 +69,11 @@ export class ClapTextModelWithProjection extends ClapPreTrainedModel {
  */
 export class ClapAudioModelWithProjection extends ClapPreTrainedModel {
     /** @type {typeof PreTrainedModel.from_pretrained} */
-    static async from_pretrained(pretrained_model_name_or_path, options = {}) {
+    static async from_pretrained(pretrained_model_name_or_path, options = /** @type {Record<string, unknown>} */ ({})) {
         return super.from_pretrained(pretrained_model_name_or_path, {
             ...options,
             // Update default model file name if not provided
-            model_file_name: options.model_file_name ?? 'audio_model',
+            model_file_name: /** @type {string} */ (options.model_file_name) ?? 'audio_model',
         });
     }
 }

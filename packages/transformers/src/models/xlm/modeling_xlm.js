@@ -1,10 +1,10 @@
-import { PreTrainedModel } from '../modeling_utils.js';
 import {
     MaskedLMOutput,
     QuestionAnsweringModelOutput,
     SequenceClassifierOutput,
     TokenClassifierOutput,
 } from '../modeling_outputs.js';
+import { PreTrainedModel } from '../modeling_utils.js';
 
 export class XLMPreTrainedModel extends PreTrainedModel {}
 
@@ -24,7 +24,7 @@ export class XLMWithLMHeadModel extends XLMPreTrainedModel {
      * @returns {Promise<MaskedLMOutput>} returned object
      */
     async _call(model_inputs) {
-        return new MaskedLMOutput(await super._call(model_inputs));
+        return new MaskedLMOutput(/** @type {any} */ (await super._call(model_inputs)));
     }
 }
 
@@ -39,7 +39,7 @@ export class XLMForSequenceClassification extends XLMPreTrainedModel {
      * @returns {Promise<SequenceClassifierOutput>} returned object
      */
     async _call(model_inputs) {
-        return new SequenceClassifierOutput(await super._call(model_inputs));
+        return new SequenceClassifierOutput(/** @type {any} */ (await super._call(model_inputs)));
     }
 }
 
@@ -54,7 +54,7 @@ export class XLMForTokenClassification extends XLMPreTrainedModel {
      * @returns {Promise<TokenClassifierOutput>} An object containing the model's output logits for token classification.
      */
     async _call(model_inputs) {
-        return new TokenClassifierOutput(await super._call(model_inputs));
+        return new TokenClassifierOutput(/** @type {any} */ (await super._call(model_inputs)));
     }
 }
 
@@ -69,6 +69,6 @@ export class XLMForQuestionAnswering extends XLMPreTrainedModel {
      * @returns {Promise<QuestionAnsweringModelOutput>} returned object
      */
     async _call(model_inputs) {
-        return new QuestionAnsweringModelOutput(await super._call(model_inputs));
+        return new QuestionAnsweringModelOutput(/** @type {any} */ (await super._call(model_inputs)));
     }
 }

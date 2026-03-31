@@ -1,6 +1,6 @@
 import { GroundingDinoProcessor, GroundingDinoForObjectDetection, RawImage } from "../../../src/transformers.js";
 
-import { MAX_MODEL_LOAD_TIME, MAX_TEST_EXECUTION_TIME, MAX_MODEL_DISPOSE_TIME, DEFAULT_MODEL_OPTIONS } from "../../init.js";
+import { MAX_MODEL_LOAD_TIME, MAX_TEST_EXECUTION_TIME, MAX_MODEL_DISPOSE_TIME, DEFAULT_MODEL_OPTIONS } from "../../init.ts";
 
 export default () => {
   const text = "a cat."; // NB: text query needs to be lowercased + end with a dot

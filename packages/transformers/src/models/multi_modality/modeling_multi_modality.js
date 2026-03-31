@@ -1,8 +1,8 @@
-import { PreTrainedModel, decoder_forward } from '../modeling_utils.js';
-import { sessionRun } from '../session.js';
 import { pick } from '../../utils/core.js';
 import { RawImage } from '../../utils/image.js';
 import { Tensor, cat, full, full_like } from '../../utils/tensor.js';
+import { PreTrainedModel, decoder_forward } from '../modeling_utils.js';
+import { sessionRun } from '../session.js';
 
 export class MultiModalityPreTrainedModel extends PreTrainedModel {}
 export class MultiModalityCausalLM extends MultiModalityPreTrainedModel {
@@ -19,16 +19,18 @@ export class MultiModalityCausalLM extends MultiModalityPreTrainedModel {
         'past_key_values',
     ];
 
+    _generation_mode;
     /**
      * @param {ConstructorParameters<typeof MultiModalityPreTrainedModel>} args
      */
     constructor(...args) {
-        super(...args);
+        super(.../** @type {ConstructorParameters<typeof PreTrainedModel>} */ (args));
 
         // State-based approach to switch out which heads to use during generation
         this._generation_mode = 'text';
     }
 
+    /** @param {Record<string, unknown>} model_inputs */
     async forward(model_inputs) {
         const mode = this._generation_mode ?? 'text';
 
@@ -41,7 +43,7 @@ export class MultiModalityCausalLM extends MultiModalityPreTrainedModel {
         if (mode === 'text' || !model_inputs.past_key_values) {
             const session = this.sessions['prepare_inputs_embeds'];
             const prep_inputs = pick(model_inputs, session.inputNames);
-            output_1 = await sessionRun(session, prep_inputs);
+            output_1 = await sessionRun(session, /** @type {Record<string, Tensor>} */ (prep_inputs));
         } else {
             const session = this.sessions['gen_img_embeds'];
             const prep_inputs = pick(
@@ -50,7 +52,7 @@ export class MultiModalityCausalLM extends MultiModalityPreTrainedModel {
                 },
                 session.inputNames,
             );
-            output_1 = await sessionRun(session, prep_inputs);
+            output_1 = await sessionRun(session, /** @type {Record<string, Tensor>} */ (prep_inputs));
         }
 
         const input_2 = { ...model_inputs, ...output_1 };
@@ -61,7 +63,7 @@ export class MultiModalityCausalLM extends MultiModalityPreTrainedModel {
             throw new Error(`Unable to find "${head}" generation head`);
         }
 
-        const output_3 = await sessionRun(head, pick(output_2, head.inputNames));
+        const output_3 = await sessionRun(head, /** @type {Record<string, Tensor>} */ (pick(output_2, head.inputNames)));
 
         return {
             ...output_1,
@@ -70,20 +72,25 @@ export class MultiModalityCausalLM extends MultiModalityPreTrainedModel {
         };
     }
 
+    /**
+     * @param {bigint[][]} input_ids
+     * @param {Record<string, unknown>} model_inputs
+     * @param {Record<string, unknown>} generation_config
+     */
     prepare_inputs_for_generation(input_ids, model_inputs, generation_config) {
         const has_past_key_values = !!model_inputs.past_key_values;
 
-        if (generation_config.guidance_scale !== null && generation_config.guidance_scale > 1) {
+        if (generation_config.guidance_scale !== null && /** @type {number} */ (generation_config.guidance_scale) > 1) {
             if (has_past_key_values) {
-                model_inputs.input_ids = cat([model_inputs.input_ids, model_inputs.input_ids], 0);
+                model_inputs.input_ids = cat([/** @type {Tensor} */ (model_inputs.input_ids), /** @type {Tensor} */ (model_inputs.input_ids)], 0);
                 // NOTE: attention_mask handled in generation
             } else {
                 model_inputs.input_ids = cat(
-                    [model_inputs.input_ids, full_like(model_inputs.input_ids, BigInt(generation_config.pad_token_id))],
+                    [/** @type {Tensor} */ (model_inputs.input_ids), full_like(/** @type {Tensor} */ (model_inputs.input_ids), BigInt(/** @type {string | number | bigint | boolean} */ (generation_config.pad_token_id)))],
                     0,
                 );
                 model_inputs.attention_mask = cat(
-                    [model_inputs.attention_mask, full_like(model_inputs.attention_mask, 0n)],
+                    [/** @type {Tensor} */ (model_inputs.attention_mask), full_like(/** @type {Tensor} */ (model_inputs.attention_mask), 0n)],
                     0,
                 );
             }
@@ -138,7 +145,7 @@ export class MultiModalityCausalLM extends MultiModalityPreTrainedModel {
         });
 
         // Equivalent to `np.clip((dec + 1) / 2 * 255, 0, 255)`
-        const clamped = decoded_image
+        const clamped = /** @type {Tensor} */ (decoded_image)
             .add_(1)
             .mul_(255 / 2)
             .clamp_(0, 255)
@@ -147,7 +154,7 @@ export class MultiModalityCausalLM extends MultiModalityPreTrainedModel {
         // Return as a list of images
         const images = [];
         for (const tensor of clamped) {
-            const img = RawImage.fromTensor(tensor);
+            const img = RawImage.fromTensor(/** @type {Tensor} */ (tensor));
             images.push(img);
         }
         return images;

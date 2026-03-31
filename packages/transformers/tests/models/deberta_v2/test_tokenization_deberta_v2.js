@@ -1,5 +1,5 @@
 import { DebertaV2Tokenizer } from "../../../src/models/tokenizers.js";
-import { BASE_TEST_STRINGS, BERT_TEST_STRINGS } from "../test_strings.js";
+import { BASE_TEST_STRINGS, BERT_TEST_STRINGS } from "../test_strings.ts";
 
 export const TOKENIZER_CLASS = DebertaV2Tokenizer;
 export const TEST_CONFIG = {

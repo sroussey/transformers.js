@@ -1,5 +1,5 @@
-import { PreTrainedModel } from '../modeling_utils.js';
 import { ImageMattingOutput } from '../modeling_outputs.js';
+import { PreTrainedModel } from '../modeling_utils.js';
 
 export class VitMattePreTrainedModel extends PreTrainedModel {}
 
@@ -55,10 +55,8 @@ export class VitMattePreTrainedModel extends PreTrainedModel {}
  * ```
  */
 export class VitMatteForImageMatting extends VitMattePreTrainedModel {
-    /**
-     * @param {any} model_inputs
-     */
+    /** @param {Object} model_inputs */
     async _call(model_inputs) {
-        return new ImageMattingOutput(await super._call(model_inputs));
+        return new ImageMattingOutput(/** @type {any} */ (await super._call(model_inputs)));
     }
 }

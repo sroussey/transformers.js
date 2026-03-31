@@ -1,9 +1,17 @@
-import { PreTrainedModel } from '../modeling_utils.js';
 import { Tensor, full, randn } from '../../utils/tensor.js';
+import { PreTrainedModel } from '../modeling_utils.js';
 import { sessionRun } from '../session.js';
 
 export class SupertonicPreTrainedModel extends PreTrainedModel {}
 export class SupertonicForConditionalGeneration extends SupertonicPreTrainedModel {
+    /**
+     * @param {Object} params
+     * @param {Tensor} params.input_ids
+     * @param {Tensor} params.attention_mask
+     * @param {Tensor} params.style
+     * @param {number} [params.num_inference_steps=5]
+     * @param {number} [params.speed=1.05]
+     */
     async generate_speech({
         // Required inputs
         input_ids,
@@ -14,8 +22,7 @@ export class SupertonicForConditionalGeneration extends SupertonicPreTrainedMode
         num_inference_steps = 5,
         speed = 1.05,
     }) {
-        // @ts-expect-error TS2339
-        const { sampling_rate, chunk_compress_factor, base_chunk_size, latent_dim } = this.config;
+        const { sampling_rate, chunk_compress_factor, base_chunk_size, latent_dim } = /** @type {Record<string, number>} */ (/** @type {unknown} */ (this.config));
 
         // 1. Text Encoder
         const { last_hidden_state, durations: raw_durations } = await sessionRun(this.sessions['text_encoder'], {
@@ -25,11 +32,11 @@ export class SupertonicForConditionalGeneration extends SupertonicPreTrainedMode
         });
 
         // Convert durations to sample counts
-        const durations = raw_durations.div(speed).mul_(sampling_rate);
+        const durations = /** @type {Tensor} */ (raw_durations).div(speed).mul_(sampling_rate);
 
         // 2. Latent Preparation
         // Calculate latent lengths: ceil(durations / latent_size)
-        const latent_size = base_chunk_size * chunk_compress_factor;
+        const latent_size = /** @type {number} */ (base_chunk_size) * /** @type {number} */ (chunk_compress_factor);
         const durationsData = /** @type {Float32Array} */ (durations.data);
         const latentLengths = Int32Array.from(durationsData, (d) => Math.ceil(d / latent_size));
         const maxLatentLen = Math.max(...latentLengths);
@@ -43,7 +50,7 @@ export class SupertonicForConditionalGeneration extends SupertonicPreTrainedMode
         const latent_mask = new Tensor('int64', latentMaskData, [batch_size, maxLatentLen]);
 
         // Create initial noise and apply mask: latents *= latent_mask[:, None, :]
-        const latentChannels = latent_dim * chunk_compress_factor;
+        const latentChannels = /** @type {number} */ (latent_dim) * /** @type {number} */ (chunk_compress_factor);
         const latentStride = latentChannels * maxLatentLen;
         let noisy_latents = randn([batch_size, latentChannels, maxLatentLen]);
         const latentsData = /** @type {Float32Array} */ (noisy_latents.data);
@@ -66,7 +73,7 @@ export class SupertonicForConditionalGeneration extends SupertonicPreTrainedMode
                 style,
                 noisy_latents,
                 latent_mask,
-                encoder_outputs: last_hidden_state,
+                encoder_outputs: /** @type {Tensor} */ (last_hidden_state),
                 attention_mask,
                 timestep,
                 num_inference_steps: num_steps,

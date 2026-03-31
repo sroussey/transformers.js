@@ -1,5 +1,5 @@
 import { GemmaTokenizer } from "../../../src/models/tokenizers.js";
-import { BASE_TEST_STRINGS, LLAMA_TEST_STRINGS } from "../test_strings.js";
+import { BASE_TEST_STRINGS, LLAMA_TEST_STRINGS } from "../test_strings.ts";
 
 export const TOKENIZER_CLASS = GemmaTokenizer;
 export const TEST_CONFIG = {

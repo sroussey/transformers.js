@@ -6,12 +6,42 @@ import {
     runInferenceSession,
 } from '../backends/onnx.js';
 import { getCacheShapes } from '../configs.js';
-import { DATA_TYPES, DEFAULT_DTYPE_SUFFIX_MAPPING, isWebGpuFp16Supported, selectDtype } from '../utils/dtypes.js';
-import { selectDevice } from '../utils/devices.js';
 import { apis } from '../env.js';
+import { selectDevice } from '../utils/devices.js';
+import { DATA_TYPES, DEFAULT_DTYPE_SUFFIX_MAPPING, isWebGpuFp16Supported, selectDtype } from '../utils/dtypes.js';
+import { logger } from '../utils/logger.js';
 import { getCoreModelFile, getModelDataFiles } from '../utils/model-loader.js';
 import { Tensor } from '../utils/tensor.js';
-import { logger } from '../utils/logger.js';
+import { Tensor as ONNXTensor } from 'onnxruntime-common';
+
+/**
+ * @typedef {Object} ModelLoadOptions Options for loading a pretrained model (mirrors PretrainedModelOptions from hub.ts)
+ * @property {unknown} [progress_callback]
+ * @property {Record<string, unknown>|null} [config]
+ * @property {string|null} [cache_dir]
+ * @property {boolean} [local_files_only]
+ * @property {string} [revision]
+ * @property {string} [subfolder]
+ * @property {string|null} [model_file_name]
+ * @property {string|Record<string, string>|null} [device]
+ * @property {string|Record<string, string>|null} [dtype]
+ * @property {boolean|number|Record<string, boolean|number>|null} [use_external_data_format]
+ * @property {Record<string, unknown>} [session_options]
+ */
+
+/**
+ * @typedef {Object} SessionConfig Session config returned by getSession
+ * @property {string} dtype
+ * @property {string|undefined} kv_cache_dtype
+ * @property {string} device
+ */
+
+/**
+ * @typedef {Object} InferenceSessionLike InferenceSession-like object with inputNames
+ * @property {string[]} inputNames
+ * @property {(() => Promise<void>)} [release]
+ * @property {SessionConfig} [config]
+ */
 
 /**
  * Constructs an InferenceSession using a model file located at the specified path.
@@ -19,7 +49,7 @@ import { logger } from '../utils/logger.js';
  * @param {string} fileName The name of the model file.
  * @param {import('../utils/hub.js').PretrainedModelOptions} options Additional options for loading the model.
  * @param {boolean} [cache_config=false] Whether to compute cache shapes for GPU-pinned outputs.
- * @param {string} [session_name] The name of the session (used to determine cache shapes).
+ * @param {string | undefined} [session_name] The name of the session (used to determine cache shapes).
  * @returns {Promise<{buffer_or_path: Uint8Array|string, session_options: Object, session_config: Object}>} A Promise that resolves to the data needed to create an InferenceSession object.
  * @private
  */
@@ -30,7 +60,8 @@ async function getSession(
     cache_config = false,
     session_name = undefined,
 ) {
-    let custom_config = options.config?.['transformers.js_config'] ?? {};
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let custom_config = /** @type {Record<string, any>} */ (options.config?.['transformers.js_config']) ?? {};
 
     // If the device is not specified, we use the default (supported) execution providers.
     const selectedDevice = /** @type {import("../utils/devices.js").DeviceType} */ (
@@ -52,12 +83,12 @@ async function getSession(
 
     // If options.dtype is specified, we use it to choose the suffix for the model file.
     // Otherwise, we use the default dtype for the device.
-    const selectedDtype = /** @type {import("../utils/dtypes.js").DataType} */ (
+    const selectedDtype = /** @type {string} */ (/** @type {import("../utils/dtypes.js").DataType} */ (
         selectDtype(options.dtype ?? custom_config.dtype, fileName, selectedDevice, {
             configDtype: custom_config.dtype,
             warn: (msg) => logger.info(msg),
         })
-    );
+    ));
 
     if (!DEFAULT_DTYPE_SUFFIX_MAPPING.hasOwnProperty(selectedDtype)) {
         throw new Error(`Invalid dtype: ${selectedDtype}. Should be one of: ${Object.keys(DATA_TYPES).join(', ')}`);
@@ -84,7 +115,7 @@ async function getSession(
     }
 
     // Construct the model file suffix
-    const suffix = DEFAULT_DTYPE_SUFFIX_MAPPING[selectedDtype];
+    const suffix = /** @type {Record<string, string>} */ (DEFAULT_DTYPE_SUFFIX_MAPPING)[selectedDtype];
 
     const session_options = { ...options.session_options };
 
@@ -102,7 +133,7 @@ async function getSession(
         );
     }
 
-    const bufferOrPathPromise = getCoreModelFile(pretrained_model_name_or_path, fileName, options, suffix);
+    const bufferOrPathPromise = getCoreModelFile(pretrained_model_name_or_path, fileName, /** @type {any} */ (options), suffix);
 
     // Handle onnx external data files
     const use_external_data_format = options.use_external_data_format ?? custom_config.use_external_data_format;
@@ -110,7 +141,7 @@ async function getSession(
         pretrained_model_name_or_path,
         fileName,
         suffix,
-        options,
+        /** @type {any} */ (options),
         use_external_data_format,
         session_options,
     );
@@ -150,7 +181,7 @@ async function getSession(
  * @param {string} pretrained_model_name_or_path The path to the directory containing the model file.
  * @param {Record<string, string>} names The names of the model files to load.
  * @param {import('../utils/hub.js').PretrainedModelOptions} options Additional options for loading the model.
- * @param {Record<string, true>} [cache_sessions] A map from session name to `true`, indicating which
+ * @param {Record<string, true> | undefined} [cache_sessions] A map from session name to `true`, indicating which
  *   sessions should have GPU-pinned KV cache outputs.
  * @returns {Promise<Record<string, any>>} A Promise that resolves to a dictionary of InferenceSession objects.
  * @private
@@ -176,16 +207,16 @@ export async function constructSessions(pretrained_model_name_or_path, names, op
 
 /**
  * Replaces ONNX Tensor objects with custom Tensor objects to support additional functions.
- * @param {Object} obj The object to replace tensor objects in.
- * @returns {Object} The object with tensor objects replaced by custom Tensor objects.
+ * @param {Record<string, any>} obj The object to replace tensor objects in.
+ * @returns {Record<string, any>} The object with tensor objects replaced by custom Tensor objects.
  * @private
  */
 function replaceTensors(obj) {
     for (let prop in obj) {
         if (isONNXTensor(obj[prop])) {
-            obj[prop] = new Tensor(obj[prop]);
-        } else if (typeof obj[prop] === 'object') {
-            replaceTensors(obj[prop]);
+            obj[prop] = new Tensor(/** @type {ONNXTensor} */ (obj[prop]));
+        } else if (typeof obj[prop] === 'object' && obj[prop] !== null) {
+            replaceTensors(/** @type {Record<string, unknown>} */ (obj[prop]));
         }
     }
     return obj;
@@ -197,9 +228,9 @@ function replaceTensors(obj) {
  *  - If additional inputs are passed, they will be ignored.
  *  - If inputs are missing, an error will be thrown.
  *
- * @param {Object} session The InferenceSession object to run.
- * @param {Object} inputs An object that maps input names to input tensors.
- * @returns {Promise<Object>} A Promise that resolves to an object that maps output names to output tensors.
+ * @param {InferenceSessionLike} session The InferenceSession object to run.
+ * @param {Record<string, Tensor>} inputs An object that maps input names to input tensors.
+ * @returns {Promise<Record<string, any>>} A Promise that resolves to an object that maps output names to output tensors.
  * @private
  */
 export async function sessionRun(session, inputs) {
@@ -208,7 +239,7 @@ export async function sessionRun(session, inputs) {
         // pass the original ort tensor
         const ortFeed = Object.fromEntries(
             Object.entries(checkedInputs).map(([k, v]) => {
-                const tensor = /** @type {any} */ (v.ort_tensor);
+                const tensor = /** @type {ONNXTensor & { cpuData?: ArrayBufferView }} */ (v.ort_tensor);
                 if (apis.IS_NODE_ENV) {
                     // In recent versions of Node.js, which support Float16Array, we need to convert
                     // the Float16Array to Uint16Array for ONNX Runtime to accept it.
@@ -220,7 +251,7 @@ export async function sessionRun(session, inputs) {
             }),
         );
 
-        const output = await runInferenceSession(session, ortFeed);
+        const output = await runInferenceSession(/** @type {any} */ (session), ortFeed);
         return replaceTensors(output);
     } catch (e) {
         // Error messages can be long (nested) and uninformative. For this reason,
@@ -228,6 +259,7 @@ export async function sessionRun(session, inputs) {
         const formatted = Object.fromEntries(
             Object.entries(checkedInputs).map(([k, tensor]) => {
                 // Extract these properties from the underlying ORT tensor
+                /** @type {Record<string, any>} */
                 const unpacked = {
                     type: tensor.type,
                     dims: tensor.dims,
@@ -250,8 +282,8 @@ export async function sessionRun(session, inputs) {
 
 /**
  * Validate model inputs
- * @param {Object} session The InferenceSession object that will be run.
- * @param {Object} inputs The inputs to check.
+ * @param {InferenceSessionLike} session The InferenceSession object that will be run.
+ * @param {Record<string, Tensor>} inputs The inputs to check.
  * @returns {Record<string, Tensor>} The checked inputs.
  * @throws {Error} If any inputs are missing.
  * @private

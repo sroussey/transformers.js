@@ -1,6 +1,6 @@
 import { AutoProcessor, Florence2Processor } from "../../../src/transformers.js";
-import { MAX_TEST_EXECUTION_TIME, MAX_PROCESSOR_LOAD_TIME } from "../../init.js";
-import { load_cached_image } from "../../asset_cache.js";
+import { MAX_TEST_EXECUTION_TIME, MAX_PROCESSOR_LOAD_TIME } from "../../init.ts";
+import { load_cached_image } from "../../asset_cache.ts";
 export default () => {
   describe("Florence2Processor", () => {
     const model_id = "Xenova/tiny-random-Florence2ForConditionalGeneration";
