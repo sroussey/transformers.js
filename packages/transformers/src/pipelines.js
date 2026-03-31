@@ -57,7 +57,7 @@ import { get_file_metadata } from './utils/model_registry/get_file_metadata.js';
  * @typedef {keyof typeof TASK_ALIASES} AliasType
  * @typedef {TaskType | AliasType} PipelineType All possible pipeline types.
  * @typedef {{[K in TaskType]: InstanceType<typeof SUPPORTED_TASKS[K]["pipeline"]>}} SupportedTasks A mapping of pipeline names to their corresponding pipeline classes.
- * @typedef {{[K in AliasType]: InstanceType<typeof SUPPORTED_TASKS[TASK_ALIASES[K]]["pipeline"]>}} AliasTasks A mapping from pipeline aliases to their corresponding pipeline classes.
+ * @typedef {{[K in AliasType]: InstanceType<typeof SUPPORTED_TASKS[typeof TASK_ALIASES[K]]["pipeline"]>}} AliasTasks A mapping from pipeline aliases to their corresponding pipeline classes.
  * @typedef {SupportedTasks & AliasTasks} AllTasks A mapping from all pipeline names and aliases to their corresponding pipeline classes.
  */
 
@@ -111,12 +111,11 @@ export async function pipeline(
         session_options = {},
     } = {},
 ) {
-    // Apply aliases
-    // @ts-ignore
-    task = TASK_ALIASES[task] ?? task;
+    // Apply aliases (index is AliasType-only; non-aliases yield undefined and keep task)
+    task = /** @type {T} */ (TASK_ALIASES[/** @type {AliasType} */ (task)] ?? task);
 
     // Get pipeline info
-    const pipelineInfo = SUPPORTED_TASKS[task.split('_', 1)[0]];
+    const pipelineInfo = SUPPORTED_TASKS[/** @type {TaskType} */ (task.split('_', 1)[0])];
     if (!pipelineInfo) {
         throw Error(`Unsupported pipeline: ${task}. Must be one of [${Object.keys(SUPPORTED_TASKS)}]`);
     }
@@ -125,8 +124,9 @@ export async function pipeline(
     if (!model) {
         model = pipelineInfo.default.model;
         logger.info(`No model specified. Using default model: "${model}".`);
-        if (!dtype && pipelineInfo.default.dtype) {
-            dtype = pipelineInfo.default.dtype;
+        const defaultConfig = pipelineInfo.default;
+        if (!dtype && 'dtype' in defaultConfig && defaultConfig.dtype) {
+            dtype = /** @type {import('./utils/hub.js').PretrainedModelOptions['dtype']} */ (defaultConfig.dtype);
         }
     }
 
@@ -137,6 +137,7 @@ export async function pipeline(
     });
 
     /** @type {import('./utils/core.js').FilesLoadingMap} */
+    /** @type {Record<string, { loaded: number; total: number }>} */
     let files_loading = {};
     if (progress_callback) {
         /** @type {Array<{exists: boolean, size?: number, contentType?: string, fromCache?: boolean}>} */
@@ -218,6 +219,7 @@ export async function pipeline(
         modelPromise,
     ]);
 
+    /** @type {any} */
     const results = { task, model: model_loaded };
     if (tokenizer) results.tokenizer = tokenizer;
     if (processor) results.processor = processor;
@@ -229,7 +231,7 @@ export async function pipeline(
     });
 
     const pipelineClass = pipelineInfo.pipeline;
-    return new pipelineClass(results);
+    return /** @type {AllTasks[T]} */ (new pipelineClass(results));
 }
 
 export {
