@@ -440,8 +440,8 @@ export function getCacheShapes(config, options) {
 /**
  * @param {PretrainedConfig|Record<string, any>} config
  * @param {Object} [options]
- * @param {string} [options.prefix]
- * @param {number} [options.batch_size]
+ * @param {string} [options.prefix='past_key_values']
+ * @param {number} [options.batch_size=1]
  * @returns {Record<string, number[]>}
  */
 function getKeyValueShapes(config, { prefix = 'past_key_values', batch_size = 1 } = {}) {
