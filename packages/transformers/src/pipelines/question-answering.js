@@ -1,4 +1,4 @@
-import { Pipeline } from './_base.js';
+import { Pipeline, tensorAt } from './_base.js';
 
 import { product } from '../utils/core.js';
 import { softmax } from '../utils/maths.js';
@@ -65,20 +65,27 @@ import { softmax } from '../utils/maths.js';
  * ```
  */
 export class QuestionAnsweringPipeline
-    extends /** @type {new (options: TextPipelineConstructorArgs) => QuestionAnsweringPipelineType} */ (Pipeline)
+    extends /** @type {new (options: TextPipelineConstructorArgs) => QuestionAnsweringPipelineType} */ (/** @type {unknown} */ (Pipeline))
 {
+    /**
+     * @param {string | string[]} question
+     * @param {string | string[]} context
+     * @param {object} [options]
+     * @param {number} [options.top_k]
+     */
     async _call(question, context, { top_k = 1 } = {}) {
         // Run tokenization
-        const inputs = this.tokenizer(question, {
+        const inputs = /** @type {any} */ (this.tokenizer)(question, {
             text_pair: context,
             padding: true,
             truncation: true,
         });
         const isBatched = Array.isArray(question);
 
-        const { start_logits, end_logits } = await this.model(inputs);
-        const input_ids = inputs.input_ids.tolist();
-        const attention_mask = inputs.attention_mask.tolist();
+        const { start_logits, end_logits } = await /** @type {any} */ (this.model)(inputs);
+        const input_ids = /** @type {bigint[][]} */ (inputs.input_ids.tolist());
+        // attention_mask[j] is compared loosely to 0 — it may be a sub-array (batched) or a number
+        const attention_mask = /** @type {unknown[]} */ (inputs.attention_mask.tolist());
 
         // TODO: add support for `return_special_tokens_mask`
         const { all_special_ids, sep_token_id } = this.tokenizer;
@@ -87,14 +94,13 @@ export class QuestionAnsweringPipeline
         for (let j = 0; j < start_logits.dims[0]; ++j) {
             const ids = input_ids[j];
             const sepIndex = ids.findIndex(
-                (x) =>
+                (/** @type {bigint} */ x) =>
                     // We use == to match bigint with number
-                    // @ts-ignore
-                    x == sep_token_id,
+                    x == /** @type {unknown} */ (sep_token_id),
             );
 
-            const start = start_logits[j].tolist();
-            const end = end_logits[j].tolist();
+            const start = /** @type {number[]} */ (tensorAt(start_logits, j).tolist());
+            const end = /** @type {number[]} */ (tensorAt(end_logits, j).tolist());
 
             // Now, we mask out values that can't be in the answer
             // NOTE: We keep the cls_token unmasked (some models use it to indicate unanswerable questions)
@@ -102,7 +108,7 @@ export class QuestionAnsweringPipeline
                 if (
                     attention_mask[j] == 0 || // is part of padding
                     i <= sepIndex || // is before the sep_token
-                    all_special_ids.findIndex((x) => x == ids[i]) !== -1 // Is a special token
+                    all_special_ids.findIndex((/** @type {number} */ x) => x == Number(ids[i])) !== -1 // Is a special token
                 ) {
                     // Make sure non-context indexes in the tensor cannot contribute to the softmax
                     start[i] = -Infinity;
@@ -111,8 +117,8 @@ export class QuestionAnsweringPipeline
             }
 
             // Normalize logits and spans to retrieve the answer
-            const start_scores = softmax(start).map((x, i) => [x, i]);
-            const end_scores = softmax(end).map((x, i) => [x, i]);
+            const start_scores = softmax(start).map((/** @type {number} */ x, /** @type {number} */ i) => [x, i]);
+            const end_scores = softmax(end).map((/** @type {number} */ x, /** @type {number} */ i) => [x, i]);
 
             // Mask CLS
             start_scores[0][0] = 0;
@@ -120,9 +126,9 @@ export class QuestionAnsweringPipeline
 
             // Generate all valid spans and select best ones
             const options = product(start_scores, end_scores)
-                .filter((x) => x[0][1] <= x[1][1])
-                .map((x) => [x[0][1], x[1][1], x[0][0] * x[1][0]])
-                .sort((a, b) => b[2] - a[2]);
+                .filter((/** @type {number[][]} */ x) => x[0][1] <= x[1][1])
+                .map((/** @type {number[][]} */ x) => [x[0][1], x[1][1], x[0][0] * x[1][0]])
+                .sort((/** @type {number[]} */ a, /** @type {number[]} */ b) => b[2] - a[2]);
 
             const sampleResults = [];
             for (let k = 0; k < Math.min(options.length, top_k); ++k) {

@@ -3,6 +3,11 @@ import { mel_filter_bank, spectrogram, window_function } from '../../utils/audio
 import { Tensor } from '../../utils/tensor.js';
 
 export class GraniteSpeechFeatureExtractor extends FeatureExtractor {
+    /** @type {Record<string, any>} */
+    config = /** @type {any} */ (undefined);
+    mel_filters;
+    window;
+    /** @param {Record<string, any>} config */
     constructor(config) {
         super(config);
 
@@ -50,7 +55,7 @@ export class GraniteSpeechFeatureExtractor extends FeatureExtractor {
             do_pad: false,
         });
 
-        // Stack adjacent frame pairs: [time, n_mels] → [1, time/2, 2*n_mels]
+        // Stack adjacent frame pairs: [time, n_mels] -> [1, time/2, 2*n_mels]
         const input_features = mel.view(-1, 2 * n_mels).unsqueeze_(0);
 
         return { input_features };

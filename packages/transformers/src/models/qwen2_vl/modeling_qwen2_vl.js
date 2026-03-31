@@ -1,7 +1,7 @@
+import { max } from '../../utils/maths.js';
+import { Tensor, ones_like, stack, zeros } from '../../utils/tensor.js';
 import { PreTrainedModel, cumsum_masked_fill, default_merge_input_ids_with_image_features } from '../modeling_utils.js';
 import { sessionRun } from '../session.js';
-import { stack, Tensor, ones_like, zeros } from '../../utils/tensor.js';
-import { max } from '../../utils/maths.js';
 
 export class Qwen2VLPreTrainedModel extends PreTrainedModel {
     forward_params = [
@@ -64,7 +64,7 @@ export class Qwen2VLForConditionalGeneration extends Qwen2VLPreTrainedModel {
      * @returns {number[]} Flat reordered positions of length total_len
      */
     _reorder_and_write_positions(llm_pos_ids_list, attn_mask, position_ids_list, batch_idx) {
-        const total_len = llm_pos_ids_list.reduce((acc, x) => acc + x.length, 0);
+        const total_len = llm_pos_ids_list.reduce((/** @type {number} */ acc, /** @type {number[]} */ x) => acc + x.length, 0);
         const llm_positions = new Array(total_len);
         let index = 0;
         for (let x = 0; x < 3; ++x) {
@@ -107,18 +107,17 @@ export class Qwen2VLForConditionalGeneration extends Qwen2VLPreTrainedModel {
         spatial_merge_size,
         state,
     }) {
-        // @ts-ignore
-        const { image_token_id, video_token_id, vision_start_token_id } = this.config;
+        const { image_token_id, video_token_id, vision_start_token_id } = /** @type {Record<string, number>} */ (/** @type {unknown} */ (this.config));
 
         const ids = filtered_ids;
-        const vision_start_indices = ids.reduce((acc, x, idx) => {
+        const vision_start_indices = ids.reduce((/** @type {number[]} */ acc, /** @type {number} */ x, /** @type {number} */ idx) => {
             if (x == vision_start_token_id) acc.push(idx);
             return acc;
         }, []);
 
-        const vision_tokens = vision_start_indices.map((x) => ids[x + 1]);
-        const image_nums = vision_tokens.filter((x) => x == image_token_id).length;
-        const video_nums = vision_tokens.filter((x) => x == video_token_id).length;
+        const vision_tokens = vision_start_indices.map((/** @type {number} */ x) => ids[x + 1]);
+        const image_nums = vision_tokens.filter((/** @type {number} */ x) => x == image_token_id).length;
+        const video_nums = vision_tokens.filter((/** @type {number} */ x) => x == video_token_id).length;
 
         /** @type {number[][]} */
         const llm_pos_ids_list = [];
@@ -126,8 +125,8 @@ export class Qwen2VLForConditionalGeneration extends Qwen2VLPreTrainedModel {
         let remain_images = image_nums;
         let remain_videos = video_nums;
         for (let j = 0; j < vision_tokens.length; ++j) {
-            const next_image_token = ids.findIndex((x, i) => i > st && x == image_token_id);
-            const next_video_token = ids.findIndex((x, i) => i > st && x == video_token_id);
+            const next_image_token = ids.findIndex((/** @type {number} */ x, /** @type {number} */ i) => i > st && x == image_token_id);
+            const next_video_token = ids.findIndex((/** @type {number} */ x, /** @type {number} */ i) => i > st && x == video_token_id);
 
             const ed_image = remain_images > 0 && next_image_token !== -1 ? next_image_token : ids.length + 1;
             const ed_video = remain_videos > 0 && next_video_token !== -1 ? next_video_token : ids.length + 1;
@@ -152,7 +151,7 @@ export class Qwen2VLForConditionalGeneration extends Qwen2VLPreTrainedModel {
                 Math.floor(Number(w) / spatial_merge_size),
             ];
             const text_len = ed - st;
-            const st_idx = llm_pos_ids_list.length > 0 ? max(llm_pos_ids_list.at(-1))[0] + 1 : 0;
+            const st_idx = llm_pos_ids_list.length > 0 ? max(/** @type {number[]} */ (llm_pos_ids_list.at(-1)))[0] + 1 : 0;
 
             llm_pos_ids_list.push(Array.from({ length: 3 * text_len }, (_, i) => st_idx + (i % text_len)));
 
@@ -216,28 +215,27 @@ export class Qwen2VLForConditionalGeneration extends Qwen2VLPreTrainedModel {
      * @returns {[Tensor, Tensor]} [position_ids, mrope_position_deltas]
      */
     get_rope_index(input_ids, image_grid_thw, video_grid_thw, attention_mask) {
-        // @ts-ignore
-        const { vision_config } = this.config;
+        const vision_config = /** @type {Record<string, number>} */ (/** @type {any} */ (this.config).vision_config);
         const spatial_merge_size = vision_config.spatial_merge_size ?? 2;
 
         if (image_grid_thw || video_grid_thw) {
-            const total_input_ids = input_ids.tolist();
+            const total_input_ids = /** @type {number[][]} */ (input_ids.tolist());
             if (!attention_mask) {
                 attention_mask = ones_like(input_ids);
             }
 
-            const attention_mask_list = attention_mask.tolist();
+            const attention_mask_list = /** @type {number[][]} */ (attention_mask.tolist());
             const position_ids_list = Array.from({ length: 3 }, () =>
                 Array.from({ length: input_ids.dims[0] }, () => Array.from({ length: input_ids.dims[1] }, () => 0)),
             );
 
-            const image_grid_thw_list = image_grid_thw ? image_grid_thw.tolist() : [];
-            const video_grid_thw_list = video_grid_thw ? video_grid_thw.tolist() : [];
+            const image_grid_thw_list = image_grid_thw ? /** @type {number[][]} */ (image_grid_thw.tolist()) : /** @type {number[][]} */ ([]);
+            const video_grid_thw_list = video_grid_thw ? /** @type {number[][]} */ (video_grid_thw.tolist()) : /** @type {number[][]} */ ([]);
             const state = { image_index: 0, video_index: 0 };
 
             const mrope_position_deltas = [];
             for (let i = 0; i < total_input_ids.length; ++i) {
-                const filtered_ids = total_input_ids[i].filter((_, j) => attention_mask_list[i][j] == 1);
+                const filtered_ids = total_input_ids[i].filter((/** @type {number} */ _, /** @type {number} */ j) => attention_mask_list[i][j] == 1);
 
                 const llm_pos_ids_list = this._get_multimodal_rope_positions({
                     filtered_ids,
@@ -254,11 +252,11 @@ export class Qwen2VLForConditionalGeneration extends Qwen2VLPreTrainedModel {
                     i,
                 );
 
-                mrope_position_deltas.push(max(llm_positions)[0] + 1 - total_input_ids[i].length);
+                mrope_position_deltas.push(Number(max(llm_positions)[0]) + 1 - total_input_ids[i].length);
             }
 
             return [
-                new Tensor('int64', position_ids_list.flat(Infinity), [3, input_ids.dims[0], input_ids.dims[1]]),
+                new Tensor('int64', /** @type {number[]} */ (position_ids_list.flat(Infinity)), [3, input_ids.dims[0], input_ids.dims[1]]),
                 new Tensor('int64', mrope_position_deltas, [mrope_position_deltas.length, 1]),
             ];
         } else {
@@ -266,6 +264,7 @@ export class Qwen2VLForConditionalGeneration extends Qwen2VLPreTrainedModel {
         }
     }
 
+    /** @param {{ pixel_values: Tensor, image_grid_thw: Tensor }} param0 */
     async encode_image({ pixel_values, image_grid_thw }) {
         const features = (
             await sessionRun(this.sessions['vision_encoder'], {
@@ -276,14 +275,19 @@ export class Qwen2VLForConditionalGeneration extends Qwen2VLPreTrainedModel {
         return features;
     }
 
+    /** @param {Record<string, any>} kwargs */
     _merge_input_ids_with_image_features(kwargs) {
-        return default_merge_input_ids_with_image_features({
-            // @ts-ignore
-            image_token_id: this.config.image_token_id,
+        return default_merge_input_ids_with_image_features(/** @type {Parameters<typeof default_merge_input_ids_with_image_features>[0]} */ ({
+            image_token_id: /** @type {number} */ (/** @type {any} */ (this.config).image_token_id),
             ...kwargs,
-        });
+        }));
     }
 
+    /**
+     * @param {Tensor} input_ids
+     * @param {Record<string, any>} model_inputs
+     * @param {Record<string, any>} generation_config
+     */
     prepare_inputs_for_generation(input_ids, model_inputs, generation_config) {
         // Overwritten -- in specific circumstances we don't want to forward image inputs to the model
         if (!model_inputs.attention_mask || model_inputs.position_ids) {
@@ -335,7 +339,7 @@ export class Qwen2VLForConditionalGeneration extends Qwen2VLPreTrainedModel {
                 }
 
                 const delta = BigInt(past_length);
-                const rope_deltas_list = model_inputs.rope_deltas.map((x) => delta + x);
+                const rope_deltas_list = model_inputs.rope_deltas.map((/** @type {bigint} */ x) => delta + x);
                 model_inputs.position_ids = stack([rope_deltas_list, rope_deltas_list, rope_deltas_list], 0);
             }
         }

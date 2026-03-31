@@ -1,8 +1,8 @@
-import { getModelJSON } from '../../utils/hub.js';
 import { ImageProcessor } from '../../image_processors_utils.js';
-import * as AllImageProcessors from '../image_processors.js';
 import { GITHUB_ISSUE_URL, IMAGE_PROCESSOR_NAME } from '../../utils/constants.js';
+import { getModelJSON } from '../../utils/hub.js';
 import { logger } from '../../utils/logger.js';
+import * as AllImageProcessors from '../image_processors.js';
 
 export class AutoImageProcessor {
     /** @type {typeof ImageProcessor.from_pretrained} */
@@ -15,8 +15,8 @@ export class AutoImageProcessor {
         );
 
         // Determine image processor class
-        const key = preprocessorConfig.image_processor_type ?? preprocessorConfig.feature_extractor_type;
-        let image_processor_class = AllImageProcessors[key?.replace(/Fast$/, '')];
+        const key = /** @type {string | undefined} */ (/** @type {any} */ (preprocessorConfig).image_processor_type ?? /** @type {any} */ (preprocessorConfig).feature_extractor_type);
+        let image_processor_class = /** @type {Record<string, typeof ImageProcessor>} */ (/** @type {unknown} */ (AllImageProcessors))[/** @type {string} */ (key?.replace(/Fast$/, ''))];
 
         if (!image_processor_class) {
             if (key !== undefined) {

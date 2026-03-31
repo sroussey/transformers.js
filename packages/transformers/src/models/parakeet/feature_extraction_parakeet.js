@@ -1,30 +1,32 @@
 import { FeatureExtractor, validate_audio_inputs } from '../../feature_extraction_utils.js';
-import { Tensor } from '../../utils/tensor.js';
 import { mel_filter_bank, spectrogram, window_function } from '../../utils/audio.js';
+import { Tensor } from '../../utils/tensor.js';
 
 const EPSILON = 1e-5;
 
 export class ParakeetFeatureExtractor extends FeatureExtractor {
+    window;
+    /** @param {Record<string, unknown>} config */
     constructor(config) {
         super(config);
 
         // Prefer given `mel_filters` from preprocessor_config.json, or calculate them if they don't exist.
-        this.config.mel_filters ??= mel_filter_bank(
-            Math.floor(1 + this.config.n_fft / 2), // num_frequency_bins
-            this.config.feature_size, // num_mel_filters
+        /** @type {any} */ (this.config).mel_filters ??= mel_filter_bank(
+            Math.floor(1 + /** @type {number} */ (/** @type {any} */ (this.config).n_fft) / 2), // num_frequency_bins
+            /** @type {number} */ (/** @type {any} */ (this.config).feature_size), // num_mel_filters
             0.0, // min_frequency
-            this.config.sampling_rate / 2, // max_frequency
-            this.config.sampling_rate, // sampling_rate
+            /** @type {number} */ (/** @type {any} */ (this.config).sampling_rate) / 2, // max_frequency
+            /** @type {number} */ (/** @type {any} */ (this.config).sampling_rate), // sampling_rate
             'slaney', // norm
             'slaney', // mel_scale
         );
 
-        const window = window_function(this.config.win_length, 'hann', {
+        const window = window_function(/** @type {number} */ (/** @type {any} */ (this.config).win_length), 'hann', {
             periodic: false,
         });
 
-        this.window = new Float64Array(this.config.n_fft);
-        const offset = Math.floor((this.config.n_fft - this.config.win_length) / 2);
+        this.window = new Float64Array(/** @type {number} */ (/** @type {any} */ (this.config).n_fft));
+        const offset = Math.floor((/** @type {number} */ (/** @type {any} */ (this.config).n_fft) - /** @type {number} */ (/** @type {any} */ (this.config).win_length)) / 2);
         this.window.set(window, offset);
     }
 
@@ -35,21 +37,21 @@ export class ParakeetFeatureExtractor extends FeatureExtractor {
      */
     async _extract_fbank_features(waveform) {
         // Parakeet uses a custom preemphasis strategy: Apply preemphasis to entire waveform at once
-        const preemphasis = this.config.preemphasis;
-        waveform = new Float64Array(waveform); // Clone to avoid destructive changes
-        for (let j = waveform.length - 1; j >= 1; --j) {
-            waveform[j] -= preemphasis * waveform[j - 1];
+        const preemphasis = /** @type {number} */ (/** @type {any} */ (this.config).preemphasis);
+        const waveformCopy = new Float64Array(waveform); // Clone to avoid destructive changes
+        for (let j = waveformCopy.length - 1; j >= 1; --j) {
+            waveformCopy[j] -= preemphasis * waveformCopy[j - 1];
         }
 
         const features = await spectrogram(
-            waveform,
+            waveformCopy,
             this.window, // window
             this.window.length, // frame_length
-            this.config.hop_length, // hop_length
+            /** @type {number} */ (/** @type {any} */ (this.config).hop_length), // hop_length
             {
-                fft_length: this.config.n_fft,
+                fft_length: /** @type {number} */ (/** @type {any} */ (this.config).n_fft),
                 power: 2.0,
-                mel_filters: this.config.mel_filters,
+                mel_filters: /** @type {number[][]} */ (/** @type {any} */ (this.config).mel_filters),
                 log_mel: 'log',
                 mel_floor: -Infinity,
                 pad_mode: 'constant',
@@ -74,8 +76,10 @@ export class ParakeetFeatureExtractor extends FeatureExtractor {
 
         const features = await this._extract_fbank_features(audio);
 
+        const n_fft = /** @type {number} */ (/** @type {any} */ (this.config).n_fft);
+        const hop_length = /** @type {number} */ (/** @type {any} */ (this.config).hop_length);
         const features_length = Math.floor(
-            (audio.length + Math.floor(this.config.n_fft / 2) * 2 - this.config.n_fft) / this.config.hop_length,
+            (audio.length + Math.floor(n_fft / 2) * 2 - n_fft) / hop_length,
         );
 
         const features_data = /** @type {Float32Array} */ (features.data);

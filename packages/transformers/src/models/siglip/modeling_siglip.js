@@ -1,5 +1,5 @@
-import { PreTrainedModel } from '../modeling_utils.js';
 import { CLIPPreTrainedModel } from '../clip/modeling_clip.js';
+import { PreTrainedModel } from '../modeling_utils.js';
 
 export class SiglipPreTrainedModel extends PreTrainedModel {}
 
@@ -80,7 +80,7 @@ export class SiglipTextModel extends SiglipPreTrainedModel {
         return super.from_pretrained(pretrained_model_name_or_path, {
             ...options,
             // Update default model file name if not provided
-            model_file_name: options.model_file_name ?? 'text_model',
+            model_file_name: /** @type {string} */ (options.model_file_name) ?? 'text_model',
         });
     }
 }
@@ -117,7 +117,7 @@ export class SiglipVisionModel extends CLIPPreTrainedModel {
         return super.from_pretrained(pretrained_model_name_or_path, {
             ...options,
             // Update default model file name if not provided
-            model_file_name: options.model_file_name ?? 'vision_model',
+            model_file_name: /** @type {string} */ (options.model_file_name) ?? 'vision_model',
         });
     }
 }

@@ -2,6 +2,9 @@ import { ImageProcessor, smart_resize } from '../../image_processors_utils.js';
 import { cat, Tensor } from '../../utils/tensor.js';
 
 export class Qwen2VLImageProcessor extends ImageProcessor {
+    patch_size;
+    merge_size;
+    /** @param {Record<string, any>} config */
     constructor(config) {
         super(config);
         this.min_pixels = config.min_pixels ?? config.size?.shortest_edge;
@@ -16,13 +19,13 @@ export class Qwen2VLImageProcessor extends ImageProcessor {
         return smart_resize(image.height, image.width, factor, this.min_pixels, this.max_pixels);
     }
 
+    /** @param {any} images @param {any[]} args */
     async _call(images, ...args) {
         const { pixel_values, original_sizes, reshaped_input_sizes } = await super._call(images, ...args);
 
         let patches = pixel_values;
 
-        // @ts-ignore
-        const { temporal_patch_size, merge_size, patch_size } = this.config;
+        const { temporal_patch_size, merge_size, patch_size } = /** @type {Record<string, number>} */ (this.config);
         if (patches.dims[0] === 1) {
             // Equivalent to np.tile(patches, (self.temporal_patch_size, 1, 1, 1))
             patches = cat(

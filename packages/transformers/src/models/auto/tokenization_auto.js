@@ -1,6 +1,10 @@
 import { PreTrainedTokenizer, loadTokenizer } from '../../tokenization_utils.js';
-import * as AllTokenizers from '../tokenizers.js';
 import { logger } from '../../utils/logger.js';
+import * as AllTokenizers from '../tokenizers.js';
+
+/**
+ * @typedef {import('../../utils/hub.js').PretrainedOptions} PretrainedOptions
+ */
 
 /**
  * Helper class which is used to instantiate pretrained tokenizers with the `from_pretrained` function.
@@ -51,9 +55,9 @@ export class AutoTokenizer {
         });
 
         // Some tokenizers are saved with the "Fast" suffix, so we remove that if present.
-        const tokenizerName = tokenizerConfig.tokenizer_class?.replace(/Fast$/, '') ?? 'PreTrainedTokenizer';
+        const tokenizerName = /** @type {string | undefined} */ (tokenizerConfig.tokenizer_class)?.replace(/Fast$/, '') ?? 'PreTrainedTokenizer';
 
-        let cls = AllTokenizers[tokenizerName];
+        let cls = /** @type {Record<string, typeof PreTrainedTokenizer>} */ (/** @type {unknown} */ (AllTokenizers))[tokenizerName];
         if (!cls) {
             logger.warn(`Unknown tokenizer class "${tokenizerName}", attempting to construct from base class.`);
             cls = PreTrainedTokenizer;

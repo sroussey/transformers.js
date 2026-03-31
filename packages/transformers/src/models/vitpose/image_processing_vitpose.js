@@ -19,14 +19,14 @@ export class VitPoseImageProcessor extends ImageProcessor {
         outputs,
         boxes,
         {
-            threshold = null,
+            threshold = /** @type {number | null} */ (null),
             // TODO:
             // kernel_size = 11,
             // target_sizes = null,
         } = {},
     ) {
         // NOTE: boxes are 3D (batch_size, num_boxes, 4)
-        const heatmaps = outputs.tolist();
+        const heatmaps = /** @type {any} */ (outputs.tolist());
         const [batch_size, num_classes, height, width] = outputs.dims;
 
         const results = [];

@@ -1,8 +1,13 @@
 import { FeatureExtractor, validate_audio_inputs } from '../../feature_extraction_utils.js';
-import { full, Tensor } from '../../utils/tensor.js';
 import { mel_filter_bank, spectrogram, window_function } from '../../utils/audio.js';
+import { full, Tensor } from '../../utils/tensor.js';
 
 export class Gemma3nAudioFeatureExtractor extends FeatureExtractor {
+    /** @type {Record<string, any>} */
+    config = /** @type {any} */ (undefined);
+    mel_filters;
+    window;
+    /** @param {Record<string, any>} config */
     constructor(config) {
         super(config);
 

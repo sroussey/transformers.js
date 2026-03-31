@@ -1,9 +1,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+import { apis } from '../../env.js';
 import { FileResponse } from '../hub/FileResponse.js';
 import { Random } from '../random.js';
-import { apis } from '../../env.js';
 
 // Create a dedicated random instance for generating unique temporary file names
 const rng = new Random();
@@ -13,6 +13,7 @@ const rng = new Random();
  * Provides `match` and `put` methods compatible with the Web Cache API.
  */
 export class FileCache {
+    path;
     /**
      * Instantiate a `FileCache` object.
      * @param {string} path
@@ -45,7 +46,7 @@ export class FileCache {
      * The function to call with progress updates
      * @returns {Promise<void>}
      */
-    async put(request, response, progress_callback = undefined) {
+    async put(request, response, progress_callback) {
         const filePath = path.join(this.path, request);
 
         // Include both PID and a random suffix so that concurrent put() call within the same process
@@ -76,7 +77,7 @@ export class FileCache {
                             reject(err);
                             return;
                         }
-                        resolve();
+                        resolve(undefined);
                     });
                 });
 
@@ -87,7 +88,7 @@ export class FileCache {
             }
 
             await new Promise((resolve, reject) => {
-                fileStream.close((err) => (err ? reject(err) : resolve()));
+                fileStream.close((err) => (err ? reject(err) : resolve(undefined)));
             });
 
             // Atomically move the completed temp file to the final path so that
@@ -123,6 +124,6 @@ export class FileCache {
     // TODO add the rest?
     // addAll(requests: RequestInfo[]): Promise<void>;
     // keys(request?: RequestInfo | URL, options?: CacheQueryOptions): Promise<ReadonlyArray<Request>>;
-    // match(request: RequestInfo | URL, options?: CacheQueryOptions): Promise<Response | undefined>;
+    // match(request?: RequestInfo | URL, options?: CacheQueryOptions): Promise<Response | undefined>;
     // matchAll(request?: RequestInfo | URL, options?: CacheQueryOptions): Promise<ReadonlyArray<Response>>;
 }

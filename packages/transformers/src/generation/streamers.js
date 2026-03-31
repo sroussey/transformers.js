@@ -2,9 +2,10 @@
  * @module generation/streamers
  */
 
-import { mergeArrays } from '../utils/core.js';
 import { apis } from '../env.js';
+import { mergeArrays } from '../utils/core.js';
 
+/** @param {number} cp */
 const is_chinese_char = (cp) =>
     (cp >= 0x4e00 && cp <= 0x9fff) ||
     (cp >= 0x3400 && cp <= 0x4dbf) ||
@@ -32,12 +33,23 @@ export class BaseStreamer {
     }
 }
 
-const stdout_write = apis.IS_PROCESS_AVAILABLE ? (x) => process.stdout.write(x) : (x) => console.log(x);
+const stdout_write = apis.IS_PROCESS_AVAILABLE ? (/** @type {string} */ x) => process.stdout.write(x) : (/** @type {string} */ x) => console.log(x);
 
 /**
  * Simple text streamer that prints the token(s) to stdout as soon as entire words are formed.
  */
 export class TextStreamer extends BaseStreamer {
+    tokenizer;
+    skip_prompt;
+    callback_function;
+    token_callback_function;
+    decode_kwargs;
+    /** @type {bigint[]} */
+    token_cache;
+    print_len;
+    next_tokens_are_prompt;
+    special_ids;
+
     /**
      *
      * @param {import('../tokenization_utils.js').PreTrainedTokenizer} tokenizer
@@ -52,10 +64,10 @@ export class TextStreamer extends BaseStreamer {
         tokenizer,
         {
             skip_prompt = false,
-            callback_function = null,
-            token_callback_function = null,
+            callback_function = /** @type {((text: string) => void) | null} */ (null),
+            token_callback_function = /** @type {((tokens: bigint[]) => void) | null} */ (null),
             skip_special_tokens = true,
-            decode_kwargs = {},
+            decode_kwargs = /** @type {Record<string, unknown>} */ ({}),
             ...kwargs
         } = {},
     ) {
@@ -112,7 +124,7 @@ export class TextStreamer extends BaseStreamer {
         }
 
         // Add the new token to the cache and decodes the entire thing.
-        this.token_cache = mergeArrays(this.token_cache, tokens);
+        this.token_cache = /** @type {bigint[]} */ (mergeArrays(this.token_cache, tokens));
         const text = this.tokenizer.decode(this.token_cache, this.decode_kwargs);
 
         let printable_text;
@@ -176,6 +188,13 @@ export class TextStreamer extends BaseStreamer {
  *  - The stream is finalized (on_finalize)
  */
 export class WhisperTextStreamer extends TextStreamer {
+    timestamp_begin;
+    on_chunk_start;
+    on_chunk_end;
+    on_finalize;
+    time_precision;
+    waiting_for_timestamp;
+
     /**
      * @param {import('../models/whisper/tokenization_whisper.js').WhisperTokenizer} tokenizer
      * @param {Object} options
@@ -193,14 +212,14 @@ export class WhisperTextStreamer extends TextStreamer {
         tokenizer,
         {
             skip_prompt = false,
-            callback_function = null,
-            token_callback_function = null,
-            on_chunk_start = null,
-            on_chunk_end = null,
-            on_finalize = null,
+            callback_function = /** @type {((text: string) => void) | null} */ (null),
+            token_callback_function = /** @type {((tokens: bigint[]) => void) | null} */ (null),
+            on_chunk_start = /** @type {((time: number) => void) | null} */ (null),
+            on_chunk_end = /** @type {((time: number) => void) | null} */ (null),
+            on_finalize = /** @type {(() => void) | null} */ (null),
             time_precision = 0.02,
             skip_special_tokens = true,
-            decode_kwargs = {},
+            decode_kwargs = /** @type {Record<string, unknown>} */ ({}),
         } = {},
     ) {
         super(tokenizer, {

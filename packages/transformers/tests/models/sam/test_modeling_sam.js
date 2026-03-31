@@ -1,7 +1,7 @@
 import { SamProcessor, SamModel } from "../../../src/transformers.js";
-import { load_cached_image } from "../../asset_cache.js";
+import { load_cached_image } from "../../asset_cache.ts";
 
-import { MAX_MODEL_LOAD_TIME, MAX_TEST_EXECUTION_TIME, MAX_MODEL_DISPOSE_TIME, DEFAULT_MODEL_OPTIONS } from "../../init.js";
+import { MAX_MODEL_LOAD_TIME, MAX_TEST_EXECUTION_TIME, MAX_MODEL_DISPOSE_TIME, DEFAULT_MODEL_OPTIONS } from "../../init.ts";
 
 export default () => {
   describe("SamModel", () => {

@@ -1,6 +1,6 @@
+import { Tensor } from '../../utils/tensor.js';
 import { PreTrainedModel } from '../modeling_utils.js';
 import { sessionRun } from '../session.js';
-import { Tensor } from '../../utils/tensor.js';
 
 export class SnacPreTrainedModel extends PreTrainedModel {
     main_input_name = 'input_values';
@@ -17,6 +17,7 @@ export class SnacModel extends SnacPreTrainedModel {
      * @param {Tensor} [inputs.input_values] Float values of the input audio waveform, of shape `(batch_size, channels, sequence_length)`).
      * @returns {Promise<Record<string, Tensor>>} The output tensors of shape `(batch_size, num_codebooks, sequence_length)`.
      */
+    /** @param {Record<string, Tensor>} inputs */
     async encode(inputs) {
         return await sessionRun(this.sessions['encoder_model'], inputs);
     }
@@ -26,6 +27,7 @@ export class SnacModel extends SnacPreTrainedModel {
      * @param {Record<string, Tensor>} inputs The encoded audio codes.
      * @returns {Promise<{audio_values: Tensor}>} The output tensor of shape `(batch_size, num_channels, sequence_length)`.
      */
+    /** @param {Record<string, Tensor>} inputs */
     async decode(inputs) {
         return await sessionRun(this.sessions['decoder_model'], inputs);
     }
@@ -37,7 +39,7 @@ export class SnacEncoderModel extends SnacPreTrainedModel {
         return super.from_pretrained(pretrained_model_name_or_path, {
             ...options,
             // Update default model file name if not provided
-            model_file_name: options.model_file_name ?? 'encoder_model',
+            model_file_name: /** @type {string} */ (options.model_file_name) ?? 'encoder_model',
         });
     }
 }
@@ -47,7 +49,7 @@ export class SnacDecoderModel extends SnacPreTrainedModel {
         return super.from_pretrained(pretrained_model_name_or_path, {
             ...options,
             // Update default model file name if not provided
-            model_file_name: options.model_file_name ?? 'decoder_model',
+            model_file_name: /** @type {string} */ (options.model_file_name) ?? 'decoder_model',
         });
     }
 }

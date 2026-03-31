@@ -1,15 +1,19 @@
 import { FeatureExtractor, validate_audio_inputs } from '../../feature_extraction_utils.js';
-import { Tensor } from '../../utils/tensor.js';
 import { mel_filter_bank, spectrogram, window_function } from '../../utils/audio.js';
+import { Tensor } from '../../utils/tensor.js';
 
 export class WeSpeakerFeatureExtractor extends FeatureExtractor {
+    mel_filters;
+    window;
+    min_num_frames;
+    /** @param {Record<string, any>} config */
     constructor(config) {
         super(config);
 
-        const sampling_rate = this.config.sampling_rate;
+        const sampling_rate = /** @type {any} */ (this.config).sampling_rate;
         const mel_filters = mel_filter_bank(
             257, // num_frequency_bins
-            this.config.num_mel_bins, // num_mel_filters
+            /** @type {any} */ (this.config).num_mel_bins, // num_mel_filters
             20, // min_frequency
             Math.floor(sampling_rate / 2), // max_frequency
             sampling_rate, // sampling_rate
@@ -22,7 +26,7 @@ export class WeSpeakerFeatureExtractor extends FeatureExtractor {
         this.window = window_function(400, 'hamming', {
             periodic: false,
         });
-        this.min_num_frames = this.config.min_num_frames;
+        this.min_num_frames = /** @type {any} */ (this.config).min_num_frames;
     }
 
     /**
@@ -67,7 +71,7 @@ export class WeSpeakerFeatureExtractor extends FeatureExtractor {
 
         const features = (await this._extract_fbank_features(audio)).unsqueeze_(0);
 
-        if (this.config.fbank_centering_span === null) {
+        if (/** @type {any} */ (this.config).fbank_centering_span === null) {
             // center features with global average
             const meanData = /** @type {Float32Array} */ (features.mean(1).data);
             const featuresData = /** @type {Float32Array} */ (features.data);
@@ -79,7 +83,7 @@ export class WeSpeakerFeatureExtractor extends FeatureExtractor {
                 for (let j = 0; j < num_frames; ++j) {
                     const offset3 = offset1 + j * feature_size;
                     for (let k = 0; k < feature_size; ++k) {
-                        featuresData[offset3 + k] -= meanData[offset2 + k];
+                        /** @type {Float32Array} */ (featuresData)[offset3 + k] -= /** @type {Float32Array} */ (meanData)[offset2 + k];
                     }
                 }
             }

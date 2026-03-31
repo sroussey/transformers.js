@@ -1,5 +1,5 @@
-import { ERROR_MAPPING, REPO_ID_REGEX } from './constants.js';
 import { logger } from '../logger.js';
+import { ERROR_MAPPING, REPO_ID_REGEX } from './constants.js';
 
 /**
  * Joins multiple parts of a path into a single path, while handling leading and trailing slashes.
@@ -73,7 +73,7 @@ export function handleError(status, remoteURL, fatal) {
         return null;
     }
 
-    const message = ERROR_MAPPING[status] ?? `Error (${status}) occurred while trying to load file`;
+    const message = /** @type {Record<number, string>} */ (ERROR_MAPPING)[status] ?? `Error (${status}) occurred while trying to load file`;
     throw Error(`${message}: "${remoteURL}".`);
 }
 

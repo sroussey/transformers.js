@@ -1,5 +1,5 @@
 import { BloomTokenizer } from "../../../src/models/tokenizers.js";
-import { BASE_TEST_STRINGS, BLOOM_TEST_STRINGS, SENTENCEPIECE_TEST_STRINGS } from "../test_strings.js";
+import { BASE_TEST_STRINGS, BLOOM_TEST_STRINGS, SENTENCEPIECE_TEST_STRINGS } from "../test_strings.ts";
 
 export const TOKENIZER_CLASS = BloomTokenizer;
 export const TEST_CONFIG = {

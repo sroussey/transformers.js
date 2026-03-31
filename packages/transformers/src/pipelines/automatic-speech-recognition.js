@@ -1,8 +1,8 @@
-import { Pipeline, prepareAudios } from './_base.js';
+import { Pipeline, prepareAudios, tensorAt } from './_base.js';
 
-import { Tensor } from '../utils/tensor.js';
-import { max, round } from '../utils/maths.js';
 import { logger } from '../utils/logger.js';
+import { max, round } from '../utils/maths.js';
+import { Tensor } from '../utils/tensor.js';
 
 /**
  * @typedef {import('./_base.js').TextAudioPipelineConstructorArgs} TextAudioPipelineConstructorArgs
@@ -137,9 +137,13 @@ import { logger } from '../utils/logger.js';
  */
 export class AutomaticSpeechRecognitionPipeline
     extends /** @type {new (options: TextAudioPipelineConstructorArgs) => AutomaticSpeechRecognitionPipelineType} */ (
-        Pipeline
+        /** @type {unknown} */ (Pipeline)
     )
 {
+    /**
+     * @param {AudioInput | AudioInput[]} audio
+     * @param {Record<string, unknown>} [kwargs]
+     */
     async _call(audio, kwargs = {}) {
         switch (this.model.config.model_type) {
             case 'whisper':
@@ -161,6 +165,10 @@ export class AutomaticSpeechRecognitionPipeline
         }
     }
 
+    /**
+     * @param {AudioInput | AudioInput[]} audio
+     * @param {Record<string, unknown>} kwargs
+     */
     async _call_wav2vec2(audio, kwargs) {
         // TODO use kwargs
 
@@ -174,18 +182,19 @@ export class AutomaticSpeechRecognitionPipeline
         const single = !Array.isArray(audio);
         const batchedAudio = single ? [audio] : audio;
 
-        const sampling_rate = this.processor.feature_extractor.config.sampling_rate;
+        const sampling_rate = /** @type {number} */ (/** @type {any} */ (this.processor.feature_extractor.config).sampling_rate);
         const preparedAudios = await prepareAudios(batchedAudio, sampling_rate);
 
         const toReturn = [];
         for (const aud of preparedAudios) {
-            const inputs = await this.processor(aud);
-            const output = await this.model(inputs);
-            const logits = output.logits[0];
+            const inputs = await /** @type {any} */ (this.processor)(aud);
+            const output = await /** @type {any} */ (this.model)(inputs);
+            const logits = tensorAt(output.logits, 0);
 
             const predicted_ids = [];
-            for (const item of logits) {
-                predicted_ids.push(max(item.data)[1]);
+            for (const item_ of logits) {
+                const item = /** @type {Tensor} */ (item_);
+                predicted_ids.push(max(/** @type {Float32Array} */ (item.data))[1]);
             }
             const predicted_sentences = this.tokenizer.decode(predicted_ids, { skip_special_tokens: true }).trim();
             toReturn.push({ text: predicted_sentences });
@@ -193,11 +202,15 @@ export class AutomaticSpeechRecognitionPipeline
         return single ? toReturn[0] : toReturn;
     }
 
+    /**
+     * @param {AudioInput | AudioInput[]} audio
+     * @param {Record<string, unknown>} kwargs
+     */
     async _call_whisper(audio, kwargs) {
-        const return_timestamps = kwargs.return_timestamps ?? false;
-        const chunk_length_s = kwargs.chunk_length_s ?? 0;
-        const force_full_sequences = kwargs.force_full_sequences ?? false;
-        let stride_length_s = kwargs.stride_length_s ?? null;
+        const return_timestamps = /** @type {boolean | string} */ (kwargs.return_timestamps ?? false);
+        const chunk_length_s = /** @type {number} */ (kwargs.chunk_length_s ?? 0);
+        const force_full_sequences = /** @type {boolean} */ (kwargs.force_full_sequences ?? false);
+        let stride_length_s = /** @type {number | null} */ (kwargs.stride_length_s ?? null);
 
         const generation_config = { ...kwargs };
 
@@ -208,13 +221,12 @@ export class AutomaticSpeechRecognitionPipeline
 
         const single = !Array.isArray(audio);
         const batchedAudio = single ? [audio] : audio;
-        const feature_extractor_config = this.processor.feature_extractor.config;
+        const feature_extractor_config = /** @type {any} */ (this.processor.feature_extractor.config);
 
-        // @ts-expect-error TS2339
-        const time_precision = feature_extractor_config.chunk_length / this.model.config.max_source_positions;
-        const hop_length = feature_extractor_config.hop_length;
+        const time_precision = /** @type {number} */ (feature_extractor_config.chunk_length) / /** @type {number} */ (this.model.config.max_source_positions);
+        const hop_length = /** @type {number} */ (feature_extractor_config.hop_length);
 
-        const sampling_rate = feature_extractor_config.sampling_rate;
+        const sampling_rate = /** @type {number} */ (feature_extractor_config.sampling_rate);
         const preparedAudios = await prepareAudios(batchedAudio, sampling_rate);
 
         const toReturn = [];
@@ -239,7 +251,7 @@ export class AutomaticSpeechRecognitionPipeline
                 while (true) {
                     const offset_end = offset + window;
                     const subarr = aud.subarray(offset, offset_end);
-                    const feature = await this.processor(subarr);
+                    const feature = await /** @type {any} */ (this.processor)(subarr);
 
                     const is_first = offset === 0;
                     const is_last = offset_end >= aud.length;
@@ -255,7 +267,7 @@ export class AutomaticSpeechRecognitionPipeline
                 chunks = [
                     {
                         stride: [aud.length, 0, 0],
-                        input_features: (await this.processor(aud)).input_features,
+                        input_features: (await /** @type {any} */ (this.processor)(aud)).input_features,
                         is_last: true,
                     },
                 ];
@@ -273,41 +285,43 @@ export class AutomaticSpeechRecognitionPipeline
 
                 // TODO: Right now we only get top beam
                 if (return_timestamps === 'word') {
-                    // @ts-expect-error TS2339
-                    chunk.tokens = data.sequences.tolist()[0];
-                    // @ts-expect-error TS2339
-                    chunk.token_timestamps = data.token_timestamps
-                        .tolist()[0]
+                    const wordData = /** @type {{ sequences: Tensor; token_timestamps: Tensor; past_key_values: unknown }} */ (data);
+                    chunk.tokens = /** @type {bigint[]} */ (/** @type {bigint[][]} */ (wordData.sequences.tolist())[0]);
+                    chunk.token_timestamps = /** @type {number[]} */ (/** @type {number[][]} */ (wordData.token_timestamps
+                        .tolist())[0])
                         .map((/** @type {number} */ x) => round(x, 2));
                 } else {
-                    chunk.tokens = /** @type {Tensor} */ (data)[0].tolist();
+                    chunk.tokens = /** @type {bigint[]} */ (/** @type {any} */ (/** @type {unknown} */ (data))[0].tolist());
                 }
 
                 // convert stride to seconds
-                chunk.stride = chunk.stride.map((x) => x / sampling_rate);
+                chunk.stride = chunk.stride.map((/** @type {number} */ x) => x / sampling_rate);
             }
 
             // Merge text chunks
-            // @ts-ignore
-            const [full_text, optional] = this.tokenizer._decode_asr(chunks, {
+            const [full_text, optional] = /** @type {[string, Record<string, unknown>]} */ (/** @type {{ _decode_asr: (...args: unknown[]) => [string, Record<string, unknown>] }} */ (/** @type {unknown} */ (this.tokenizer))._decode_asr(chunks, {
                 time_precision,
                 return_timestamps,
                 force_full_sequences,
-            });
+            }));
 
             toReturn.push({ text: full_text, ...optional });
         }
         return single ? toReturn[0] : toReturn;
     }
 
+    /**
+     * @param {AudioInput | AudioInput[]} audio
+     * @param {Record<string, unknown>} kwargs
+     */
     async _call_moonshine(audio, kwargs) {
         const single = !Array.isArray(audio);
         const batchedAudio = single ? [audio] : audio;
-        const sampling_rate = this.processor.feature_extractor.config.sampling_rate;
+        const sampling_rate = /** @type {number} */ (/** @type {any} */ (this.processor.feature_extractor.config).sampling_rate);
         const preparedAudios = await prepareAudios(batchedAudio, sampling_rate);
         const toReturn = [];
         for (const aud of preparedAudios) {
-            const inputs = await this.processor(aud);
+            const inputs = await /** @type {any} */ (this.processor)(aud);
 
             // According to the [paper](https://huggingface.co/papers/2410.15608):
             // "We use greedy decoding, with a heuristic limit of 6 output tokens

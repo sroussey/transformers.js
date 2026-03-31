@@ -1,33 +1,38 @@
 import { FeatureExtractor, validate_audio_inputs } from '../../feature_extraction_utils.js';
-import { Tensor } from '../../utils/tensor.js';
 import { mel_filter_bank, spectrogram, window_function } from '../../utils/audio.js';
 import { random } from '../../utils/random.js';
+import { Tensor } from '../../utils/tensor.js';
 
 export class ClapFeatureExtractor extends FeatureExtractor {
+    mel_filters;
+    mel_filters_slaney;
+    window;
+    /** @param {Record<string, unknown>} config */
     constructor(config) {
         super(config);
 
+        const cfg = /** @type {Record<string, number>} */ (this.config);
         this.mel_filters = mel_filter_bank(
-            this.config.nb_frequency_bins, // num_frequency_bins
-            this.config.feature_size, // num_mel_filters
-            this.config.frequency_min, // min_frequency
-            this.config.frequency_max, // max_frequency
-            this.config.sampling_rate, // sampling_rate
+            cfg.nb_frequency_bins, // num_frequency_bins
+            cfg.feature_size, // num_mel_filters
+            cfg.frequency_min, // min_frequency
+            cfg.frequency_max, // max_frequency
+            cfg.sampling_rate, // sampling_rate
             null, // norm
             'htk', // mel_scale
         );
 
         this.mel_filters_slaney = mel_filter_bank(
-            this.config.nb_frequency_bins, // num_frequency_bins
-            this.config.feature_size, // num_mel_filters
-            this.config.frequency_min, // min_frequency
-            this.config.frequency_max, // max_frequency
-            this.config.sampling_rate, // sampling_rate
+            cfg.nb_frequency_bins, // num_frequency_bins
+            cfg.feature_size, // num_mel_filters
+            cfg.frequency_min, // min_frequency
+            cfg.frequency_max, // max_frequency
+            cfg.sampling_rate, // sampling_rate
             'slaney', // norm
             'slaney', // mel_scale
         );
 
-        this.window = window_function(this.config.fft_window_size, 'hann');
+        this.window = window_function(cfg.fft_window_size, 'hann');
     }
 
     /**
@@ -65,7 +70,7 @@ export class ClapFeatureExtractor extends FeatureExtractor {
                 input_mel = await this._extract_fbank_features(
                     waveform,
                     this.mel_filters_slaney,
-                    this.config.nb_max_samples,
+                    /** @type {number} */ (/** @type {any} */ (this.config).nb_max_samples),
                 );
             } else {
                 // TODO implement fusion strategy
@@ -95,7 +100,7 @@ export class ClapFeatureExtractor extends FeatureExtractor {
             input_mel = await this._extract_fbank_features(
                 waveform,
                 this.mel_filters_slaney,
-                this.config.nb_max_samples,
+                /** @type {number} */ (/** @type {any} */ (this.config).nb_max_samples),
             );
         }
 
@@ -114,7 +119,7 @@ export class ClapFeatureExtractor extends FeatureExtractor {
      *
      * @param {Float32Array|Float64Array} waveform The audio waveform to process.
      * @param {number[][]} mel_filters The mel filters to use.
-     * @param {number} [max_length=null] The maximum number of frames to return.
+     * @param {number | null} [max_length=null] The maximum number of frames to return.
      * @returns {Promise<Tensor>} An object containing the log-Mel spectrogram data as a Float32Array and its dimensions as an array of numbers.
      */
     async _extract_fbank_features(waveform, mel_filters, max_length = null) {
@@ -122,8 +127,8 @@ export class ClapFeatureExtractor extends FeatureExtractor {
         return spectrogram(
             waveform,
             this.window, // window
-            this.config.fft_window_size, // frame_length
-            this.config.hop_length, // hop_length
+            /** @type {number} */ (/** @type {any} */ (this.config).fft_window_size), // frame_length
+            /** @type {number} */ (/** @type {any} */ (this.config).hop_length), // hop_length
             {
                 power: 2.0,
                 mel_filters,
@@ -140,17 +145,19 @@ export class ClapFeatureExtractor extends FeatureExtractor {
     /**
      * Asynchronously extracts features from a given audio using the provided configuration.
      * @param {Float32Array|Float64Array} audio The audio data as a Float32Array/Float64Array.
+     * @param {object} [options]
+     * @param {number | null} [options.max_length]
      * @returns {Promise<{ input_features: Tensor }>} A Promise resolving to an object containing the extracted input features as a Tensor.
      */
-    async _call(audio, { max_length = null } = {}) {
+    async _call(audio, { max_length = /** @type {number | null} */ (null) } = {}) {
         validate_audio_inputs(audio, 'ClapFeatureExtractor');
 
         // convert to mel spectrogram, truncate and pad if needed.
         const padded_inputs = await this._get_input_mel(
             audio,
-            max_length ?? this.config.nb_max_samples,
-            this.config.truncation,
-            this.config.padding,
+            max_length ?? /** @type {number} */ (/** @type {any} */ (this.config).nb_max_samples),
+            /** @type {string} */ (/** @type {any} */ (this.config).truncation),
+            /** @type {string} */ (/** @type {any} */ (this.config).padding),
         );
 
         return {

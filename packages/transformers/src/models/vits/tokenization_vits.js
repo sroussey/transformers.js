@@ -13,6 +13,10 @@ class VitsDecoder extends Decoder {
     }
 }
 export class VitsTokenizer extends PreTrainedTokenizer {
+    /**
+     * @param {Record<string, unknown>} tokenizerJSON
+     * @param {Record<string, unknown>} tokenizerConfig
+     */
     constructor(tokenizerJSON, tokenizerConfig) {
         super(tokenizerJSON, tokenizerConfig);
 

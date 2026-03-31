@@ -9,7 +9,7 @@ const pipelines_dir = path.join(__dirname, "pipelines");
 
 /**
  * Helper function to collect all unit tests, which can be found in files
- * of the form: `tests/models/<model_type>/test_<filename>_<model_type>.js`.
+ * of the form: `tests/models/<model_type>/test_<filename>_<model_type>.ts`.
  * @param {string} filename
  * @returns {Promise<[string, Function][]>}
  */
@@ -23,7 +23,7 @@ export async function collect_tests(filename) {
       continue;
     }
 
-    const file = path.join(dir, `test_${filename}_${model_type}.js`);
+    const file = path.join(dir, `test_${filename}_${model_type}.ts`);
     if (!fs.existsSync(file)) {
       continue;
     }
@@ -36,7 +36,7 @@ export async function collect_tests(filename) {
 
 /**
  * Helper function to collect and execute all unit tests, which can be found in files
- * of the form: `tests/models/<model_type>/test_<filename>_<model_type>.js`.
+ * of the form: `tests/models/<model_type>/test_<filename>_<model_type>.ts`.
  * @param {string} title The title of the test
  * @param {string} filename The name of the test
  */
@@ -50,7 +50,7 @@ export async function collect_and_execute_tests(title, filename) {
 
 /**
  * Helper function to collect all pipeline tests, which can be found in files
- * of the form: `tests/pipelines/test_pipeline_<pipeline_id>.js`.
+ * of the form: `tests/pipelines/test_pipeline_<pipeline_id>.ts`.
  */
 export async function collect_and_execute_pipeline_tests(title) {
   // 1. Collect all tests

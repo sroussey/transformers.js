@@ -3,8 +3,8 @@
  */
 
 import { AutoTokenizer, AutoProcessor, BertForMaskedLM, GPT2LMHeadModel, T5ForConditionalGeneration, BertTokenizer, GPT2Tokenizer, T5Tokenizer, LlamaTokenizer, LlamaForCausalLM, WhisperForConditionalGeneration, WhisperProcessor, AutoModelForMaskedLM, AutoModelForCausalLM, AutoModelForSeq2SeqLM, AutoModelForSpeechSeq2Seq } from "../src/transformers.js";
-import { init, MAX_TEST_EXECUTION_TIME, DEFAULT_MODEL_OPTIONS } from "./init.js";
-import { collect_and_execute_tests } from "./test_utils.js";
+import { init, MAX_TEST_EXECUTION_TIME, DEFAULT_MODEL_OPTIONS } from "./init.ts";
+import { collect_and_execute_tests } from "./test_utils.ts";
 
 // Initialise the testing environment
 init();

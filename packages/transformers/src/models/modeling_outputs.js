@@ -1,6 +1,4 @@
-/**
- * @typedef {import('../utils/tensor.js').Tensor} Tensor
- */
+import { Tensor } from '../utils/tensor.js';
 
 export class ModelOutput {}
 
@@ -8,6 +6,12 @@ export class ModelOutput {}
  * Base class for model's outputs, with potential hidden states and attentions.
  */
 export class BaseModelOutput extends ModelOutput {
+    /** @type {Tensor} */
+    last_hidden_state;
+    /** @type {Tensor|null} */
+    hidden_states;
+    /** @type {Tensor|null} */
+    attentions;
     /**
      * @param {Object} output The output of the model.
      * @param {Tensor} output.last_hidden_state Sequence of hidden-states at the output of the last layer of the model.
@@ -26,6 +30,10 @@ export class BaseModelOutput extends ModelOutput {
  * Base class for outputs of sentence classification models.
  */
 export class SequenceClassifierOutput extends ModelOutput {
+    /** @type {Tensor} */
+    logits;
+    /** @type {Tensor[]|undefined} */
+    attentions;
     /**
      * @param {Object} output The output of the model.
      * @param {Tensor} output.logits classification (or regression if config.num_labels==1) scores (before SoftMax).
@@ -38,7 +46,7 @@ export class SequenceClassifierOutput extends ModelOutput {
         const attentions_list = Object.values(attentions);
         if (attentions_list.length > 0) {
             // Only set attentions if they are not empty
-            this.attentions = attentions_list;
+            this.attentions = /** @type {Tensor[]} */ (/** @type {unknown} */ (attentions_list));
         }
     }
 }
@@ -47,6 +55,8 @@ export class SequenceClassifierOutput extends ModelOutput {
  * Base class for outputs of token classification models.
  */
 export class TokenClassifierOutput extends ModelOutput {
+    /** @type {Tensor} */
+    logits;
     /**
      * @param {Object} output The output of the model.
      * @param {Tensor} output.logits Classification scores (before SoftMax).
@@ -61,6 +71,8 @@ export class TokenClassifierOutput extends ModelOutput {
  * Base class for masked language models outputs.
  */
 export class MaskedLMOutput extends ModelOutput {
+    /** @type {Tensor} */
+    logits;
     /**
      * @param {Object} output The output of the model.
      * @param {Tensor} output.logits Prediction scores of the language modeling head (scores for each vocabulary token before SoftMax).
@@ -75,6 +87,10 @@ export class MaskedLMOutput extends ModelOutput {
  * Base class for outputs of question answering models.
  */
 export class QuestionAnsweringModelOutput extends ModelOutput {
+    /** @type {Tensor} */
+    start_logits;
+    /** @type {Tensor} */
+    end_logits;
     /**
      * @param {Object} output The output of the model.
      * @param {Tensor} output.start_logits Span-start scores (before SoftMax).
@@ -91,6 +107,8 @@ export class QuestionAnsweringModelOutput extends ModelOutput {
  * Base class for causal language model (or autoregressive) outputs.
  */
 export class CausalLMOutput extends ModelOutput {
+    /** @type {Tensor} */
+    logits;
     /**
      * @param {Object} output The output of the model.
      * @param {Tensor} output.logits Prediction scores of the language modeling head (scores for each vocabulary token before softmax).
@@ -105,6 +123,10 @@ export class CausalLMOutput extends ModelOutput {
  * Base class for causal language model (or autoregressive) outputs.
  */
 export class CausalLMOutputWithPast extends ModelOutput {
+    /** @type {Tensor} */
+    logits;
+    /** @type {Tensor} */
+    past_key_values;
     /**
      * @param {Object} output The output of the model.
      * @param {Tensor} output.logits Prediction scores of the language modeling head (scores for each vocabulary token before softmax).
@@ -119,6 +141,16 @@ export class CausalLMOutputWithPast extends ModelOutput {
 }
 
 export class Seq2SeqLMOutput extends ModelOutput {
+    /** @type {Tensor} */
+    logits;
+    /** @type {Tensor} */
+    past_key_values;
+    /** @type {Tensor} */
+    encoder_outputs;
+    /** @type {Tensor|null} */
+    decoder_attentions;
+    /** @type {Tensor|null} */
+    cross_attentions;
     /**
      * @param {Object} output The output of the model.
      * @param {Tensor} output.logits The output logits of the model.
@@ -138,6 +170,8 @@ export class Seq2SeqLMOutput extends ModelOutput {
 }
 
 export class ImageMattingOutput extends ModelOutput {
+    /** @type {Tensor} */
+    alphas;
     /**
      * @param {Object} output The output of the model.
      * @param {Tensor} output.alphas Estimated alpha values, of shape `(batch_size, num_channels, height, width)`.

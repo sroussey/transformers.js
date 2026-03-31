@@ -1,5 +1,5 @@
-import { PreTrainedModel } from '../modeling_utils.js';
 import { SequenceClassifierOutput } from '../modeling_outputs.js';
+import { PreTrainedModel } from '../modeling_utils.js';
 
 export class Dinov2PreTrainedModel extends PreTrainedModel {}
 
@@ -13,9 +13,9 @@ export class Dinov2Model extends Dinov2PreTrainedModel {}
  */
 export class Dinov2ForImageClassification extends Dinov2PreTrainedModel {
     /**
-     * @param {any} model_inputs
+     * @param {Record<string, unknown>} model_inputs
      */
     async _call(model_inputs) {
-        return new SequenceClassifierOutput(await super._call(model_inputs));
+        return new SequenceClassifierOutput(/** @type {any} */ (await super._call(model_inputs)));
     }
 }

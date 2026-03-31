@@ -1,5 +1,5 @@
-import { getModelFile, MAX_EXTERNAL_DATA_CHUNKS } from './hub.js';
 import { apis } from '../env.js';
+import { getModelFile, MAX_EXTERNAL_DATA_CHUNKS } from './hub.js';
 
 /**
  * Resolves an `use_external_data_format` config value to the number of data chunks for a given file.
@@ -97,13 +97,13 @@ export async function getModelDataFiles(
             );
         }
     } else if (session_options.externalData !== undefined) {
-        externalDataPromises = session_options.externalData.map(async (ext) => {
+        externalDataPromises = session_options.externalData.map(async (/** @type {{path: string, data: string | Uint8Array}} */ ext) => {
             // if the external data is a string, fetch the file and replace the string with its content
             if (typeof ext.data === 'string') {
                 const ext_buffer = await getModelFile(pretrained_model_name_or_path, ext.data, true, options);
-                return { ...ext, data: ext_buffer };
+                return { path: ext.path, data: /** @type {Uint8Array} */ (ext_buffer) };
             }
-            return ext;
+            return /** @type {{path: string, data: Uint8Array}} */ (ext);
         });
     }
 

@@ -1,7 +1,7 @@
 import { AutoFeatureExtractor, SeamlessM4TFeatureExtractor } from "../../../src/transformers.js";
 
-import { load_cached_audio } from "../../asset_cache.js";
-import { MAX_FEATURE_EXTRACTOR_LOAD_TIME, MAX_TEST_EXECUTION_TIME } from "../../init.js";
+import { load_cached_audio } from "../../asset_cache.ts";
+import { MAX_FEATURE_EXTRACTOR_LOAD_TIME, MAX_TEST_EXECUTION_TIME } from "../../init.ts";
 
 const sum = (array) => Number(array.reduce((a, b) => a + b, array instanceof BigInt64Array ? 0n : 0));
 

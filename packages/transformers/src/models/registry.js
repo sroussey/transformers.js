@@ -1,8 +1,8 @@
 import {
+    MODEL_CLASS_TO_NAME_MAPPING,
+    MODEL_NAME_TO_CLASS_MAPPING,
     MODEL_TYPES,
     MODEL_TYPE_MAPPING,
-    MODEL_NAME_TO_CLASS_MAPPING,
-    MODEL_CLASS_TO_NAME_MAPPING,
     PreTrainedModel,
     registerTaskMappings,
 } from './modeling_utils.js';
@@ -583,11 +583,10 @@ export const MODEL_CLASS_TYPE_MAPPING = [
     [MODEL_FOR_IMAGE_FEATURE_EXTRACTION_MAPPING_NAMES, MODEL_TYPES.EncoderOnly],
 ];
 
-for (const [mappings, type] of MODEL_CLASS_TYPE_MAPPING) {
-    // @ts-ignore
+for (const [mappings, type] of /** @type {[Map<string, string>, number][]} */ (MODEL_CLASS_TYPE_MAPPING)) {
     for (const name of mappings.values()) {
         MODEL_TYPE_MAPPING.set(name, type);
-        const model = ALL_MODEL_FILES[name];
+        const model = /** @type {Record<string, unknown>} */ (ALL_MODEL_FILES)[name];
         MODEL_CLASS_TO_NAME_MAPPING.set(model, name);
         MODEL_NAME_TO_CLASS_MAPPING.set(name, model);
     }
@@ -626,7 +625,7 @@ const CUSTOM_MAPPING = [
         MODEL_TYPES.VoxtralRealtime,
     ],
 ];
-for (const [name, model, type] of CUSTOM_MAPPING) {
+for (const [name, model, type] of /** @type {[string, unknown, number][]} */ (CUSTOM_MAPPING)) {
     MODEL_TYPE_MAPPING.set(name, type);
     MODEL_CLASS_TO_NAME_MAPPING.set(model, name);
     MODEL_NAME_TO_CLASS_MAPPING.set(name, model);

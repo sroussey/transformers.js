@@ -1,5 +1,5 @@
-import { PreTrainedModel } from '../modeling_utils.js';
 import { TokenClassifierOutput } from '../modeling_outputs.js';
+import { PreTrainedModel } from '../modeling_utils.js';
 
 export class PyAnnotePreTrainedModel extends PreTrainedModel {}
 
@@ -72,6 +72,6 @@ export class PyAnnoteForAudioFrameClassification extends PyAnnotePreTrainedModel
      * @returns {Promise<TokenClassifierOutput>} An object containing the model's output logits for sequence classification.
      */
     async _call(model_inputs) {
-        return new TokenClassifierOutput(await super._call(model_inputs));
+        return new TokenClassifierOutput(/** @type {any} */ (await super._call(model_inputs)));
     }
 }

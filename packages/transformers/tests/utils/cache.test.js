@@ -1,7 +1,7 @@
 import { ModelRegistry } from "../../src/transformers.js";
 import { getModelFile } from "../../src/utils/hub.js";
 
-import { MAX_TEST_EXECUTION_TIME, DEFAULT_MODEL_OPTIONS } from "../init.js";
+import { MAX_TEST_EXECUTION_TIME, DEFAULT_MODEL_OPTIONS } from "../init.ts";
 
 const LLAMA_MODEL_ID = "hf-internal-testing/tiny-random-LlamaForCausalLM";
 const BERT_MODEL_ID = "hf-internal-testing/tiny-random-BertModel";

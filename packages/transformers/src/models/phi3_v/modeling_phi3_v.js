@@ -1,6 +1,6 @@
+import { Tensor } from '../../utils/tensor.js';
 import { PreTrainedModel, decoder_forward } from '../modeling_utils.js';
 import { sessionRun } from '../session.js';
-import { Tensor } from '../../utils/tensor.js';
 
 export class Phi3VPreTrainedModel extends PreTrainedModel {
     forward_params = [
@@ -34,7 +34,7 @@ export class Phi3VForCausalLM extends Phi3VPreTrainedModel {
         ...kwargs
     }) {
         if (!inputs_embeds) {
-            let image_features;
+            let /** @type {any} */ image_features;
             if (pixel_values && input_ids.dims[1] !== 1) {
                 if (!image_sizes) {
                     throw new Error('`image_sizes` must be provided when `pixel_values` is provided.');
@@ -46,8 +46,8 @@ export class Phi3VForCausalLM extends Phi3VPreTrainedModel {
                     image_sizes,
                 }));
             } else {
-                const hidden_size = this.config.normalized_config.hidden_size;
-                image_features = new Tensor('float32', [], [0, hidden_size]);
+                const hidden_size = /** @type {Record<string, number>} */ (this.config.normalized_config).hidden_size;
+                image_features = new Tensor('float32', new Float32Array(0), [0, hidden_size]);
             }
 
             ({ inputs_embeds } = await sessionRun(this.sessions['prepare_inputs_embeds'], {

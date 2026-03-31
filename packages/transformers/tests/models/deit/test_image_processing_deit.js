@@ -1,7 +1,7 @@
 import { AutoImageProcessor, DeiTFeatureExtractor } from "../../../src/transformers.js";
 
-import { load_cached_image } from "../../asset_cache.js";
-import { MAX_PROCESSOR_LOAD_TIME, MAX_TEST_EXECUTION_TIME } from "../../init.js";
+import { load_cached_image } from "../../asset_cache.ts";
+import { MAX_PROCESSOR_LOAD_TIME, MAX_TEST_EXECUTION_TIME } from "../../init.ts";
 
 export default () => {
   describe("DeiTFeatureExtractor", () => {

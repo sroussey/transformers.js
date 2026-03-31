@@ -1,10 +1,11 @@
-import { Pipeline, prepareImages } from './_base.js';
 import { RawImage } from '../utils/image.js';
+import { Pipeline, prepareImages } from './_base.js';
 
 /**
  * @typedef {import('./_base.js').ImagePipelineConstructorArgs} ImagePipelineConstructorArgs
  * @typedef {import('./_base.js').Disposable} Disposable
  * @typedef {import('./_base.js').ImageInput} ImageInput
+ * @typedef {import('../utils/tensor.js').Tensor} Tensor
  */
 
 /**
@@ -40,16 +41,20 @@ import { RawImage } from '../utils/image.js';
  * ```
  */
 export class ImageToImagePipeline
-    extends /** @type {new (options: ImagePipelineConstructorArgs) => ImageToImagePipelineType} */ (Pipeline)
+    extends /** @type {new (options: ImagePipelineConstructorArgs) => ImageToImagePipelineType} */ (/** @type {unknown} */ (Pipeline))
 {
+    /**
+     * @param {ImageInput | ImageInput[]} images
+     */
     async _call(images) {
         const preparedImages = await prepareImages(images);
-        const inputs = await this.processor(preparedImages);
-        const outputs = await this.model(inputs);
+        const inputs = await /** @type {any} */ (this.processor)(preparedImages);
+        const outputs = await /** @type {any} */ (this.model)(inputs);
 
         /** @type {RawImage[]} */
         const toReturn = [];
-        for (const batch of outputs.reconstruction) {
+        for (const batch_ of outputs.reconstruction) {
+            const batch = /** @type {Tensor} */ (batch_);
             const output = batch.squeeze().clamp_(0, 1).mul_(255).round_().to('uint8');
             toReturn.push(RawImage.fromTensor(output));
         }

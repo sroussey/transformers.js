@@ -40,9 +40,14 @@ import { Tensor } from '../utils/tensor.js';
  */
 export class DocumentQuestionAnsweringPipeline
     extends /** @type {new (options: TextImagePipelineConstructorArgs) => DocumentQuestionAnsweringPipelineType} */ (
-        Pipeline
+        /** @type {unknown} */ (Pipeline)
     )
 {
+    /**
+     * @param {ImageInput | ImageInput[]} image
+     * @param {string} question
+     * @param {Record<string, unknown>} [generate_kwargs]
+     */
     async _call(image, question, generate_kwargs = {}) {
         if (Array.isArray(image)) {
             if (image.length !== 1) {
@@ -53,11 +58,11 @@ export class DocumentQuestionAnsweringPipeline
 
         // Preprocess image
         const preparedImage = (await prepareImages(image))[0];
-        const { pixel_values } = await this.processor(preparedImage);
+        const { pixel_values } = await /** @type {any} */ (this.processor)(preparedImage);
 
         // Run tokenization
         const task_prompt = `<s_docvqa><s_question>${question}</s_question><s_answer>`;
-        const decoder_input_ids = this.tokenizer(task_prompt, {
+        const decoder_input_ids = /** @type {any} */ (this.tokenizer)(task_prompt, {
             add_special_tokens: false,
             padding: true,
             truncation: true,
@@ -66,8 +71,7 @@ export class DocumentQuestionAnsweringPipeline
         // Run model
         const output = await this.model.generate({
             inputs: pixel_values,
-            // @ts-expect-error Ts2339
-            max_length: this.model.config.decoder.max_position_embeddings,
+            max_length: /** @type {Record<string, any>} */ (this.model.config.decoder).max_position_embeddings,
             decoder_input_ids,
             ...generate_kwargs,
         });

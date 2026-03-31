@@ -1,6 +1,6 @@
-import { PreTrainedModel, encoder_forward, boolTensor } from '../modeling_utils.js';
-import { sessionRun } from '../session.js';
 import { Tensor, cat } from '../../utils/tensor.js';
+import { PreTrainedModel, boolTensor, encoder_forward } from '../modeling_utils.js';
+import { sessionRun } from '../session.js';
 
 /**
  * An abstract class to handle weights initialization and a simple interface for downloading and loading pretrained models.
@@ -86,7 +86,7 @@ export class SpeechT5ForTextToSpeech extends SpeechT5PreTrainedModel {
             threshold = 0.5,
             minlenratio = 0.0,
             maxlenratio = 20.0,
-            vocoder = null,
+            vocoder = /** @type {PreTrainedModel | null} */ (null),
             // output_cross_attentions = false, // TODO add
         } = {},
     ) {
@@ -94,15 +94,13 @@ export class SpeechT5ForTextToSpeech extends SpeechT5PreTrainedModel {
             input_ids: input_values,
         };
 
-        const { encoder_outputs, encoder_attention_mask } = await encoder_forward(this, model_inputs);
+        const { encoder_outputs, encoder_attention_mask } = /** @type {any} */ (await encoder_forward(this, model_inputs));
 
-        // @ts-expect-error TS2339
-        const r = encoder_outputs.dims[1] / this.config.reduction_factor;
+        const r = /** @type {Tensor} */ (encoder_outputs).dims[1] / /** @type {number} */ (/** @type {any} */ (this.config).reduction_factor);
         const maxlen = Math.floor(r * maxlenratio);
         const minlen = Math.floor(r * minlenratio);
 
-        // @ts-expect-error TS2339
-        const num_mel_bins = this.config.num_mel_bins;
+        const num_mel_bins = /** @type {number} */ (/** @type {any} */ (this.config).num_mel_bins);
 
         let spectrogramParts = [];
         let past_key_values = null;
@@ -115,7 +113,7 @@ export class SpeechT5ForTextToSpeech extends SpeechT5PreTrainedModel {
             const use_cache_branch = boolTensor(!!decoder_outputs);
             let output_sequence;
             if (decoder_outputs) {
-                output_sequence = decoder_outputs.output_sequence_out;
+                output_sequence = /** @type {any} */ (decoder_outputs).output_sequence_out;
             } else {
                 output_sequence = new Tensor('float32', new Float32Array(num_mel_bins), [1, 1, num_mel_bins]);
             }
@@ -128,23 +126,23 @@ export class SpeechT5ForTextToSpeech extends SpeechT5PreTrainedModel {
             };
 
             this.addPastKeyValues(decoderFeeds, past_key_values);
-            decoder_outputs = await sessionRun(this.sessions['decoder_model_merged'], decoderFeeds);
-            past_key_values = this.getPastKeyValues(decoder_outputs, past_key_values);
+            decoder_outputs = await sessionRun(this.sessions['decoder_model_merged'], /** @type {Record<string, Tensor>} */ (decoderFeeds));
+            past_key_values = this.getPastKeyValues(/** @type {Record<string, Tensor>} */ (decoder_outputs), past_key_values);
 
-            const { prob, spectrum } = decoder_outputs;
+            const { prob, spectrum } = /** @type {Record<string, any>} */ (decoder_outputs);
             spectrogramParts.push(spectrum);
 
             if (
                 idx >= minlen &&
                 // Finished when stop token or maximum length is reached.
-                (Array.from(prob.data).filter((p) => p >= threshold).length > 0 || idx >= maxlen)
+                (Array.from(/** @type {Float32Array} */ (prob.data)).filter((/** @type {number} */ p) => p >= threshold).length > 0 || idx >= maxlen)
             ) {
                 break;
             }
         }
 
-        const spectrogram = cat(spectrogramParts);
-        const { waveform } = await sessionRun(vocoder.sessions['model'], { spectrogram });
+        const spectrogram = cat(/** @type {Tensor[]} */ (spectrogramParts));
+        const { waveform } = /** @type {any} */ (await sessionRun(/** @type {any} */ (vocoder).sessions['model'], { spectrogram }));
 
         return {
             spectrogram,

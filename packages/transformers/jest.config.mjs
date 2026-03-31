@@ -83,8 +83,13 @@ export default {
   //   "node"
   // ],
 
-  // A map from regular expressions to module names or to arrays of module names that allow to stub out resources with a single module
-  // moduleNameMapper: {},
+  // Treat .ts files as ESM (source files are renamed .js → .ts but contain no TS syntax)
+  extensionsToTreatAsEsm: [".ts"],
+
+  // Rewrite test imports targeting src/*.js to src/*.ts after the JS→TS rename
+  moduleNameMapper: {
+    "(.*)/src/(.*)\\.js$": "$1/src/$2.ts",
+  },
 
   // An array of regexp pattern strings, matched against all module paths before considered 'visible' to the module loader
   // modulePathIgnorePatterns: [],

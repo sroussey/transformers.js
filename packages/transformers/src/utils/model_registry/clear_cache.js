@@ -34,7 +34,7 @@ import { get_pipeline_files } from './get_pipeline_files.js';
  * @returns {Promise<CacheClearResult>}
  */
 async function clear_files_from_cache(modelId, files, options = {}) {
-    const cache = await getCache(options?.cache_dir);
+    const cache = await getCache(/** @type {string} */ (/** @type {Record<string, any>} */ (options)?.cache_dir) ?? null);
 
     if (!cache) {
         return {
@@ -57,8 +57,6 @@ async function clear_files_from_cache(modelId, files, options = {}) {
 
             let deleted = false;
             if (wasCached) {
-                // Try proposedCacheKey first (remote URL for browser Cache API, request path for FileCache),
-                // then fall back to localPath in case the entry was cached under the local key instead.
                 const deletedWithProposed = await cache.delete(proposedCacheKey);
                 const deletedWithLocal =
                     !deletedWithProposed && proposedCacheKey !== localPath ? await cache.delete(localPath) : false;

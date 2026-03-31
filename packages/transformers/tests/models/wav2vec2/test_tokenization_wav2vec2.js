@@ -1,5 +1,5 @@
 import { Wav2Vec2CTCTokenizer } from "../../../src/models/tokenizers.js";
-import { BASE_TEST_STRINGS, BERT_TEST_STRINGS } from "../test_strings.js";
+import { BASE_TEST_STRINGS, BERT_TEST_STRINGS } from "../test_strings.ts";
 
 export const TOKENIZER_CLASS = Wav2Vec2CTCTokenizer;
 export const TEST_CONFIG = {

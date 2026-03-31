@@ -7,12 +7,12 @@
  * @module utils/audio
  */
 
-import { getFile } from './hub.js';
-import { FFT, max } from './maths.js';
 import { calculateReflectOffset } from './core.js';
+import { getFile } from './hub.js';
 import { saveBlob } from './io.js';
-import { Tensor, matmul } from './tensor.js';
 import { logger } from './logger.js';
+import { FFT, max } from './maths.js';
+import { Tensor, matmul } from './tensor.js';
 
 /**
  * Helper function to read audio from a path/URL.
@@ -140,8 +140,7 @@ function hertz_to_mel(freq, mel_scale = 'htk') {
         throw new Error('mel_scale should be one of "htk", "slaney" or "kaldi".');
     }
 
-    // @ts-expect-error ts(2322)
-    return typeof freq === 'number' ? fn(freq) : freq.map((x) => fn(x));
+    return /** @type {T} */ (typeof freq === 'number' ? fn(freq) : freq.map((/** @type {number} */ x) => fn(x)));
 }
 
 const MEL_TO_HERTZ_MAPPING = {
@@ -163,8 +162,7 @@ function mel_to_hertz(mels, mel_scale = 'htk') {
         throw new Error('mel_scale should be one of "htk", "slaney" or "kaldi".');
     }
 
-    // @ts-expect-error ts(2322)
-    return typeof mels === 'number' ? fn(mels) : mels.map((x) => fn(x));
+    return /** @type {T} */ (typeof mels === 'number' ? fn(mels) : mels.map((/** @type {number} */ x) => fn(x)));
 }
 
 /**
@@ -310,8 +308,8 @@ export function mel_filter_bank(
  * @returns {T} The padded array.
  */
 function padReflect(array, left, right) {
-    // @ts-ignore
-    const padded = new array.constructor(array.length + left + right);
+    const PadCtor = /** @type {new (size: number) => Float32Array|Float64Array} */ (array.constructor);
+    const padded = new PadCtor(array.length + left + right);
     const w = array.length - 1;
 
     for (let i = 0; i < array.length; ++i) {
@@ -326,7 +324,7 @@ function padReflect(array, left, right) {
         padded[w + left + i] = array[calculateReflectOffset(w - i, w)];
     }
 
-    return padded;
+    return /** @type {T} */ (padded);
 }
 
 /**
@@ -538,8 +536,7 @@ export async function spectrogram(
             }
             case 'constant': {
                 const padding = Math.floor(fft_length / 2);
-                // @ts-expect-error ts(2351)
-                const padded = new waveform.constructor(waveform.length + 2 * padding);
+                const padded = new (/** @type {{ new(length: number): Float32Array | Float64Array }} */ (waveform.constructor))(waveform.length + 2 * padding);
                 padded.set(waveform, padding);
                 waveform = padded;
                 break;
@@ -758,7 +755,7 @@ export function window_function(window_length, name, { periodic = true, frame_le
  * @returns {Blob} The WAV file as a Blob.
  */
 function encodeWAV(chunks, rate) {
-    const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0);
+    const totalLength = chunks.reduce((/** @type {number} */ acc, /** @type {Float32Array} */ chunk) => acc + chunk.length, 0);
 
     const buffer = new ArrayBuffer(44);
     const view = new DataView(buffer);
@@ -790,11 +787,16 @@ function encodeWAV(chunks, rate) {
     /* data chunk length */
     view.setUint32(40, totalLength * 4, true);
 
-    return new Blob([buffer, ...chunks.map((chunk) => /** @type {ArrayBuffer} */ (chunk.buffer))], {
+    return new Blob([buffer, ...chunks.map((/** @type {Float32Array} */ chunk) => /** @type {ArrayBuffer} */ (chunk.buffer))], {
         type: 'audio/wav',
     });
 }
 
+/**
+ * @param {DataView} view
+ * @param {number} offset
+ * @param {string} string
+ */
 function writeString(view, offset, string) {
     for (let i = 0; i < string.length; ++i) {
         view.setUint8(offset + i, string.charCodeAt(i));
@@ -802,6 +804,9 @@ function writeString(view, offset, string) {
 }
 
 export class RawAudio {
+    audio;
+    sampling_rate;
+
     /**
      * Create a new `RawAudio` object.
      * @param {Float32Array|Float32Array[]} audio Audio data, either as a single `Float32Array` chunk or multiple `Float32Array` chunks.

@@ -6,21 +6,26 @@ const SLICE_AXES = [2, 3]; // axes to slice on
 const { ceil, floor, sqrt } = Math;
 
 export class Phi3VImageProcessor extends ImageProcessor {
+    _num_crops;
+    /** @param {Record<string, any>} config */
     constructor(config) {
-        super({
+        super(/** @type {any} */ ({
             ...config,
             do_normalize: true,
             do_pad: true,
             pad_size: 'custom',
             do_convert_rgb: true,
             do_resize: true, // Smart resizing "hd_transform"
-        });
+        }));
 
         this._num_crops = config.num_crops;
     }
+    /**
+     * @param {number} width
+     * @param {number} height
+     */
     calc_num_image_tokens_from_image_size(width, height) {
-        // @ts-expect-error
-        const { num_img_tokens } = this.config;
+        const { num_img_tokens } = /** @type {any} */ (this.config);
         return floor(
             (floor(height / IMAGE_SIZE) * floor(width / IMAGE_SIZE) + 1) * num_img_tokens +
                 1 +
@@ -46,7 +51,7 @@ export class Phi3VImageProcessor extends ImageProcessor {
         const new_w = Math.floor(scale * 336);
         const new_h = Math.floor(new_w / ratio);
 
-        return [new_w, new_h];
+        return /** @type {[number, number]} */ ([new_w, new_h]);
     }
 
     /** @type {ImageProcessor['pad_image']} */
@@ -59,7 +64,7 @@ export class Phi3VImageProcessor extends ImageProcessor {
         const width = IMAGE_SIZE * ceil(imageWidth / IMAGE_SIZE);
 
         // NOTE: Since padding is done after normalization, we need to fill with the normalized values
-        const constant_values = [1, 1, 1].map((x, i) => (x - this.image_mean[i]) / this.image_std[i]);
+        const constant_values = [1, 1, 1].map((x, i) => (x - /** @type {number[]} */ (this.image_mean)[i]) / /** @type {number[]} */ (this.image_std)[i]);
         return super.pad_image(
             pixelData,
             imgDims,
@@ -72,9 +77,12 @@ export class Phi3VImageProcessor extends ImageProcessor {
         );
     }
 
+    /**
+     * @param {import('../../utils/image.js').RawImage | import('../../utils/image.js').RawImage[]} images
+     * @param {{ num_crops?: number | null }} [options]
+     */
     async _call(images, { num_crops = null } = {}) {
-        // @ts-expect-error
-        this._num_crops = num_crops ??= this.config.num_crops;
+        this._num_crops = num_crops ??= /** @type {any} */ (this.config).num_crops;
         if (num_crops < 4 || sqrt(num_crops) % 1 !== 0) {
             throw new Error('num_crops must be a square number >= 4');
         }
@@ -84,7 +92,7 @@ export class Phi3VImageProcessor extends ImageProcessor {
         }
 
         const num_images = images.length;
-        const imageData = await Promise.all(images.map((x) => this.preprocess(x)));
+        const imageData = await Promise.all(images.map((/** @type {import('../../utils/image.js').RawImage} */ x) => this.preprocess(x)));
 
         const original_sizes = imageData.map((x) => x.original_size);
         const reshaped_input_sizes = imageData.map((x) => x.reshaped_input_size);
@@ -97,10 +105,10 @@ export class Phi3VImageProcessor extends ImageProcessor {
             const [height, width] = pixel_values.dims.slice(-2);
 
             // Global image (Tensor of shape [num_channels, height, width])
-            const batch_pixel_values = await interpolate_4d(pixel_values, {
+            const batch_pixel_values = /** @type {Tensor} */ (await interpolate_4d(pixel_values, {
                 size: [IMAGE_SIZE, IMAGE_SIZE],
                 mode: 'bicubic',
-            });
+            }));
 
             if (num_crops > 0) {
                 const patches = [];
@@ -134,10 +142,10 @@ export class Phi3VImageProcessor extends ImageProcessor {
                     }
                 }
 
-                const resized_tensors = await interpolate_4d(cat(patches, 0), {
+                const resized_tensors = /** @type {Tensor} */ (await interpolate_4d(cat(/** @type {Tensor[]} */ (patches), 0), {
                     size: [IMAGE_SIZE, IMAGE_SIZE],
                     mode: 'bicubic',
-                }); // [num_crops, 3, 336, 336]
+                })); // [num_crops, 3, 336, 336]
 
                 // Concatenate the global image with the patches
                 all_pixel_values.push(cat([batch_pixel_values, resized_tensors], 0));
@@ -149,10 +157,10 @@ export class Phi3VImageProcessor extends ImageProcessor {
         }
 
         // [num_images, 1 + num_crops, num_channels=3, height, width]
-        const pixel_values = stack(all_pixel_values, 0);
+        const pixel_values = stack(/** @type {Tensor[]} */ (all_pixel_values), 0);
 
         // Calculate padded image sizes
-        const sizes = reshaped_input_sizes.map((x) => x.map((y) => IMAGE_SIZE * ceil(y / IMAGE_SIZE)));
+        const sizes = reshaped_input_sizes.map((/** @type {number[]} */ x) => x.map((/** @type {number} */ y) => IMAGE_SIZE * ceil(y / IMAGE_SIZE)));
 
         const image_sizes = new Tensor('int64', sizes.flat(), [num_images, 2]);
 

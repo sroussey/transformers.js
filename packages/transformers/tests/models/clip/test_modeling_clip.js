@@ -1,6 +1,6 @@
 import { AutoTokenizer, AutoProcessor, load_image, CLIPVisionModelWithProjection, CLIPTextModelWithProjection } from "../../../src/transformers.js";
 
-import { MAX_TEST_EXECUTION_TIME, DEFAULT_MODEL_OPTIONS } from "../../init.js";
+import { MAX_TEST_EXECUTION_TIME, DEFAULT_MODEL_OPTIONS } from "../../init.ts";
 
 export default () => {
   const models_to_test = ["hf-internal-testing/tiny-random-CLIPModel"];

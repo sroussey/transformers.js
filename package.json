@@ -24,7 +24,7 @@
   "homepage": "https://github.com/huggingface/transformers.js#readme",
   "devDependencies": {
     "prettier": "3.8.1",
-    "typescript": "5.9.3"
+    "@typescript/native-preview": "7.0.0-dev.20260328.1"
   },
   "prettier": {
     "overrides": [

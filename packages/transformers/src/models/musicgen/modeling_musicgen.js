@@ -1,7 +1,7 @@
-import { PreTrainedModel, encoder_decoder_prepare_inputs_for_generation } from '../modeling_utils.js';
-import { sessionRun } from '../session.js';
 import { Tensor } from '../../utils/tensor.js';
 import { ModelOutput } from '../modeling_outputs.js';
+import { PreTrainedModel, encoder_decoder_prepare_inputs_for_generation } from '../modeling_utils.js';
+import { sessionRun } from '../session.js';
 
 export class MusicgenPreTrainedModel extends PreTrainedModel {}
 
@@ -68,14 +68,13 @@ export class MusicgenForConditionalGeneration extends PreTrainedModel {
      */
     _apply_and_filter_by_delay_pattern_mask(outputs) {
         const [bs_x_codebooks, seqLength] = outputs.dims;
-        // @ts-expect-error TS2339
-        const num_codebooks = this.config.decoder.num_codebooks;
+        const decoder_config = /** @type {Record<string, any>} */ (this.config.decoder);
+        const num_codebooks = /** @type {number} */ (decoder_config.num_codebooks);
         const upperBound = seqLength - num_codebooks;
 
         let newDataSize = 0;
         for (let i = 0; i < outputs.size; ++i) {
-            // @ts-expect-error TS2339
-            if (outputs.data[i] == this.config.decoder.pad_token_id) {
+            if (outputs.data[i] == decoder_config.pad_token_id) {
                 continue;
             }
 
@@ -94,16 +93,19 @@ export class MusicgenForConditionalGeneration extends PreTrainedModel {
         return new Tensor(outputs.type, outputs.data.slice(0, newDataSize), [batch_size, num_codebooks, inferred]);
     }
 
+    /**
+     * @param {bigint[][]} input_ids
+     * @param {Record<string, unknown>} model_inputs
+     * @param {Record<string, unknown> & { guidance_scale?: number | null }} generation_config
+     */
     prepare_inputs_for_generation(input_ids, model_inputs, generation_config) {
-        // @ts-expect-error TS2339
-        const pad_token_id = BigInt(this.config.decoder.pad_token_id);
+        const pad_token_id = BigInt(/** @type {Record<string, any>} */ (this.config.decoder).pad_token_id);
 
         // apply the delay pattern mask
         let clonedInputIds = structuredClone(input_ids);
         for (let i = 0; i < clonedInputIds.length; ++i) {
             for (let j = 0; j < clonedInputIds[i].length; ++j) {
-                // @ts-expect-error TS2339
-                if (i % this.config.decoder.num_codebooks >= j) {
+                if (i % /** @type {Record<string, any>} */ (this.config.decoder).num_codebooks >= j) {
                     clonedInputIds[i][j] = pad_token_id;
                 }
             }
@@ -115,7 +117,7 @@ export class MusicgenForConditionalGeneration extends PreTrainedModel {
             clonedInputIds = clonedInputIds.concat(clonedInputIds);
         }
 
-        return encoder_decoder_prepare_inputs_for_generation(this, clonedInputIds, model_inputs, generation_config);
+        return encoder_decoder_prepare_inputs_for_generation(this, clonedInputIds, model_inputs, /** @type {import('../../generation/configuration_utils.js').GenerationConfig} */ (/** @type {unknown} */ (generation_config)));
     }
 
     /**

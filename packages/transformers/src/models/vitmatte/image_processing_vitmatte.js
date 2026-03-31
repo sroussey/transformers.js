@@ -1,6 +1,6 @@
 import { ImageProcessor } from '../../image_processors_utils.js';
 
-import { stack, cat } from '../../utils/tensor.js';
+import { cat, stack } from '../../utils/tensor.js';
 
 export class VitMatteImageProcessor extends ImageProcessor {
     /**
@@ -18,9 +18,9 @@ export class VitMatteImageProcessor extends ImageProcessor {
             trimaps = [trimaps];
         }
 
-        const imageData = await Promise.all(images.map((x) => this.preprocess(x)));
+        const imageData = await Promise.all(images.map((/** @type {import("../../utils/image.js").RawImage} */ x) => this.preprocess(x)));
         const trimapData = await Promise.all(
-            trimaps.map((x) =>
+            trimaps.map((/** @type {import("../../utils/image.js").RawImage} */ x) =>
                 this.preprocess(x, {
                     do_normalize: false,
                     do_convert_rgb: false,

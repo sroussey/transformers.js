@@ -1,11 +1,24 @@
-import { PreTrainedTokenizer } from '../tokenization_utils.js';
 import { PreTrainedModel } from '../models/modeling_utils.js';
 import { Processor } from '../processing_utils.js';
+import { PreTrainedTokenizer } from '../tokenization_utils.js';
 
 import { Callable } from '../utils/generic.js';
+/** @typedef {import('../utils/tensor.js').Tensor} Tensor */
 
 import { read_audio } from '../utils/audio.js';
 import { RawImage } from '../utils/image.js';
+
+/**
+ * Access a Tensor by numeric index. The Tensor class uses a Proxy to
+ * support `tensor[i]` at runtime, but TypeScript's type system does not
+ * model this. This helper provides a type-safe alternative.
+ * @param {Tensor} tensor
+ * @param {number} index
+ * @returns {Tensor}
+ */
+export function tensorAt(tensor, index) {
+    return /** @type {Tensor} */ (/** @type {Record<number, Tensor>} */ (/** @type {unknown} */ (tensor))[index]);
+}
 
 /**
  * @typedef {string | RawImage | URL | Blob | HTMLCanvasElement | OffscreenCanvas} ImageInput
@@ -23,7 +36,7 @@ export async function prepareImages(images) {
     }
 
     // Possibly convert any non-images to images
-    return await Promise.all(images.map((x) => RawImage.read(x)));
+    return await Promise.all(images.map((/** @type {ImageInput} */ x) => RawImage.read(x)));
 }
 
 /**
@@ -43,7 +56,7 @@ export async function prepareAudios(audios, sampling_rate) {
     }
 
     return await Promise.all(
-        audios.map((x) => {
+        audios.map((/** @type {AudioInput} */ x) => {
             if (typeof x === 'string' || x instanceof URL) {
                 return read_audio(x, sampling_rate);
             } else if (x instanceof Float64Array) {
@@ -71,7 +84,7 @@ export async function prepareAudios(audios, sampling_rate) {
  */
 export function get_bounding_box(box, asInteger) {
     if (asInteger) {
-        box = box.map((x) => x | 0);
+        box = box.map((/** @type {number} */ x) => x | 0);
     }
     const [xmin, ymin, xmax, ymax] = box;
 
@@ -91,6 +104,11 @@ export function get_bounding_box(box, asInteger) {
  * Refer to this class for methods shared across different pipelines.
  */
 export class Pipeline extends Callable {
+    task;
+    model;
+    tokenizer;
+    processor;
+
     /**
      * Create a new Pipeline.
      * @param {Object} options An object containing the following properties:

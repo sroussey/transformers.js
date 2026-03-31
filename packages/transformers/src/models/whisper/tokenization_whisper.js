@@ -1,9 +1,9 @@
 import { PreTrainedTokenizer, prepareTensorForDecode } from '../../tokenization_utils.js';
 import { WHISPER_LANGUAGE_MAPPING } from './common_whisper.js';
 
+import { mergeArrays } from '../../utils/core.js';
 import { round } from '../../utils/maths.js';
 import { Tensor } from '../../utils/tensor.js';
-import { mergeArrays } from '../../utils/core.js';
 
 const PUNCTUATION_REGEX = '\\p{P}\\u0021-\\u002F\\u003A-\\u0040\\u005B-\\u0060\\u007B-\\u007E';
 const PUNCTUATION_ONLY_REGEX = new RegExp(`^[${PUNCTUATION_REGEX}]+$`, 'gu');
@@ -16,12 +16,12 @@ export class WhisperTokenizer extends PreTrainedTokenizer {
     /**
      * Decodes automatic speech recognition (ASR) sequences.
      * @param {Array<{tokens: bigint[], token_timestamps?: number[], stride: number[]}>} sequences The sequences to decode.
-     * @param {Object} options The options to use for decoding.
+     * @param {{ return_timestamps?: boolean | string, return_language?: boolean, time_precision?: number | null, force_full_sequences?: boolean }} options The options to use for decoding.
      * @returns {Array<string|{chunks?: undefined|Array<{language: string|null, timestamp: Array<number|null>, text: string}>}>} The decoded sequences.
      */
     _decode_asr(
         sequences,
-        { return_timestamps = false, return_language = false, time_precision = null, force_full_sequences = true } = {},
+        { return_timestamps = false, return_language = false, time_precision = /** @type {number | null} */ (null), force_full_sequences = true } = {},
     ) {
         // Set force_full_sequences=false if you want streaming
         // TODO add support for `return_language`
@@ -45,12 +45,12 @@ export class WhisperTokenizer extends PreTrainedTokenizer {
         if (time_precision === null) {
             throw Error('Must specify time_precision');
         }
-        let last_language = null;
+        let /** @type {string | null} */ last_language = null;
 
         const returnWordTimestamps = return_timestamps === 'word';
 
         function new_chunk() {
-            return { language: last_language, timestamp: [null, null], text: '' };
+            return { language: last_language, timestamp: /** @type {(number | null)[]} */ ([null, null]), text: '', words: /** @type {unknown[] | undefined} */ (undefined) };
         }
 
         // Welcome to the state machine!
@@ -64,8 +64,8 @@ export class WhisperTokenizer extends PreTrainedTokenizer {
         const total_timestamp_tokens = 1500; // (30.00 - 0.00) / 0.02
         const timestamp_end = timestamp_begin + total_timestamp_tokens;
 
-        let previous_tokens = [];
-        let previous_token_timestamps = [];
+        let /** @type {number[][]} */ previous_tokens = [];
+        let /** @type {[number, number | null][][]} */ previous_token_timestamps = [];
 
         let skip = false;
         let right_stride_start = null;
@@ -115,8 +115,8 @@ export class WhisperTokenizer extends PreTrainedTokenizer {
                 }
             }
 
-            let current_tokens = [];
-            let current_token_timestamps = [];
+            let /** @type {number[]} */ current_tokens = [];
+            let /** @type {[number, number | null][]} */ current_token_timestamps = [];
 
             // - all tokens within output
             for (let i = 0; i < token_ids.length; ++i) {
@@ -137,7 +137,7 @@ export class WhisperTokenizer extends PreTrainedTokenizer {
                         // one, and we cannot use timestamped tokens to create chunks
                         if (last_language !== null && language !== last_language && !return_timestamps) {
                             previous_tokens.push(current_tokens);
-                            const resolved_tokens = this.findLongestCommonSequence(previous_tokens)[0];
+                            const resolved_tokens = /** @type {number[]} */ (this.findLongestCommonSequence(previous_tokens)[0]);
                             const resolved_text = this.decode(resolved_tokens);
                             chunk.text = resolved_text;
                             chunks.push(chunk);
@@ -148,7 +148,7 @@ export class WhisperTokenizer extends PreTrainedTokenizer {
                             chunk = new_chunk();
                         }
 
-                        last_language = chunk.language = language;
+                        last_language = chunk.language = /** @type {string} */ (language);
                     } else {
                         // 2/ This is a regular special token, ignoring it
                     }
@@ -188,7 +188,7 @@ export class WhisperTokenizer extends PreTrainedTokenizer {
                             const [resolved_tokens, resolved_token_timestamps] = this.findLongestCommonSequence(
                                 previous_tokens,
                                 previous_token_timestamps,
-                            );
+                            ) ;
 
                             const resolved_text = this.decode(resolved_tokens);
                             chunk.text = resolved_text;
@@ -275,7 +275,7 @@ export class WhisperTokenizer extends PreTrainedTokenizer {
             const [resolved_tokens, resolved_token_timestamps] = this.findLongestCommonSequence(
                 previous_tokens,
                 previous_token_timestamps,
-            );
+            ) ;
 
             // Flushing previous tokens (FINAL)
             const resolved_text = this.decode(resolved_tokens);
@@ -319,7 +319,8 @@ export class WhisperTokenizer extends PreTrainedTokenizer {
     /**
      * Finds the longest common sequence among the provided sequences.
      * @param {number[][]} sequences An array of sequences of token ids to compare.
-     * @returns {number[][]} The longest common sequence found.
+     * @param {any[]|null} [token_timestamp_sequences=null] Optional token timestamp sequences.
+     * @returns {any[]} The longest common sequence found.
      * @throws {Error} If there is a bug within the function.
      * @private
      */
@@ -335,7 +336,7 @@ export class WhisperTokenizer extends PreTrainedTokenizer {
 
         const use_token_timestamp_sequences =
             Array.isArray(token_timestamp_sequences) && token_timestamp_sequences.length > 0;
-        let total_token_timestamp_sequence = use_token_timestamp_sequences ? [] : null;
+        let /** @type {[number, number | null][] | null} */ total_token_timestamp_sequence = use_token_timestamp_sequences ? [] : null;
         let left_token_timestamp_sequence = use_token_timestamp_sequences ? token_timestamp_sequences[0] : null;
         for (let i = 1; i < sequences.length; ++i) {
             const rightSequence = sequences[i];
@@ -392,13 +393,13 @@ export class WhisperTokenizer extends PreTrainedTokenizer {
                     // Get length of longest subsequence of tokens that match
                     // and have timestamps that are in order
                     matches = left.filter(
-                        (elem, idx) =>
+                        (/** @type {number} */ elem, /** @type {number} */ idx) =>
                             elem === right[idx] &&
-                            left_token_timestamp_sequence[leftStart + idx] <=
-                                token_timestamp_sequences[i][rightStart + idx],
+                            /** @type {NonNullable<typeof left_token_timestamp_sequence>} */ (left_token_timestamp_sequence)[leftStart + idx] <=
+                                /** @type {NonNullable<typeof token_timestamp_sequences>} */ (token_timestamp_sequences)[i][rightStart + idx],
                     ).length;
                 } else {
-                    matches = left.filter((elem, idx) => elem === right[idx]).length;
+                    matches = left.filter((/** @type {number} */ elem, /** @type {number} */ idx) => elem === right[idx]).length;
                 }
 
                 // epsilon to favor long perfect matches
@@ -431,16 +432,21 @@ export class WhisperTokenizer extends PreTrainedTokenizer {
         }
     }
 
-    /** @private */
+    /**
+     * @private
+     * @param {any} tokens
+     * @param {any} token_timestamps
+     * @param {any} language
+     */
     collateWordTimestamps(tokens, token_timestamps, language) {
-        const [words, _, token_indices] = this.combineTokensIntoWords(tokens, language);
+        const [words, _, token_indices] = /** @type {[string[], number[][], number[][]]} */ (this.combineTokensIntoWords(tokens, language));
 
         const timings = [];
         for (let i = 0; i < words.length; ++i) {
             const indices = token_indices[i];
             timings.push({
                 text: words[i],
-                timestamp: [token_timestamps[indices.at(0)][0], token_timestamps[indices.at(-1)][1]],
+                timestamp: [token_timestamps[/** @type {number} */ (indices.at(0))][0], token_timestamps[/** @type {number} */ (indices.at(-1))][1]],
             });
         }
         return timings;
@@ -473,14 +479,13 @@ export class WhisperTokenizer extends PreTrainedTokenizer {
             [words, word_tokens, token_indices] = this.splitTokensOnSpaces(tokens);
         }
 
-        return this.mergePunctuations(words, word_tokens, token_indices, prepend_punctionations, append_punctuations);
+        return this.mergePunctuations(/** @type {string[]} */ (words), /** @type {number[][]} */ (word_tokens), /** @type {number[][]} */ (token_indices), prepend_punctionations, append_punctuations);
     }
 
     /** @type {PreTrainedTokenizer['decode']} */
-    decode(token_ids, decode_args) {
+    decode(token_ids, decode_args = {}) {
         let text;
-        // @ts-ignore
-        if (decode_args?.decode_with_timestamps) {
+        if (/** @type {Record<string, unknown>} */ (decode_args)?.decode_with_timestamps) {
             if (token_ids instanceof Tensor) {
                 token_ids = prepareTensorForDecode(token_ids);
             }
@@ -497,15 +502,14 @@ export class WhisperTokenizer extends PreTrainedTokenizer {
 
     /**
      * @param {number[]|bigint[]} token_ids List of token IDs to decode.
-     * @param {Object} decode_args Optional arguments for decoding
+     * @param {Record<string, any>} decode_args Optional arguments for decoding
      * @private
      */
     decodeWithTimestamps(token_ids, decode_args) {
-        const time_precision = decode_args?.time_precision ?? 0.02;
+        const time_precision = /** @type {number} */ (decode_args?.time_precision) ?? 0.02;
 
         const timestamp_begin = this.all_special_ids.at(-1) + 1;
-        /**@type {any[]} */
-        let outputs = [[]];
+        let /** @type {any[]} */ outputs = [[]];
         for (let token of token_ids) {
             token = Number(token);
             if (token >= timestamp_begin) {
@@ -528,10 +532,9 @@ export class WhisperTokenizer extends PreTrainedTokenizer {
      * @private
      */
     splitTokensOnUnicode(tokens) {
-        const decoded_full = this.decode(tokens, {
-            // @ts-ignore
+        const decoded_full = this.decode(tokens, /** @type {Record<string, unknown>} */ ({
             decode_with_timestamps: true,
-        });
+        }));
         const replacement_char = '\uFFFD';
 
         const words = [];
@@ -547,10 +550,9 @@ export class WhisperTokenizer extends PreTrainedTokenizer {
             current_tokens.push(token);
             current_indices.push(token_idx);
 
-            const decoded = this.decode(current_tokens, {
-                // @ts-ignore
+            const decoded = this.decode(current_tokens, /** @type {Record<string, unknown>} */ ({
                 decode_with_timestamps: true,
-            });
+            }));
 
             if (
                 !decoded.includes(replacement_char) ||
@@ -574,19 +576,18 @@ export class WhisperTokenizer extends PreTrainedTokenizer {
      * @private
      */
     splitTokensOnSpaces(tokens) {
-        const [subwords, subword_tokens_list, subword_indices_list] = this.splitTokensOnUnicode(tokens);
+        const [subwords, subword_tokens_list, subword_indices_list] = /** @type {[string[], number[][], number[][]]} */ (this.splitTokensOnUnicode(tokens));
 
-        const words = [];
-        const word_tokens = [];
-        const token_indices = [];
+        const /** @type {string[]} */ words = [];
+        const /** @type {number[][]} */ word_tokens = [];
+        const /** @type {number[][]} */ token_indices = [];
 
         for (let i = 0; i < subwords.length; ++i) {
             const subword = subwords[i];
             const subword_tokens = subword_tokens_list[i];
             const subword_indices = subword_indices_list[i];
 
-            // @ts-ignore
-            const special = subword_tokens[0] >= this._tokenizer.token_to_id('<|endoftext|>');
+            const special = subword_tokens[0] >= /** @type {number} */ (this._tokenizer.token_to_id('<|endoftext|>'));
             const with_space = subword.startsWith(' ');
             const trimmed = subword.trim();
             const punctuation = PUNCTUATION_ONLY_REGEX.test(trimmed);
@@ -627,8 +628,8 @@ export class WhisperTokenizer extends PreTrainedTokenizer {
         while (i >= 0) {
             if (newWords[i].startsWith(' ') && prepended.includes(newWords[i].trim())) {
                 newWords[j] = newWords[i] + newWords[j];
-                newTokens[j] = mergeArrays(newTokens[i], newTokens[j]);
-                newIndices[j] = mergeArrays(newIndices[i], newIndices[j]);
+                newTokens[j] = /** @type {number[]} */ (mergeArrays(newTokens[i], newTokens[j]));
+                newIndices[j] = /** @type {number[]} */ (mergeArrays(newIndices[i], newIndices[j]));
                 newWords[i] = '';
                 newTokens[i] = [];
                 newIndices[i] = [];
@@ -644,8 +645,8 @@ export class WhisperTokenizer extends PreTrainedTokenizer {
         while (j < newWords.length) {
             if (!newWords[i].endsWith(' ') && appended.includes(newWords[j])) {
                 newWords[i] += newWords[j];
-                newTokens[i] = mergeArrays(newTokens[i], newTokens[j]);
-                newIndices[i] = mergeArrays(newIndices[i], newIndices[j]);
+                newTokens[i] = /** @type {number[]} */ (mergeArrays(newTokens[i], newTokens[j]));
+                newIndices[i] = /** @type {number[]} */ (mergeArrays(newIndices[i], newIndices[j]));
                 newWords[j] = '';
                 newTokens[j] = [];
                 newIndices[j] = [];
@@ -656,9 +657,9 @@ export class WhisperTokenizer extends PreTrainedTokenizer {
         }
 
         return [
-            newWords.filter((x) => x),
-            newTokens.filter((x) => x.length > 0),
-            newIndices.filter((x) => x.length > 0),
+            newWords.filter((/** @type {string} */ x) => x),
+            newTokens.filter((/** @type {number[]} */ x) => x.length > 0),
+            newIndices.filter((/** @type {number[]} */ x) => x.length > 0),
         ];
     }
 }

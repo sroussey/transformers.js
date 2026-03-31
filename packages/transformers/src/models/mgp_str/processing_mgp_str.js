@@ -1,7 +1,7 @@
 import { Processor } from '../../processing_utils.js';
+import { max, softmax } from '../../utils/maths.js';
 import { AutoImageProcessor } from '../auto/image_processing_auto.js';
 import { AutoTokenizer } from '../auto/tokenization_auto.js';
-import { max, softmax } from '../../utils/maths.js';
 
 const DECODE_TYPE_MAPPING = {
     char: ['char_decode', 1],
@@ -16,21 +16,21 @@ export class MgpstrProcessor extends Processor {
      * @returns {import('./tokenization_mgp_str.js').MgpstrTokenizer} The character tokenizer.
      */
     get char_tokenizer() {
-        return this.components.char_tokenizer;
+        return /** @type {any} */ (this.components.char_tokenizer);
     }
 
     /**
      * @returns {import('../gpt2/tokenization_gpt2.js').GPT2Tokenizer} The BPE tokenizer.
      */
     get bpe_tokenizer() {
-        return this.components.bpe_tokenizer;
+        return /** @type {any} */ (this.components.bpe_tokenizer);
     }
 
     /**
      * @returns {import('../bert/tokenization_bert.js').BertTokenizer} The WordPiece tokenizer.
      */
     get wp_tokenizer() {
-        return this.components.wp_tokenizer;
+        return /** @type {any} */ (this.components.wp_tokenizer);
     }
 
     /**
@@ -44,15 +44,14 @@ export class MgpstrProcessor extends Processor {
             throw new Error(`Format ${format} is not supported.`);
         }
 
-        const [decoder_name, eos_token] = DECODE_TYPE_MAPPING[format];
-        const decoder = this[decoder_name].bind(this);
+        const [decoder_name, eos_token] = /** @type {Record<string, any>} */ (DECODE_TYPE_MAPPING)[format];
+        const decoder = /** @type {Record<string, Function>} */ (/** @type {unknown} */ (this))[/** @type {string} */ (decoder_name)].bind(this);
 
         const [batch_size, batch_max_length] = pred_logits.dims;
         const conf_scores = [];
         const all_ids = [];
 
-        /** @type {number[][][]} */
-        const pred_logits_list = pred_logits.tolist();
+        const pred_logits_list = /** @type {number[][][]} */ (pred_logits.tolist());
         for (let i = 0; i < batch_size; ++i) {
             const logits = pred_logits_list[i];
             const ids = [];
@@ -85,7 +84,7 @@ export class MgpstrProcessor extends Processor {
      * @returns {string[]} The list of char decoded sentences.
      */
     char_decode(sequences) {
-        return this.char_tokenizer.batch_decode(sequences).map((str) => str.replaceAll(' ', ''));
+        return this.char_tokenizer.batch_decode(sequences).map((/** @type {string} */ str) => str.replaceAll(' ', ''));
     }
 
     /**
@@ -103,13 +102,13 @@ export class MgpstrProcessor extends Processor {
      * @returns {string[]} The list of wp decoded sentences.
      */
     wp_decode(sequences) {
-        return this.wp_tokenizer.batch_decode(sequences).map((str) => str.replaceAll(' ', ''));
+        return this.wp_tokenizer.batch_decode(sequences).map((/** @type {string} */ str) => str.replaceAll(' ', ''));
     }
 
     /**
      * Convert a list of lists of token ids into a list of strings by calling decode.
-     * @param {[import('../../utils/tensor.js').Tensor, import('../../utils/tensor.js').Tensor, import('../../utils/tensor.js').Tensor]} sequences List of tokenized input ids.
-     * @returns {{generated_text: string[], scores: number[], char_preds: string[], bpe_preds: string[], wp_preds: string[]}}
+     * @param {any[]} args List of tokenized input ids.
+     * @returns {any}
      * Dictionary of all the outputs of the decoded results.
      * - generated_text: The final results after fusion of char, bpe, and wp.
      * - scores: The final scores after fusion of char, bpe, and wp.
@@ -117,8 +116,8 @@ export class MgpstrProcessor extends Processor {
      * - bpe_preds: The list of BPE decoded sentences.
      * - wp_preds: The list of wp decoded sentences.
      */
-    // @ts-expect-error The type of this method is not compatible with the one in the base class.
-    batch_decode([char_logits, bpe_logits, wp_logits]) {
+    batch_decode(...args) {
+        const [char_logits, bpe_logits, wp_logits] = /** @type {[import('../../utils/tensor.js').Tensor, import('../../utils/tensor.js').Tensor, import('../../utils/tensor.js').Tensor]} */ (args[0]);
         const [char_preds, char_scores] = this._decode_helper(char_logits, 'char');
         const [bpe_preds, bpe_scores] = this._decode_helper(bpe_logits, 'bpe');
         const [wp_preds, wp_scores] = this._decode_helper(wp_logits, 'wp');
@@ -141,7 +140,7 @@ export class MgpstrProcessor extends Processor {
     }
     /** @type {typeof Processor.from_pretrained} */
     static async from_pretrained(...args) {
-        const base = await super.from_pretrained(...args);
+        const base = await /** @type {typeof Processor.from_pretrained} */ (super.from_pretrained)(...args);
 
         // Load Transformers.js-compatible versions of the BPE and WordPiece tokenizers
         const bpe_tokenizer = await AutoTokenizer.from_pretrained('Xenova/gpt2'); // openai-community/gpt2
@@ -157,11 +156,15 @@ export class MgpstrProcessor extends Processor {
         return base;
     }
 
+    /**
+     * @param {import('../../utils/image.js').RawImage | import('../../utils/image.js').RawImage[]} images
+     * @param {string | string[] | null} [text=null]
+     */
     async _call(images, text = null) {
-        const result = await this.image_processor(images);
+        const result = await /** @type {any} */ (this.image_processor)(images);
 
         if (text) {
-            result.labels = this.tokenizer(text).input_ids;
+            result.labels = /** @type {any} */ (this.tokenizer)(text).input_ids;
         }
 
         return result;

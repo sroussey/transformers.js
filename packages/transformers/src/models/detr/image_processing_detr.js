@@ -1,8 +1,8 @@
 import {
     ImageProcessor,
+    post_process_instance_segmentation,
     post_process_object_detection,
     post_process_panoptic_segmentation,
-    post_process_instance_segmentation,
 } from '../../image_processors_utils.js';
 
 import { full } from '../../utils/tensor.js';

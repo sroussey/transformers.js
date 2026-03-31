@@ -1,6 +1,6 @@
 import { AutoTokenizer } from "../src/models/auto/tokenization_auto.js";
-import { MAX_TOKENIZER_LOAD_TIME, MAX_TEST_EXECUTION_TIME } from "./init.js";
-import { collect_tests } from "./test_utils.js";
+import { MAX_TOKENIZER_LOAD_TIME, MAX_TEST_EXECUTION_TIME } from "./init.ts";
+import { collect_tests } from "./test_utils.ts";
 
 const TOKENIZER_TESTS = await collect_tests("tokenization");
 describe("Tokenizers (model-specific)", () => {

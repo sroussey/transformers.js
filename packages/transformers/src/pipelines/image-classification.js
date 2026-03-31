@@ -1,7 +1,7 @@
 import { Pipeline, prepareImages } from './_base.js';
 
-import { Tensor, topk } from '../utils/tensor.js';
 import { softmax } from '../utils/maths.js';
+import { Tensor, topk } from '../utils/tensor.js';
 
 /**
  * @typedef {import('./_base.js').ImagePipelineConstructorArgs} ImagePipelineConstructorArgs
@@ -80,27 +80,32 @@ import { softmax } from '../utils/maths.js';
  * ```
  */
 export class ImageClassificationPipeline
-    extends /** @type {new (options: ImagePipelineConstructorArgs) => ImageClassificationPipelineType} */ (Pipeline)
+    extends /** @type {new (options: ImagePipelineConstructorArgs) => ImageClassificationPipelineType} */ (/** @type {unknown} */ (Pipeline))
 {
+    /**
+     * @param {ImageInput | ImageInput[]} images
+     * @param {object} [options]
+     * @param {number} [options.top_k]
+     */
     async _call(images, { top_k = 5 } = {}) {
         const preparedImages = await prepareImages(images);
 
-        const { pixel_values } = await this.processor(preparedImages);
-        const output = await this.model({ pixel_values });
+        const { pixel_values } = await /** @type {any} */ (this.processor)(preparedImages);
+        const output = await /** @type {any} */ (this.model)({ pixel_values });
 
-        // @ts-expect-error TS2339
         const { id2label } = this.model.config;
 
         /** @type {ImageClassificationOutput[]} */
         const toReturn = [];
-        for (const batch of output.logits) {
-            const scores = await topk(new Tensor('float32', softmax(batch.data), batch.dims), top_k);
+        for (const batch_ of output.logits) {
+            const batch = /** @type {Tensor} */ (batch_);
+            const scores = /** @type {Tensor[]} */ (await topk(new Tensor('float32', softmax(/** @type {Float32Array} */ (batch.data)), batch.dims), top_k));
 
-            const values = scores[0].tolist();
-            const indices = scores[1].tolist();
+            const values = /** @type {number[]} */ (scores[0].tolist());
+            const indices = /** @type {number[]} */ (scores[1].tolist());
 
-            const vals = indices.map((x, i) => ({
-                label: /** @type {string} */ (id2label ? id2label[x] : `LABEL_${x}`),
+            const vals = indices.map((/** @type {number} */ x, /** @type {number} */ i) => ({
+                label: /** @type {string} */ (id2label ? /** @type {Record<number, string>} */ (id2label)[x] : `LABEL_${x}`),
                 score: /** @type {number} */ (values[i]),
             }));
             toReturn.push(vals);

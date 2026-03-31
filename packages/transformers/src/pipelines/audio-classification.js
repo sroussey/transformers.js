@@ -1,7 +1,7 @@
-import { Pipeline, prepareAudios } from './_base.js';
+import { Pipeline, prepareAudios, tensorAt } from './_base.js';
 
-import { Tensor, topk } from '../utils/tensor.js';
 import { softmax } from '../utils/maths.js';
+import { Tensor, topk } from '../utils/tensor.js';
 
 /**
  * @typedef {import('./_base.js').AudioPipelineConstructorArgs} AudioPipelineConstructorArgs
@@ -72,28 +72,32 @@ import { softmax } from '../utils/maths.js';
  * ```
  */
 export class AudioClassificationPipeline
-    extends /** @type {new (options: AudioPipelineConstructorArgs) => AudioClassificationPipelineType} */ (Pipeline)
+    extends /** @type {new (options: AudioPipelineConstructorArgs) => AudioClassificationPipelineType} */ (/** @type {unknown} */ (Pipeline))
 {
+    /**
+     * @param {AudioInput | AudioInput[]} audio
+     * @param {object} [options]
+     * @param {number} [options.top_k]
+     */
     async _call(audio, { top_k = 5 } = {}) {
-        const sampling_rate = this.processor.feature_extractor.config.sampling_rate;
+        const sampling_rate = /** @type {number} */ (/** @type {any} */ (this.processor.feature_extractor.config).sampling_rate);
         const preparedAudios = await prepareAudios(audio, sampling_rate);
 
-        // @ts-expect-error TS2339
         const id2label = this.model.config.id2label;
 
         const toReturn = [];
         for (const aud of preparedAudios) {
-            const inputs = await this.processor(aud);
-            const output = await this.model(inputs);
-            const logits = output.logits[0];
+            const inputs = await /** @type {any} */ (this.processor)(aud);
+            const output = await /** @type {any} */ (this.model)(inputs);
+            const logits = tensorAt(output.logits, 0);
 
-            const scores = await topk(new Tensor('float32', softmax(logits.data), logits.dims), top_k);
+            const scores = /** @type {Tensor[]} */ (await topk(new Tensor('float32', softmax(/** @type {Float32Array} */ (logits.data)), logits.dims), top_k));
 
-            const values = scores[0].tolist();
-            const indices = scores[1].tolist();
+            const values = /** @type {number[]} */ (scores[0].tolist());
+            const indices = /** @type {number[]} */ (scores[1].tolist());
 
-            const vals = indices.map((x, i) => ({
-                label: /** @type {string} */ (id2label ? id2label[x] : `LABEL_${x}`),
+            const vals = indices.map((/** @type {number} */ x, /** @type {number} */ i) => ({
+                label: /** @type {string} */ (id2label ? /** @type {Record<number, string>} */ (id2label)[x] : `LABEL_${x}`),
                 score: /** @type {number} */ (values[i]),
             }));
 

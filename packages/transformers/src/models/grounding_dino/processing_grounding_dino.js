@@ -1,7 +1,7 @@
+import { center_to_corners_format } from '../../image_processors_utils.js';
 import { Processor } from '../../processing_utils.js';
 import { AutoImageProcessor } from '../auto/image_processing_auto.js';
 import { AutoTokenizer } from '../auto/tokenization_auto.js';
-import { center_to_corners_format } from '../../image_processors_utils.js';
 
 /**
  * Get token ids of phrases from posmaps and input_ids.
@@ -12,15 +12,15 @@ function get_phrases_from_posmap(posmaps, input_ids) {
     const left_idx = 0;
     const right_idx = posmaps.dims.at(-1) - 1;
 
-    const posmaps_list = posmaps.tolist();
+    const posmaps_list = /** @type {boolean[]} */ (posmaps.tolist());
     posmaps_list.fill(false, 0, left_idx + 1);
     posmaps_list.fill(false, right_idx);
 
-    const input_ids_list = input_ids.tolist();
+    const input_ids_list = /** @type {number[]} */ (input_ids.tolist());
     return posmaps_list
-        .map((val, idx) => (val ? idx : null))
-        .filter((idx) => idx !== null)
-        .map((i) => input_ids_list[i]);
+        .map((/** @type {boolean} */ val, /** @type {number} */ idx) => (val ? idx : null))
+        .filter((/** @type {number | null} */ idx) => idx !== null)
+        .map((/** @type {number} */ i) => input_ids_list[i]);
 }
 
 export class GroundingDinoProcessor extends Processor {
@@ -37,14 +37,22 @@ export class GroundingDinoProcessor extends Processor {
      * @returns {Promise<any>}
      */
     async _call(images, text, options = {}) {
-        const image_inputs = images ? await this.image_processor(images, options) : {};
-        const text_inputs = text ? this.tokenizer(text, options) : {};
+        const image_inputs = images ? await /** @type {any} */ (this.image_processor)(images, options) : {};
+        const text_inputs = text ? /** @type {any} */ (this.tokenizer)(text, options) : {};
 
         return {
             ...text_inputs,
             ...image_inputs,
         };
     }
+    /**
+     * @param {{ logits: import('../../utils/tensor.js').Tensor; pred_boxes: import('../../utils/tensor.js').Tensor }} outputs
+     * @param {import('../../utils/tensor.js').Tensor} input_ids
+     * @param {object} [options]
+     * @param {number} [options.box_threshold]
+     * @param {number} [options.text_threshold]
+     * @param {[number, number][] | null} [options.target_sizes]
+     */
     post_process_grounded_object_detection(
         outputs,
         input_ids,
@@ -59,12 +67,12 @@ export class GroundingDinoProcessor extends Processor {
         const num_queries = logits.dims.at(1);
 
         const probs = logits.sigmoid(); // (batch_size, num_queries, 256)
-        const scores = probs.max(-1).tolist(); // (batch_size, num_queries)
+        const scores = /** @type {number[][]} */ (probs.max(-1).tolist()); // (batch_size, num_queries)
 
         // Convert to [x0, y0, x1, y1] format
-        const boxes = pred_boxes
-            .tolist() // (batch_size, num_queries, 4)
-            .map((batch) => batch.map((box) => center_to_corners_format(box)));
+        const boxes = /** @type {number[][][]} */ (pred_boxes
+            .tolist()) // (batch_size, num_queries, 4)
+            .map((/** @type {number[][]} */ batch) => batch.map((/** @type {number[]} */ box) => center_to_corners_format(/** @type {[number, number, number, number]} */ (box))));
 
         const results = [];
         for (let i = 0; i < batch_size; ++i) {
@@ -72,7 +80,7 @@ export class GroundingDinoProcessor extends Processor {
 
             // Convert from relative [0, 1] to absolute [0, height] coordinates
             if (target_size !== null) {
-                boxes[i] = boxes[i].map((box) => box.map((x, j) => x * target_size[(j + 1) % 2]));
+                boxes[i] = boxes[i].map((/** @type {number[]} */ box) => box.map((/** @type {number} */ x, /** @type {number} */ j) => x * target_size[(j + 1) % 2]));
             }
 
             const batch_scores = scores[i];
@@ -85,12 +93,12 @@ export class GroundingDinoProcessor extends Processor {
                     continue;
                 }
                 const box = boxes[i][j];
-                const prob = probs[i][j];
+                const prob = /** @type {Record<number, Record<number, import('../../utils/tensor.js').Tensor>>} */ (/** @type {unknown} */ (probs))[i][j];
 
                 final_scores.push(score);
                 final_boxes.push(box);
 
-                const phrases = get_phrases_from_posmap(prob.gt(text_threshold), input_ids[i]);
+                const phrases = get_phrases_from_posmap(prob.gt(text_threshold), /** @type {Record<number, import('../../utils/tensor.js').Tensor>} */ (/** @type {unknown} */ (input_ids))[i]);
                 final_phrases.push(phrases);
             }
             results.push({ scores: final_scores, boxes: final_boxes, labels: this.batch_decode(final_phrases) });

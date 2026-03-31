@@ -1,4 +1,4 @@
-import { Pipeline, prepareImages, get_bounding_box } from './_base.js';
+import { get_bounding_box, Pipeline, prepareImages, tensorAt } from './_base.js';
 
 /**
  * @typedef {import('./_base.js').TextImagePipelineConstructorArgs} TextImagePipelineConstructorArgs
@@ -109,21 +109,29 @@ import { Pipeline, prepareImages, get_bounding_box } from './_base.js';
  */
 export class ZeroShotObjectDetectionPipeline
     extends /** @type {new (options: TextImagePipelineConstructorArgs) => ZeroShotObjectDetectionPipelineType} */ (
-        Pipeline
+        /** @type {unknown} */ (Pipeline)
     )
 {
+    /**
+     * @param {ImageInput | ImageInput[]} images
+     * @param {string[]} candidate_labels
+     * @param {object} [options]
+     * @param {number} [options.threshold]
+     * @param {number | null} [options.top_k]
+     * @param {boolean} [options.percentage]
+     */
     async _call(images, candidate_labels, { threshold = 0.1, top_k = null, percentage = false } = {}) {
         const isBatched = Array.isArray(images);
         const preparedImages = await prepareImages(images);
 
         // Run tokenization
-        const text_inputs = this.tokenizer(candidate_labels, {
+        const text_inputs = /** @type {any} */ (this.tokenizer)(candidate_labels, {
             padding: true,
             truncation: true,
         });
 
         // Run processor
-        const model_inputs = await this.processor(preparedImages);
+        const model_inputs = await /** @type {any} */ (this.processor)(preparedImages);
 
         // Since non-maximum suppression is performed for exporting, we need to
         // process each image separately. For more information, see:
@@ -132,40 +140,38 @@ export class ZeroShotObjectDetectionPipeline
         for (let i = 0; i < preparedImages.length; ++i) {
             const image = preparedImages[i];
             const imageSize = percentage ? null : [[image.height, image.width]];
-            const pixel_values = model_inputs.pixel_values[i].unsqueeze_(0);
+            const pixel_values = tensorAt(model_inputs.pixel_values, i).unsqueeze_(0);
 
             // Run model with both text and pixel inputs
-            const output = await this.model({ ...text_inputs, pixel_values });
+            const output = await /** @type {any} */ (this.model)({ ...text_inputs, pixel_values });
 
             let result;
             if ('post_process_grounded_object_detection' in this.processor) {
-                // @ts-ignore
-                const processed = this.processor.post_process_grounded_object_detection(output, text_inputs.input_ids, {
+                const processed = /** @type {{ post_process_grounded_object_detection: (...args: unknown[]) => { boxes: number[][]; scores: number[]; labels: string[] }[] }} */ (/** @type {unknown} */ (this.processor)).post_process_grounded_object_detection(output, text_inputs.input_ids, {
                     // TODO: support separate threshold values
                     box_threshold: threshold,
                     text_threshold: threshold,
                     target_sizes: imageSize,
                 })[0];
-                result = processed.boxes.map((box, i) => ({
+                result = processed.boxes.map((/** @type {number[]} */ box, /** @type {number} */ i) => ({
                     score: processed.scores[i],
                     label: processed.labels[i],
                     box: get_bounding_box(box, !percentage),
                 }));
             } else {
-                // @ts-ignore
-                const processed = this.processor.image_processor.post_process_object_detection(
+                const processed = /** @type {{ post_process_object_detection: (...args: unknown[]) => { boxes: number[][]; scores: number[]; classes: number[] }[] }} */ (/** @type {unknown} */ (this.processor.image_processor)).post_process_object_detection(
                     output,
                     threshold,
                     imageSize,
                     true,
                 )[0];
-                result = processed.boxes.map((box, i) => ({
+                result = processed.boxes.map((/** @type {number[]} */ box, /** @type {number} */ i) => ({
                     score: processed.scores[i],
                     label: candidate_labels[processed.classes[i]],
                     box: get_bounding_box(box, !percentage),
                 }));
             }
-            result.sort((a, b) => b.score - a.score);
+            result.sort((/** @type {{ score: number }} */ a, /** @type {{ score: number }} */ b) => b.score - a.score);
 
             if (top_k !== null) {
                 result = result.slice(0, top_k);

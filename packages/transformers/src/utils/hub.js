@@ -5,13 +5,13 @@
  */
 
 import { apis, env } from '../env.js';
+import { getCache, tryCache } from './cache.js';
+import { FileCache } from './cache/FileCache.js';
 import { dispatchCallback } from './core.js';
 import { FileResponse } from './hub/FileResponse.js';
-import { FileCache } from './cache/FileCache.js';
-import { handleError, isValidUrl, pathJoin, isValidHfModelId, readResponse } from './hub/utils.js';
-import { getCache, tryCache } from './cache.js';
-import { get_file_metadata } from './model_registry/get_file_metadata.js';
+import { handleError, isValidHfModelId, isValidUrl, pathJoin, readResponse } from './hub/utils.js';
 import { logger } from './logger.js';
+import { get_file_metadata } from './model_registry/get_file_metadata.js';
 
 export { MAX_EXTERNAL_DATA_CHUNKS } from './hub/constants.js';
 
@@ -198,13 +198,13 @@ export async function storeCachedResource(path_or_repo_id, filename, cache, cach
         // We haven't yet read the response body, so we need to do so now.
         // Ensure progress updates include consistent metadata.
         const wrapped_progress = options.progress_callback
-            ? (data) =>
-                  dispatchCallback(options.progress_callback, {
+            ? (/** @type {Record<string, unknown>} */ data) =>
+                  dispatchCallback(options.progress_callback, /** @type {any} */ ({
                       status: 'progress',
                       name: path_or_repo_id,
                       file: filename,
                       ...data,
-                  })
+                  }))
             : undefined;
         await cache.put(cacheKey, /** @type {Response} */ (response), wrapped_progress);
     } else if (typeof response !== 'string') {
@@ -215,7 +215,7 @@ export async function storeCachedResource(path_or_repo_id, filename, cache, cach
         await cache
             .put(
                 cacheKey,
-                new Response(/** @type {any} */ (result), {
+                new Response(/** @type {BodyInit} */ (/** @type {unknown} */ (result)), {
                     headers,
                 }),
             )

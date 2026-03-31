@@ -1,10 +1,10 @@
-import { PreTrainedModel } from '../modeling_utils.js';
 import {
+    MaskedLMOutput,
     QuestionAnsweringModelOutput,
     SequenceClassifierOutput,
     TokenClassifierOutput,
-    MaskedLMOutput,
 } from '../modeling_outputs.js';
+import { PreTrainedModel } from '../modeling_utils.js';
 
 export class RoFormerPreTrainedModel extends PreTrainedModel {}
 
@@ -24,7 +24,7 @@ export class RoFormerForMaskedLM extends RoFormerPreTrainedModel {
      * @returns {Promise<MaskedLMOutput>} An object containing the model's output logits for masked language modeling.
      */
     async _call(model_inputs) {
-        return new MaskedLMOutput(await super._call(model_inputs));
+        return new MaskedLMOutput(/** @type {any} */ (await super._call(model_inputs)));
     }
 }
 
@@ -39,7 +39,7 @@ export class RoFormerForSequenceClassification extends RoFormerPreTrainedModel {
      * @returns {Promise<SequenceClassifierOutput>} An object containing the model's output logits for sequence classification.
      */
     async _call(model_inputs) {
-        return new SequenceClassifierOutput(await super._call(model_inputs));
+        return new SequenceClassifierOutput(/** @type {any} */ (await super._call(model_inputs)));
     }
 }
 
@@ -55,7 +55,7 @@ export class RoFormerForTokenClassification extends RoFormerPreTrainedModel {
      * @returns {Promise<TokenClassifierOutput>} An object containing the model's output logits for token classification.
      */
     async _call(model_inputs) {
-        return new TokenClassifierOutput(await super._call(model_inputs));
+        return new TokenClassifierOutput(/** @type {any} */ (await super._call(model_inputs)));
     }
 }
 
@@ -71,7 +71,7 @@ export class RoFormerForQuestionAnswering extends RoFormerPreTrainedModel {
      * @returns {Promise<QuestionAnsweringModelOutput>} An object containing the model's output logits for question answering.
      */
     async _call(model_inputs) {
-        return new QuestionAnsweringModelOutput(await super._call(model_inputs));
+        return new QuestionAnsweringModelOutput(/** @type {any} */ (await super._call(model_inputs)));
     }
 }
 // TODO: Add RoFormerForCausalLM and RoFormerForMultipleChoice

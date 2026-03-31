@@ -23,9 +23,14 @@ import { Callable } from './utils/generic.js';
 import { getModelJSON, getModelText } from './utils/hub.js';
 
 /**
+ * @typedef {import('./tokenization_utils.js').PreTrainedTokenizer} PreTrainedTokenizer
+ * @typedef {import('./image_processors_utils.js').ImageProcessor} ImageProcessor
+ * @typedef {import('./feature_extraction_utils.js').FeatureExtractor} FeatureExtractor
+ */
+
+/**
  * @typedef {Object} ProcessorProperties Additional processor-specific properties.
  * @typedef {import('./utils/hub.js').PretrainedOptions & ProcessorProperties} PretrainedProcessorOptions
- * @typedef {import('./tokenization_utils.js').PreTrainedTokenizer} PreTrainedTokenizer
  */
 
 /**
@@ -36,11 +41,15 @@ export class Processor extends Callable {
     static uses_processor_config = false;
     static uses_chat_template_file = false;
 
+    config;
+    components;
+    chat_template;
+
     /**
      * Creates a new Processor with the given components
      * @param {Object} config
      * @param {Record<string, Object>} components
-     * @param {string} chat_template
+     * @param {string|null} chat_template
      */
     constructor(config, components, chat_template) {
         super();
@@ -50,29 +59,29 @@ export class Processor extends Callable {
     }
 
     /**
-     * @returns {import('./image_processors_utils.js').ImageProcessor|undefined} The image processor of the processor, if it exists.
+     * @returns {ImageProcessor|undefined} The image processor of the processor, if it exists.
      */
     get image_processor() {
-        return this.components.image_processor;
+        return /** @type {ImageProcessor|undefined} */ (this.components.image_processor);
     }
 
     /**
      * @returns {PreTrainedTokenizer|undefined} The tokenizer of the processor, if it exists.
      */
     get tokenizer() {
-        return this.components.tokenizer;
+        return /** @type {PreTrainedTokenizer|undefined} */ (this.components.tokenizer);
     }
 
     /**
-     * @returns {import('./feature_extraction_utils.js').FeatureExtractor|undefined} The feature extractor of the processor, if it exists.
+     * @returns {FeatureExtractor|undefined} The feature extractor of the processor, if it exists.
      */
     get feature_extractor() {
-        return this.components.feature_extractor;
+        return /** @type {FeatureExtractor|undefined} */ (this.components.feature_extractor);
     }
 
     /**
      * @param {Parameters<PreTrainedTokenizer['apply_chat_template']>[0]} messages
-     * @param {Parameters<PreTrainedTokenizer['apply_chat_template']>[1]} options
+     * @param {Parameters<PreTrainedTokenizer['apply_chat_template']>[1]} [options]
      * @returns {ReturnType<PreTrainedTokenizer['apply_chat_template']>}
      */
     apply_chat_template(messages, options = {}) {
@@ -117,7 +126,7 @@ export class Processor extends Callable {
     async _call(input, ...args) {
         for (const item of [this.image_processor, this.feature_extractor, this.tokenizer]) {
             if (item) {
-                return item(input, ...args);
+                return /** @type {any} */ (item)(input, ...args);
             }
         }
         throw new Error('No image processor, feature extractor, or tokenizer found.');
@@ -148,7 +157,7 @@ export class Processor extends Callable {
                 this.classes
                     .filter((cls) => cls in this)
                     .map(async (cls) => {
-                        const component = await this[cls].from_pretrained(pretrained_model_name_or_path, options);
+                        const component = await /** @type {Record<string, { from_pretrained: (name: string, options: Record<string, unknown>) => Promise<object> }>} */ (/** @type {unknown} */ (this))[cls].from_pretrained(pretrained_model_name_or_path, /** @type {Record<string, unknown>} */ (/** @type {unknown} */ (options)));
                         return [cls.replace(/_class$/, ''), component];
                     }),
             ).then(Object.fromEntries),

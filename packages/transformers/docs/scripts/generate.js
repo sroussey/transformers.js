@@ -13,7 +13,7 @@ const root = path.dirname(docs);
 const conf = path.join(docs, "jsdoc-conf.json");
 
 // input and output paths
-const inputFile = path.join(root, "/src/**/*.js");
+const inputFile = path.join(root, "/src/**/*.ts");
 const outputDir = path.join(root, "/docs/source/api/");
 
 // get template data

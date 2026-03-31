@@ -24,7 +24,7 @@ import { get_pipeline_files } from './get_pipeline_files.js';
  * @returns {Promise<CacheCheckResult>}
  */
 async function check_files_cache(modelId, files, options = {}) {
-    const cache = await getCache(options?.cache_dir);
+    const cache = await getCache(/** @type {string} */ (/** @type {Record<string, any>} */ (options)?.cache_dir) ?? null);
 
     if (!cache) {
         const fileStatuses = files.map((filename) => ({ file: filename, cached: false }));
@@ -52,7 +52,7 @@ async function check_files_cache(modelId, files, options = {}) {
  * @returns {Promise<boolean>}
  */
 async function is_file_cached(modelId, filename, options = {}) {
-    const cache = await getCache(options?.cache_dir);
+    const cache = await getCache(/** @type {string} */ (/** @type {Record<string, any>} */ (options)?.cache_dir) ?? null);
     if (!cache) return false;
     const { localPath, proposedCacheKey } = buildResourcePaths(modelId, filename, options, cache);
     return !!(await checkCachedResource(cache, localPath, proposedCacheKey));
@@ -61,7 +61,7 @@ async function is_file_cached(modelId, filename, options = {}) {
 /**
  * Quickly checks if a model is cached by verifying that `config.json` is present,
  * then confirming all required files are cached.
- * Returns a plain boolean — use `is_cached_files` if you need per-file detail.
+ * Returns a plain boolean -- use `is_cached_files` if you need per-file detail.
  *
  * @param {string} modelId The model id (e.g., "Xenova/gpt2")
  * @param {Object} [options] Optional parameters
@@ -110,18 +110,11 @@ export async function is_cached_files(modelId, options = {}) {
 }
 
 /**
- * Quickly checks if all files for a specific pipeline task are cached by verifying
- * that `config.json` is present, then confirming all required files are cached.
- * Returns a plain boolean — use `is_pipeline_cached_files` if you need per-file detail.
+ * Quickly checks if all files for a specific pipeline task are cached.
  *
- * @param {string} task - The pipeline task (e.g., "text-generation", "image-classification")
- * @param {string} modelId - The model id (e.g., "Xenova/gpt2")
+ * @param {string} task - The pipeline task
+ * @param {string} modelId - The model id
  * @param {Object} [options] - Optional parameters
- * @param {string} [options.cache_dir] - Custom cache directory
- * @param {string} [options.revision] - Model revision (default: 'main')
- * @param {import('../../configs.js').PretrainedConfig} [options.config] - Pre-loaded config
- * @param {import('../dtypes.js').DataType|Record<string, import('../dtypes.js').DataType>} [options.dtype] - Override dtype
- * @param {import('../devices.js').DeviceType|Record<string, import('../devices.js').DeviceType>} [options.device] - Override device
  * @returns {Promise<boolean>} Whether all required files are cached
  */
 export async function is_pipeline_cached(task, modelId, options = {}) {
@@ -132,7 +125,6 @@ export async function is_pipeline_cached(task, modelId, options = {}) {
         throw new Error('modelId is required');
     }
 
-    // Fast early-exit: if config.json is missing we can expect the rest not to be cached too.
     if (!(await is_file_cached(modelId, 'config.json', options))) {
         return false;
     }
@@ -144,16 +136,10 @@ export async function is_pipeline_cached(task, modelId, options = {}) {
 
 /**
  * Checks if all files for a specific pipeline task are already cached, with per-file detail.
- * Automatically determines which components are needed based on the task.
  *
- * @param {string} task - The pipeline task (e.g., "text-generation", "image-classification")
- * @param {string} modelId - The model id (e.g., "Xenova/gpt2")
+ * @param {string} task - The pipeline task
+ * @param {string} modelId - The model id
  * @param {Object} [options] - Optional parameters
- * @param {string} [options.cache_dir] - Custom cache directory
- * @param {string} [options.revision] - Model revision (default: 'main')
- * @param {import('../../configs.js').PretrainedConfig} [options.config] - Pre-loaded config
- * @param {import('../dtypes.js').DataType|Record<string, import('../dtypes.js').DataType>} [options.dtype] - Override dtype
- * @param {import('../devices.js').DeviceType|Record<string, import('../devices.js').DeviceType>} [options.device] - Override device
  * @returns {Promise<CacheCheckResult>} Object with allCached boolean and files array with cache status
  */
 export async function is_pipeline_cached_files(task, modelId, options = {}) {

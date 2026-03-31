@@ -11,14 +11,21 @@ import { PreTrainedTokenizer, _build_translation_inputs } from '../../tokenizati
  * @see {@link https://huggingface.co/facebook/m2m100_418M#languages-covered}
  */
 export class M2M100Tokenizer extends PreTrainedTokenizer {
+    languageRegex;
+    language_codes;
+    lang_to_token;
+    /**
+     * @param {Record<string, any>} tokenizerJSON
+     * @param {Record<string, any>} tokenizerConfig
+     */
     constructor(tokenizerJSON, tokenizerConfig) {
         super(tokenizerJSON, tokenizerConfig);
 
         this.languageRegex = /^__[a-z]{2,3}__$/;
         this.language_codes = this.all_special_tokens
-            .filter((x) => this.languageRegex.test(x))
-            .map((x) => x.slice(2, -2));
-        this.lang_to_token = (x) => `__${x}__`;
+            .filter((/** @type {string} */ x) => this.languageRegex.test(x))
+            .map((/** @type {string} */ x) => x.slice(2, -2));
+        this.lang_to_token = (/** @type {string} */ x) => `__${x}__`;
     }
 
     /**

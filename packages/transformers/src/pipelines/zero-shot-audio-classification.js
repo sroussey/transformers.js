@@ -65,9 +65,15 @@ import { softmax } from '../utils/maths.js';
  */
 export class ZeroShotAudioClassificationPipeline
     extends /** @type {new (options: TextAudioPipelineConstructorArgs) => ZeroShotAudioClassificationPipelineType} */ (
-        Pipeline
+        /** @type {unknown} */ (Pipeline)
     )
 {
+    /**
+     * @param {AudioInput | AudioInput[]} audio
+     * @param {string[]} candidate_labels
+     * @param {object} [options]
+     * @param {string} [options.hypothesis_template]
+     */
     async _call(audio, candidate_labels, { hypothesis_template = 'This is a sound of {}.' } = {}) {
         const single = !Array.isArray(audio);
         if (single) {
@@ -75,26 +81,26 @@ export class ZeroShotAudioClassificationPipeline
         }
 
         // Insert label into hypothesis template
-        const texts = candidate_labels.map((x) => hypothesis_template.replace('{}', x));
+        const texts = candidate_labels.map((/** @type {string} */ x) => hypothesis_template.replace('{}', x));
 
         // Run tokenization
-        const text_inputs = this.tokenizer(texts, {
+        const text_inputs = /** @type {any} */ (this.tokenizer)(texts, {
             padding: true,
             truncation: true,
         });
 
-        const sampling_rate = this.processor.feature_extractor.config.sampling_rate;
+        const sampling_rate = /** @type {number} */ (/** @type {any} */ (this.processor.feature_extractor.config).sampling_rate);
         const preparedAudios = await prepareAudios(audio, sampling_rate);
 
         const toReturn = [];
         for (const aud of preparedAudios) {
-            const audio_inputs = await this.processor(aud);
+            const audio_inputs = await /** @type {any} */ (this.processor)(aud);
 
             // Run model with both text and audio inputs
-            const output = await this.model({ ...text_inputs, ...audio_inputs });
+            const output = await /** @type {any} */ (this.model)({ ...text_inputs, ...audio_inputs });
 
             // Compute softmax per audio
-            const probs = softmax(output.logits_per_audio.data);
+            const probs = softmax(/** @type {import('../utils/maths.js').TypedArray} */ (output.logits_per_audio.data));
 
             toReturn.push(
                 [...probs].map((x, i) => ({

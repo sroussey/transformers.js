@@ -1,15 +1,18 @@
 import { FeatureExtractor, validate_audio_inputs } from '../../feature_extraction_utils.js';
-import { Tensor } from '../../utils/tensor.js';
 import { mel_filter_bank, spectrogram, window_function } from '../../utils/audio.js';
+import { Tensor } from '../../utils/tensor.js';
 
 export class SeamlessM4TFeatureExtractor extends FeatureExtractor {
+    mel_filters;
+    window;
+    /** @param {Record<string, any>} config */
     constructor(config) {
         super(config);
 
-        const sampling_rate = this.config.sampling_rate;
+        const sampling_rate = /** @type {any} */ (this.config).sampling_rate;
         const mel_filters = mel_filter_bank(
             257, // num_frequency_bins
-            this.config.num_mel_bins, // num_mel_filters
+            /** @type {any} */ (this.config).num_mel_bins, // num_mel_filters
             20, // min_frequency
             Math.floor(sampling_rate / 2), // max_frequency
             sampling_rate, // sampling_rate
@@ -75,11 +78,11 @@ export class SeamlessM4TFeatureExtractor extends FeatureExtractor {
     ) {
         validate_audio_inputs(audio, 'SeamlessM4TFeatureExtractor');
 
-        let features = await this._extract_fbank_features(audio, this.config.max_length);
+        let features = await this._extract_fbank_features(audio, /** @type {any} */ (this.config).max_length);
 
         if (do_normalize_per_mel_bins) {
             const [num_features, feature_size] = features.dims;
-            const data = features.data;
+            const data = /** @type {Float32Array} */ (features.data);
             for (let i = 0; i < feature_size; ++i) {
                 let sum = 0;
                 for (let j = 0; j < num_features; ++j) {
@@ -110,8 +113,8 @@ export class SeamlessM4TFeatureExtractor extends FeatureExtractor {
             const pad_size = num_frames % pad_to_multiple_of;
             if (pad_size > 0) {
                 const padded_data = new Float32Array(num_channels * (num_frames + pad_size));
-                padded_data.set(data);
-                padded_data.fill(this.config.padding_value, data.length);
+                padded_data.set(/** @type {Float32Array} */ (data));
+                padded_data.fill(/** @type {any} */ (this.config).padding_value, data.length);
 
                 const numPaddedFrames = num_frames + pad_size;
                 features = new Tensor(features.type, padded_data, [numPaddedFrames, num_channels]);
@@ -128,7 +131,7 @@ export class SeamlessM4TFeatureExtractor extends FeatureExtractor {
 
         const [num_frames, num_channels] = features.dims;
 
-        const stride = this.config.stride;
+        const stride = /** @type {any} */ (this.config).stride;
         const remainder = num_frames % stride;
         if (remainder !== 0) {
             throw new Error(`The number of frames (${num_frames}) must be a multiple of the stride (${stride}).`);
@@ -136,7 +139,7 @@ export class SeamlessM4TFeatureExtractor extends FeatureExtractor {
 
         const input_features = features.view(1, Math.floor(num_frames / stride), num_channels * stride);
 
-        const result = { input_features };
+        const result = /** @type {any} */ ({ input_features });
 
         if (return_attention_mask) {
             const reshapedNumFrames = input_features.dims[1];
@@ -144,7 +147,7 @@ export class SeamlessM4TFeatureExtractor extends FeatureExtractor {
             const attention_mask_data = new BigInt64Array(reshapedNumFrames);
 
             if (padded_attention_mask) {
-                const padded_attention_mask_data = padded_attention_mask.data;
+                const padded_attention_mask_data = /** @type {BigInt64Array} */ (padded_attention_mask.data);
                 for (let i = 1, j = 0; i < num_frames; i += stride, ++j) {
                     attention_mask_data[j] = padded_attention_mask_data[i];
                 }

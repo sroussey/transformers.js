@@ -7,6 +7,8 @@ import { logger } from '../../utils/logger.js';
  * Therefore, this implementation (which is based on fast tokenizers) may produce slightly inaccurate results.
  */
 export class MarianTokenizer extends PreTrainedTokenizer {
+    languageRegex;
+    supported_language_codes;
     /**
      * Create a new MarianTokenizer instance.
      * @param {Object} tokenizerJSON The JSON of the tokenizer.
@@ -32,6 +34,7 @@ export class MarianTokenizer extends PreTrainedTokenizer {
      * @param {string|null} text The text to encode.
      * @returns {string[]|null} The encoded tokens.
      */
+    /** @param {string | null} text @returns {string[] | null} */
     _encode_text(text) {
         if (text === null) return null;
 
@@ -50,7 +53,7 @@ export class MarianTokenizer extends PreTrainedTokenizer {
                     `Unsupported language code "${language}" detected, which may lead to unexpected behavior. Should be one of: ${JSON.stringify(this.supported_language_codes)}`,
                 );
             }
-            return mergeArrays([language], super._encode_text(text));
+            return /** @type {string[]} */ (mergeArrays([language], super._encode_text(text)));
         }
     }
 }

@@ -21,7 +21,7 @@ export const getEsbuildDevConfig = (rootDir) => ({
   bundle: true,
   treeShaking: true,
   logLevel: "info",
-  entryPoints: [path.join(rootDir, "src/transformers.js")],
+  entryPoints: [path.join(rootDir, "src/transformers.ts")],
   platform: "neutral",
   format: "esm",
   sourcemap: true,

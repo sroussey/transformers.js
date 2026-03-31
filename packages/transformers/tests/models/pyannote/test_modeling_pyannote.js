@@ -1,7 +1,7 @@
 import { AutoProcessor, AutoModelForAudioFrameClassification } from "../../../src/transformers.js";
 
-import { MAX_TEST_EXECUTION_TIME, DEFAULT_MODEL_OPTIONS } from "../../init.js";
-import { load_cached_audio } from "../../asset_cache.js";
+import { MAX_TEST_EXECUTION_TIME, DEFAULT_MODEL_OPTIONS } from "../../init.ts";
+import { load_cached_audio } from "../../asset_cache.ts";
 
 export default () => {
   const models_to_test = ["onnx-community/pyannote-segmentation-3.0"];

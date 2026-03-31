@@ -112,11 +112,10 @@ export async function pipeline(
     } = {},
 ) {
     // Apply aliases
-    // @ts-ignore
-    task = TASK_ALIASES[task] ?? task;
+    task = /** @type {any} */ (TASK_ALIASES)[task] ?? task;
 
     // Get pipeline info
-    const pipelineInfo = SUPPORTED_TASKS[task.split('_', 1)[0]];
+    const pipelineInfo = /** @type {any} */ (SUPPORTED_TASKS)[task.split('_', 1)[0]];
     if (!pipelineInfo) {
         throw Error(`Unsupported pipeline: ${task}. Must be one of [${Object.keys(SUPPORTED_TASKS)}]`);
     }
@@ -125,8 +124,9 @@ export async function pipeline(
     if (!model) {
         model = pipelineInfo.default.model;
         logger.info(`No model specified. Using default model: "${model}".`);
-        if (!dtype && pipelineInfo.default.dtype) {
-            dtype = pipelineInfo.default.dtype;
+        const defaultConfig = pipelineInfo.default;
+        if (!dtype && defaultConfig.dtype) {
+            dtype = defaultConfig.dtype;
         }
     }
 
@@ -137,6 +137,7 @@ export async function pipeline(
     });
 
     /** @type {import('./utils/core.js').FilesLoadingMap} */
+    /** @type {Record<string, { loaded: number; total: number }>} */
     let files_loading = {};
     if (progress_callback) {
         /** @type {Array<{exists: boolean, size?: number, contentType?: string, fromCache?: boolean}>} */
@@ -156,9 +157,10 @@ export async function pipeline(
             ? /** @param {import('./utils/core.js').ProgressInfo} info */
               (info) => {
                   if (info.status === 'progress') {
-                      files_loading[info.file] = {
-                          loaded: info.loaded,
-                          total: info.total,
+                      const p = info;
+                      files_loading[p.file] = {
+                          loaded: p.loaded,
+                          total: p.total,
                       };
 
                       const loaded = Object.values(files_loading).reduce((acc, curr) => acc + curr.loaded, 0);
@@ -167,7 +169,7 @@ export async function pipeline(
 
                       progress_callback({
                           status: 'progress_total',
-                          name: info.name,
+                          name: p.name,
                           progress,
                           loaded,
                           total,
@@ -218,6 +220,7 @@ export async function pipeline(
         modelPromise,
     ]);
 
+    /** @type {Record<string, any>} */
     const results = { task, model: model_loaded };
     if (tokenizer) results.tokenizer = tokenizer;
     if (processor) results.processor = processor;

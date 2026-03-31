@@ -1,7 +1,7 @@
-import { AutoFeatureExtractor } from '../auto/feature_extraction_auto.js';
-import { AutoTokenizer } from '../auto/tokenization_auto.js';
 import { Processor } from '../../processing_utils.js';
 import { cat } from '../../utils/tensor.js';
+import { AutoFeatureExtractor } from '../auto/feature_extraction_auto.js';
+import { AutoTokenizer } from '../auto/tokenization_auto.js';
 
 const AUDIO_TOKEN = '[AUDIO]';
 const BEGIN_AUDIO_TOKEN = '[BEGIN_AUDIO]';
@@ -38,7 +38,7 @@ export class VoxtralProcessor extends Processor {
             throw new Error('Batched inputs are not supported yet.');
         }
 
-        const audio_inputs = {};
+        const /** @type {Record<string, any>} */ audio_inputs = {};
         if (audio) {
             if (!text.includes(AUDIO_TOKEN)) {
                 throw new Error(`The input text does not contain the audio token ${AUDIO_TOKEN}.`);
@@ -54,17 +54,17 @@ export class VoxtralProcessor extends Processor {
                 );
             }
 
-            const n_samples = this.feature_extractor.config.n_samples;
+            const n_samples = /** @type {Record<string, number>} */ (/** @type {any} */ (this.feature_extractor).config).n_samples;
 
             // Split each audio input into chunks and keep track of chunk counts
-            const audio_chunks = audio.map((a) => chunk(a, n_samples));
-            const chunk_counts = audio_chunks.map((chunks) => chunks.length);
+            const audio_chunks = audio.map((/** @type {Float32Array} */ a) => chunk(a, n_samples));
+            const chunk_counts = audio_chunks.map((/** @type {Float32Array[]} */ chunks) => chunks.length);
 
             // Flatten all chunks for feature extraction
             const all_chunks = audio_chunks.flat();
             const features = (
-                await Promise.all(all_chunks.map((audio_input) => this.feature_extractor(audio_input, kwargs)))
-            ).map((x) => x.input_features);
+                await Promise.all(all_chunks.map((/** @type {Float32Array} */ audio_input) => /** @type {any} */ (this.feature_extractor)(audio_input, kwargs)))
+            ).map((/** @type {Record<string, any>} */ x) => x.input_features);
 
             audio_inputs['audio_values'] = features.length > 1 ? cat(features, 0) : features[0];
 
@@ -80,7 +80,7 @@ export class VoxtralProcessor extends Processor {
             text = new_text;
         }
 
-        const text_inputs = this.tokenizer(text, {
+        const text_inputs = /** @type {any} */ (this.tokenizer)(text, {
             add_special_tokens: false,
             ...kwargs,
         });

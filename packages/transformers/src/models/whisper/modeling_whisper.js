@@ -1,16 +1,16 @@
-import { cat, mean, Tensor, stack, std_mean } from '../../utils/tensor.js';
-import { PreTrainedModel } from '../modeling_utils.js';
-import { WhisperGenerationConfig } from './generation_whisper.js';
-import { whisper_language_to_code } from './common_whisper.js';
 import {
     LogitsProcessorList,
     SuppressTokensAtBeginLogitsProcessor,
     WhisperTimeStampLogitsProcessor,
 } from '../../generation/logits_process.js';
-import { medianFilter, dynamic_time_warping } from '../../utils/maths.js';
 import { mergeArrays } from '../../utils/core.js';
-import { ModelOutput } from '../modeling_outputs.js';
 import { logger } from '../../utils/logger.js';
+import { dynamic_time_warping, medianFilter } from '../../utils/maths.js';
+import { cat, mean, stack, std_mean, Tensor } from '../../utils/tensor.js';
+import { ModelOutput } from '../modeling_outputs.js';
+import { PreTrainedModel } from '../modeling_utils.js';
+import { whisper_language_to_code } from './common_whisper.js';
+import { WhisperGenerationConfig } from './generation_whisper.js';
 
 export class WhisperPreTrainedModel extends PreTrainedModel {
     requires_attention_mask = false;
@@ -33,6 +33,7 @@ export class WhisperModel extends WhisperPreTrainedModel {}
  * WhisperForConditionalGeneration class for generating conditional outputs from Whisper models.
  */
 export class WhisperForConditionalGeneration extends WhisperPreTrainedModel {
+    /** @param {any} generation_config @param {any} kwargs */
     _prepare_generation_config(generation_config, kwargs) {
         return /** @type {WhisperGenerationConfig} */ (
             super._prepare_generation_config(generation_config, kwargs, WhisperGenerationConfig)
@@ -155,9 +156,8 @@ export class WhisperForConditionalGeneration extends WhisperPreTrainedModel {
         });
 
         if (generation_config.return_token_timestamps) {
-            outputs['token_timestamps'] = this._extract_token_timestamps(
-                // @ts-expect-error TS2345
-                outputs,
+            /** @type {Record<string, unknown>} */ (outputs)['token_timestamps'] = this._extract_token_timestamps(
+                /** @type {any} */ (outputs),
                 generation_config.alignment_heads,
                 generation_config.num_frames,
             );
@@ -192,8 +192,7 @@ export class WhisperForConditionalGeneration extends WhisperPreTrainedModel {
             );
         }
 
-        // @ts-expect-error TS2339
-        let median_filter_width = this.config.median_filter_width;
+        let median_filter_width = /** @type {number | undefined} */ (/** @type {Record<string, any>} */ (this.config).median_filter_width);
         if (median_filter_width === undefined) {
             logger.warn('Model config has no `median_filter_width`, using default value of 7.');
             median_filter_width = 7;
@@ -204,18 +203,17 @@ export class WhisperForConditionalGeneration extends WhisperPreTrainedModel {
         // Create a list with `decoder_layers` elements, each a tensor of shape
         // (batch size, attention_heads, output length, input length).
         const cross_attentions = Array.from(
-            // @ts-expect-error TS2339
-            { length: this.config.decoder_layers },
+            { length: /** @type {number} */ (/** @type {Record<string, any>} */ (this.config).decoder_layers) },
             // Concatenate the cross attentions for each layer across sequence length dimension.
-            (_, i) =>
+            (/** @type {unknown} */ _, /** @type {number} */ i) =>
                 cat(
-                    batch.map((x) => x[i]),
+                    batch.map((/** @type {Tensor[]} */ x) => x[i]),
                     2,
                 ),
         );
 
         const weights = stack(
-            alignment_heads.map(([l, h]) => {
+            alignment_heads.map((/** @type {number[]} */ [l, h]) => {
                 if (l >= cross_attentions.length) {
                     throw new Error(
                         `Layer index ${l} is out of bounds for cross attentions (length ${cross_attentions.length}).`,
@@ -233,22 +231,24 @@ export class WhisperForConditionalGeneration extends WhisperPreTrainedModel {
         const smoothedWeights = weights.clone(); // [1, 8, seqLength, 1500]
 
         for (let a = 0; a < smoothedWeights.dims[0]; ++a) {
-            const aTensor = smoothedWeights[a]; // [8, seqLength, 1500]
+            const aTensor = /** @type {Record<number, Tensor>} */ (/** @type {unknown} */ (smoothedWeights))[a]; // [8, seqLength, 1500]
 
             for (let b = 0; b < aTensor.dims[0]; ++b) {
-                const bTensor = aTensor[b]; // [seqLength, 1500]
+                const bTensor = /** @type {Record<number, Tensor>} */ (/** @type {unknown} */ (aTensor))[b]; // [seqLength, 1500]
 
-                const stdTensorData = std[a][b][0].data; // [1500]
-                const meanTensorData = calculatedMean[a][b][0].data; // [1500]
+                const stdTensor0 = /** @type {Record<number, Tensor>} */ (/** @type {unknown} */ (/** @type {Record<number, Tensor>} */ (/** @type {unknown} */ (/** @type {Record<number, Tensor>} */ (/** @type {unknown} */ (std))[a]))[b]))[0];
+                const stdTensorData = /** @type {Float32Array} */ (stdTensor0.data); // [1500]
+                const meanTensor0 = /** @type {Record<number, Tensor>} */ (/** @type {unknown} */ (/** @type {Record<number, Tensor>} */ (/** @type {unknown} */ (/** @type {Record<number, Tensor>} */ (/** @type {unknown} */ (calculatedMean))[a]))[b]))[0];
+                const meanTensorData = /** @type {Float32Array} */ (meanTensor0.data); // [1500]
 
                 for (let c = 0; c < bTensor.dims[0]; ++c) {
-                    let cTensorData = bTensor[c].data; // [1500]
+                    let cTensorData = /** @type {Float32Array} */ (/** @type {Record<number, Tensor>} */ (/** @type {unknown} */ (bTensor))[c].data); // [1500]
                     for (let d = 0; d < cTensorData.length; ++d) {
                         cTensorData[d] = (cTensorData[d] - meanTensorData[d]) / stdTensorData[d];
                     }
 
                     // Apply median filter.
-                    cTensorData.set(medianFilter(cTensorData, median_filter_width));
+                    cTensorData.set(/** @type {ArrayLike<number>} */ (medianFilter(cTensorData, median_filter_width)));
                 }
             }
         }
@@ -269,13 +269,13 @@ export class WhisperForConditionalGeneration extends WhisperPreTrainedModel {
             // NOTE: Since we run only one batch at a time, we can squeeze to get the same dimensions
             // as the python implementation
             const matrix = batchedMatrices[batch_idx].neg().squeeze_(0);
-            const [text_indices, time_indices] = dynamic_time_warping(matrix.tolist());
+            const [text_indices, time_indices] = dynamic_time_warping(/** @type {number[][]} */ (matrix.tolist()));
 
             const diffs = Array.from(
                 { length: text_indices.length - 1 },
                 (v, i) => text_indices[i + 1] - text_indices[i],
             );
-            const jumps = mergeArrays([1], diffs).map((x) => !!x); // convert to boolean
+            const jumps = mergeArrays([1], diffs).map((/** @type {number} */ x) => !!x); // convert to boolean
 
             const jump_times = [];
             for (let i = 0; i < jumps.length; ++i) {
@@ -284,7 +284,7 @@ export class WhisperForConditionalGeneration extends WhisperPreTrainedModel {
                     jump_times.push(time_indices[i] * time_precision);
                 }
             }
-            timestamps[batch_idx].data.set(jump_times, 1);
+            /** @type {Float32Array} */ (/** @type {Record<number, Tensor>} */ (/** @type {unknown} */ (timestamps))[batch_idx].data).set(jump_times, 1);
         }
 
         return timestamps;

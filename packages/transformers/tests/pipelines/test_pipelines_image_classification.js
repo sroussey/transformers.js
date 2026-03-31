@@ -1,7 +1,7 @@
 import { pipeline, ImageClassificationPipeline } from "../../src/transformers.js";
 
-import { MAX_MODEL_LOAD_TIME, MAX_TEST_EXECUTION_TIME, MAX_MODEL_DISPOSE_TIME, DEFAULT_MODEL_OPTIONS } from "../init.js";
-import { load_cached_image } from "../asset_cache.js";
+import { MAX_MODEL_LOAD_TIME, MAX_TEST_EXECUTION_TIME, MAX_MODEL_DISPOSE_TIME, DEFAULT_MODEL_OPTIONS } from "../init.ts";
+import { load_cached_image } from "../asset_cache.ts";
 
 const PIPELINE_ID = "image-classification";
 

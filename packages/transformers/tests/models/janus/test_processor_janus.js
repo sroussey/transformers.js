@@ -1,6 +1,6 @@
 import { AutoProcessor, VLChatProcessor } from "../../../src/transformers.js";
 
-import { MAX_PROCESSOR_LOAD_TIME, MAX_TEST_EXECUTION_TIME } from "../../init.js";
+import { MAX_PROCESSOR_LOAD_TIME, MAX_TEST_EXECUTION_TIME } from "../../init.ts";
 
 export default () => {
   describe("VLChatProcessor", () => {

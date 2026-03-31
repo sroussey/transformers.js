@@ -13,7 +13,7 @@ import {
   random,
 } from "../../src/transformers.js";
 
-import { init, MAX_TEST_EXECUTION_TIME, MAX_MODEL_LOAD_TIME, MAX_MODEL_DISPOSE_TIME, DEFAULT_MODEL_OPTIONS } from "../init.js";
+import { init, MAX_TEST_EXECUTION_TIME, MAX_MODEL_LOAD_TIME, MAX_MODEL_DISPOSE_TIME, DEFAULT_MODEL_OPTIONS } from "../init.ts";
 
 // Initialise the testing environment
 init();

@@ -1,16 +1,19 @@
-import { PreTrainedModel } from '../modeling_utils.js';
-import { CausalLMOutput, SequenceClassifierOutput, TokenClassifierOutput, ModelOutput } from '../modeling_outputs.js';
 import { Tensor } from '../../utils/tensor.js';
+import { CausalLMOutput, ModelOutput, SequenceClassifierOutput, TokenClassifierOutput } from '../modeling_outputs.js';
+import { PreTrainedModel } from '../modeling_utils.js';
 
 /**
  * Base class for outputs of XVector models.
  */
 export class XVectorOutput extends ModelOutput {
+    logits;
+    embeddings;
     /**
      * @param {Object} output The output of the model.
      * @param {Tensor} output.logits Classification hidden states before AMSoftmax, of shape `(batch_size, config.xvector_output_dim)`.
      * @param {Tensor} output.embeddings Utterance embeddings used for vector similarity-based retrieval, of shape `(batch_size, config.xvector_output_dim)`.
      */
+    /** @param {{ logits: Tensor, embeddings: Tensor }} param0 */
     constructor({ logits, embeddings }) {
         super();
         this.logits = logits;
@@ -61,7 +64,7 @@ export class WavLMForCTC extends WavLMPreTrainedModel {
      * @param {Tensor} model_inputs.attention_mask Mask to avoid performing convolution and attention on padding token indices. Mask values selected in [0, 1]
      */
     async _call(model_inputs) {
-        return new CausalLMOutput(await super._call(model_inputs));
+        return new CausalLMOutput(/** @type {any} */ (await super._call(model_inputs)));
     }
 }
 
@@ -75,7 +78,7 @@ export class WavLMForSequenceClassification extends WavLMPreTrainedModel {
      * @returns {Promise<SequenceClassifierOutput>} An object containing the model's output logits for sequence classification.
      */
     async _call(model_inputs) {
-        return new SequenceClassifierOutput(await super._call(model_inputs));
+        return new SequenceClassifierOutput(/** @type {any} */ (await super._call(model_inputs)));
     }
 }
 
@@ -118,7 +121,7 @@ export class WavLMForXVector extends WavLMPreTrainedModel {
      * @returns {Promise<XVectorOutput>} An object containing the model's output logits and speaker embeddings.
      */
     async _call(model_inputs) {
-        return new XVectorOutput(await super._call(model_inputs));
+        return new XVectorOutput(/** @type {any} */ (await super._call(model_inputs)));
     }
 }
 
@@ -166,6 +169,6 @@ export class WavLMForAudioFrameClassification extends WavLMPreTrainedModel {
      * @returns {Promise<TokenClassifierOutput>} An object containing the model's output logits for sequence classification.
      */
     async _call(model_inputs) {
-        return new TokenClassifierOutput(await super._call(model_inputs));
+        return new TokenClassifierOutput(/** @type {any} */ (await super._call(model_inputs)));
     }
 }

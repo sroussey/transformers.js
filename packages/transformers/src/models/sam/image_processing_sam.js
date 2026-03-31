@@ -32,7 +32,7 @@ export class SamImageProcessor extends ImageProcessor {
             if (!is_bounding_box) {
                 shape = [1, ...shape];
             }
-            input_points = [input_points];
+            input_points = /** @type {any} */ ([input_points]);
         } else if (shape.length !== 4) {
             throw Error(
                 'The input_points must be a 4D tensor of shape `batch_size`, `point_batch_size`, `nb_points_per_image`, `2`.',
@@ -73,7 +73,7 @@ export class SamImageProcessor extends ImageProcessor {
         if (shape.length === 2) {
             // Correct user's input
             shape = [1, ...shape];
-            input_labels = [input_labels];
+            input_labels = /** @type {any} */ ([input_labels]);
         } else if (shape.length !== 3) {
             throw Error(
                 'The input_points must be a 4D tensor of shape `batch_size`, `point_batch_size`, `nb_points_per_image`, `2`.',
@@ -83,7 +83,7 @@ export class SamImageProcessor extends ImageProcessor {
         if (shape.some((x, i) => x !== input_points.dims[i])) {
             throw Error(`The first ${shape.length} dimensions of 'input_points' and 'input_labels' must be the same.`);
         }
-        return new Tensor('int64', input_labels.flat(Infinity).map(BigInt), shape);
+        return new Tensor('int64', input_labels.flat(Infinity).map((/** @type {any} */ x) => BigInt(x)), shape);
     }
     /**
      * @param {any[]} images The URL(s) of the image(s) to extract features from.
@@ -105,16 +105,17 @@ export class SamImageProcessor extends ImageProcessor {
      * - `y2`: the y coordinate of the bottom right point of the input box
      * @returns {Promise<SamImageProcessorResult>}
      */
-    async _call(images, { input_points = null, input_labels = null, input_boxes = null } = {}) {
+    /** @param {any} images @param {any[]} args */
+    async _call(images, ...args) {
+        const { input_points = null, input_labels = null, input_boxes = null } = /** @type {{ input_points?: number[][][][] | number[][][] | null; input_labels?: number[][][] | number[][] | null; input_boxes?: number[][][] | null }} */ (args[0] ?? {});
         // TODO allow user to use preprocessed images
-        /** @type {SamImageProcessorResult} */
-        const processed = await super._call(images);
+        const processed = /** @type {{ pixel_values: Tensor; original_sizes: number[][]; reshaped_input_sizes: number[][]; [key: string]: unknown }} */ (await super._call(images));
 
         if (input_points) {
             processed.input_points = this.reshape_input_points(
-                input_points,
-                processed.original_sizes,
-                processed.reshaped_input_sizes,
+                /** @type {number[][][][]} */ (input_points),
+                /** @type {[number, number][]} */ (processed.original_sizes),
+                /** @type {[number, number][]} */ (processed.reshaped_input_sizes),
             );
         }
 
@@ -122,19 +123,19 @@ export class SamImageProcessor extends ImageProcessor {
             if (!processed.input_points) {
                 throw Error('`input_points` must be provided if `input_labels` are provided.');
             }
-            processed.input_labels = this.add_input_labels(input_labels, processed.input_points);
+            processed.input_labels = this.add_input_labels(/** @type {number[][][]} */ (input_labels), /** @type {Tensor} */ (processed.input_points));
         }
 
         if (input_boxes) {
             processed.input_boxes = this.reshape_input_points(
-                input_boxes,
-                processed.original_sizes,
-                processed.reshaped_input_sizes,
+                /** @type {any} */ (input_boxes),
+                /** @type {[number, number][]} */ (processed.original_sizes),
+                /** @type {[number, number][]} */ (processed.reshaped_input_sizes),
                 true,
             );
         }
 
-        return processed;
+        return /** @type {SamImageProcessorResult} */ (/** @type {unknown} */ (processed));
     }
 
     /**
@@ -154,23 +155,23 @@ export class SamImageProcessor extends ImageProcessor {
         masks,
         original_sizes,
         reshaped_input_sizes,
-        { mask_threshold = 0.0, binarize = true, pad_size = null } = {},
+        { mask_threshold = 0.0, binarize = true, pad_size = /** @type {{ height: number; width: number } | null} */ (null) } = {},
     ) {
         // masks: [1, 1, 3, 256, 256]
 
         const output_masks = [];
 
-        pad_size = pad_size ?? this.pad_size ?? this.size;
+        pad_size = pad_size ?? /** @type {{ height: number; width: number }} */ (this.pad_size) ?? /** @type {{ height: number; width: number }} */ (this.size);
 
         /** @type {[number, number]} */
-        const target_image_size = [pad_size.height, pad_size.width];
+        const target_image_size = /** @type {[number, number]} */ ([pad_size.height, pad_size.width]);
 
         for (let i = 0; i < original_sizes.length; ++i) {
             const original_size = original_sizes[i];
             const reshaped_input_size = reshaped_input_sizes[i];
 
             // Upscale mask to padded size
-            let interpolated_mask = await interpolate_4d(masks[i], { mode: 'bilinear', size: target_image_size });
+            let interpolated_mask = /** @type {Tensor} */ (await interpolate_4d(/** @type {Tensor[]} */ (/** @type {unknown} */ (masks))[i], { mode: 'bilinear', size: target_image_size }));
 
             // Crop mask
             interpolated_mask = interpolated_mask.slice(
@@ -181,10 +182,10 @@ export class SamImageProcessor extends ImageProcessor {
             );
 
             // Downscale mask
-            interpolated_mask = await interpolate_4d(interpolated_mask, { mode: 'bilinear', size: original_size });
+            interpolated_mask = /** @type {Tensor} */ (await interpolate_4d(interpolated_mask, { mode: 'bilinear', size: original_size }));
 
             if (binarize) {
-                const data = interpolated_mask.data;
+                const data = /** @type {Float32Array} */ (interpolated_mask.data);
                 const binarizedMaskData = new Uint8Array(data.length);
                 for (let i = 0; i < data.length; ++i) {
                     if (data[i] > mask_threshold) {
@@ -225,6 +226,6 @@ export class SamImageProcessor extends ImageProcessor {
         } = {},
     ) {
         // TODO: Implement
-        // return { crop_boxes, points_per_crop, cropped_images, input_labels }
+        throw new Error('generate_crop_boxes is not yet implemented');
     }
 }

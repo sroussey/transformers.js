@@ -1,4 +1,4 @@
-import { createInferenceSession, runInferenceSession, isONNXProxy } from '../backends/onnx.js';
+import { createInferenceSession, isONNXProxy, runInferenceSession } from '../backends/onnx.js';
 import { Tensor } from '../utils/tensor.js';
 
 /**
@@ -13,13 +13,13 @@ import { Tensor } from '../utils/tensor.js';
  * The wrapper function for running the ONNX inference session.
  */
 const wrap = async (session_bytes, session_options, names) => {
-    const session = await createInferenceSession(new Uint8Array(session_bytes), session_options);
+    const session = await createInferenceSession(new Uint8Array(session_bytes), session_options, /** @type {Record<string, unknown>} */ (/** @type {unknown} */ (undefined)));
 
     return /** @type {any} */ (
         async (/** @type {Record<string, Tensor>} */ inputs) => {
             const proxied = isONNXProxy();
             const ortFeed = Object.fromEntries(
-                Object.entries(inputs).map(([k, v]) => [k, (proxied ? v.clone() : v).ort_tensor]),
+                Object.entries(inputs).map(([k, v]) => [k, (proxied ? /** @type {Tensor} */ (v).clone() : v).ort_tensor]),
             );
             const outputs = await runInferenceSession(session, ortFeed);
             if (Array.isArray(names)) {
@@ -33,6 +33,23 @@ const wrap = async (session_bytes, session_options, names) => {
 
 // In-memory registry of initialized ONNX operators
 export class TensorOpRegistry {
+    /** @type {ReturnType<typeof wrap>} */
+    static _nearest_interpolate_4d;
+    /** @type {ReturnType<typeof wrap>} */
+    static _bilinear_interpolate_4d;
+    /** @type {ReturnType<typeof wrap>} */
+    static _bicubic_interpolate_4d;
+    /** @type {ReturnType<typeof wrap>} */
+    static _matmul;
+    /** @type {ReturnType<typeof wrap>} */
+    static _stft;
+    /** @type {ReturnType<typeof wrap>} */
+    static _rfft;
+    /** @type {ReturnType<typeof wrap>} */
+    static _top_k;
+    /** @type {ReturnType<typeof wrap>} */
+    static _slice;
+
     static session_options = {
         // TODO: Allow for multiple execution providers
         // executionProviders: ['webgpu'],

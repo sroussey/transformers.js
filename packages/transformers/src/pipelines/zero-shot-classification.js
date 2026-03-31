@@ -1,7 +1,7 @@
 import { Pipeline } from './_base.js';
 
-import { softmax } from '../utils/maths.js';
 import { logger } from '../utils/logger.js';
+import { softmax } from '../utils/maths.js';
 
 /**
  * @typedef {import('./_base.js').TextPipelineConstructorArgs} TextPipelineConstructorArgs
@@ -78,8 +78,15 @@ import { logger } from '../utils/logger.js';
  * ```
  */
 export class ZeroShotClassificationPipeline
-    extends /** @type {new (options: TextPipelineConstructorArgs) => ZeroShotClassificationPipelineType} */ (Pipeline)
+    extends /** @type {new (options: TextPipelineConstructorArgs) => ZeroShotClassificationPipelineType} */ (/** @type {unknown} */ (Pipeline))
 {
+    /** @type {Record<string, number>} */
+    label2id;
+    /** @type {number} */
+    entailment_id;
+    /** @type {number} */
+    contradiction_id;
+
     /**
      * Create a new ZeroShotClassificationPipeline.
      * @param {TextPipelineConstructorArgs} options An object used to instantiate the pipeline.
@@ -105,6 +112,13 @@ export class ZeroShotClassificationPipeline
         }
     }
 
+    /**
+     * @param {string | string[]} texts
+     * @param {string | string[]} candidate_labels
+     * @param {object} [options]
+     * @param {string} [options.hypothesis_template]
+     * @param {boolean} [options.multi_label]
+     */
     async _call(texts, candidate_labels, { hypothesis_template = 'This example is {}.', multi_label = false } = {}) {
         const isBatched = Array.isArray(texts);
         if (!isBatched) {
@@ -115,7 +129,7 @@ export class ZeroShotClassificationPipeline
         }
 
         // Insert labels into hypothesis template
-        const hypotheses = candidate_labels.map((x) => hypothesis_template.replace('{}', x));
+        const hypotheses = candidate_labels.map((/** @type {string} */ x) => hypothesis_template.replace('{}', x));
 
         // How to perform the softmax over the logits:
         //  - true:  softmax over the entailment vs. contradiction dim for each label independently
@@ -128,12 +142,12 @@ export class ZeroShotClassificationPipeline
             const entails_logits = [];
 
             for (const hypothesis of hypotheses) {
-                const inputs = this.tokenizer(premise, {
+                const inputs = /** @type {any} */ (this.tokenizer)(premise, {
                     text_pair: hypothesis,
                     padding: true,
                     truncation: true,
                 });
-                const outputs = await this.model(inputs);
+                const outputs = await /** @type {any} */ (this.model)(inputs);
 
                 if (softmaxEach) {
                     entails_logits.push([
@@ -146,15 +160,15 @@ export class ZeroShotClassificationPipeline
             }
 
             /** @type {number[]} */
-            const scores = softmaxEach ? entails_logits.map((x) => softmax(x)[1]) : softmax(entails_logits);
+            const scores = softmaxEach ? entails_logits.map((/** @type {number[]} */ x) => softmax(x)[1]) : softmax(/** @type {number[]} */ (entails_logits));
 
             // Sort by scores (desc) and return scores with indices
-            const scores_sorted = scores.map((x, i) => [x, i]).sort((a, b) => b[0] - a[0]);
+            const scores_sorted = scores.map((/** @type {number} */ x, /** @type {number} */ i) => [x, i]).sort((/** @type {number[]} */ a, /** @type {number[]} */ b) => b[0] - a[0]);
 
             toReturn.push({
                 sequence: premise,
-                labels: scores_sorted.map((x) => candidate_labels[x[1]]),
-                scores: scores_sorted.map((x) => x[0]),
+                labels: scores_sorted.map((/** @type {number[]} */ x) => candidate_labels[x[1]]),
+                scores: scores_sorted.map((/** @type {number[]} */ x) => x[0]),
             });
         }
         return isBatched ? toReturn : toReturn[0];

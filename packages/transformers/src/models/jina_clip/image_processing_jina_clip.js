@@ -1,6 +1,7 @@
 import { ImageProcessor } from '../../image_processors_utils.js';
 
 export class JinaCLIPImageProcessor extends ImageProcessor {
+    /** @param {Record<string, unknown>} config */
     constructor(config) {
         // JinaCLIPImageProcessor uses a custom preprocessor_config.json, so we configure it here
         const { resize_mode, fill_color, interpolation, size, ...other } = config;
@@ -13,13 +14,13 @@ export class JinaCLIPImageProcessor extends ImageProcessor {
                   : { longest_edge: size };
 
         const resample = interpolation === 'bicubic' ? 3 : 2;
-        super({
+        super(/** @type {any} */ ({
             ...other,
             size: new_size,
             resample,
             do_center_crop: true,
             crop_size: size,
             do_normalize: true,
-        });
+        }));
     }
 }

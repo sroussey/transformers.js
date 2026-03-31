@@ -1,5 +1,5 @@
-import { PreTrainedModel } from '../modeling_utils.js';
 import { MaskedLMOutput, SequenceClassifierOutput, TokenClassifierOutput } from '../modeling_outputs.js';
+import { PreTrainedModel } from '../modeling_utils.js';
 
 export class EsmPreTrainedModel extends PreTrainedModel {}
 
@@ -19,7 +19,7 @@ export class EsmForMaskedLM extends EsmPreTrainedModel {
      * @returns {Promise<MaskedLMOutput>} An object containing the model's output logits for masked language modeling.
      */
     async _call(model_inputs) {
-        return new MaskedLMOutput(await super._call(model_inputs));
+        return new MaskedLMOutput(/** @type {any} */ (await super._call(model_inputs)));
     }
 }
 
@@ -34,7 +34,7 @@ export class EsmForSequenceClassification extends EsmPreTrainedModel {
      * @returns {Promise<SequenceClassifierOutput>} An object containing the model's output logits for sequence classification.
      */
     async _call(model_inputs) {
-        return new SequenceClassifierOutput(await super._call(model_inputs));
+        return new SequenceClassifierOutput(/** @type {any} */ (await super._call(model_inputs)));
     }
 }
 
@@ -50,6 +50,6 @@ export class EsmForTokenClassification extends EsmPreTrainedModel {
      * @returns {Promise<TokenClassifierOutput>} An object containing the model's output logits for token classification.
      */
     async _call(model_inputs) {
-        return new TokenClassifierOutput(await super._call(model_inputs));
+        return new TokenClassifierOutput(/** @type {any} */ (await super._call(model_inputs)));
     }
 }

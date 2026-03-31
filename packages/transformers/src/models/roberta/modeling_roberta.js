@@ -1,10 +1,10 @@
-import { PreTrainedModel } from '../modeling_utils.js';
 import {
     MaskedLMOutput,
     QuestionAnsweringModelOutput,
     SequenceClassifierOutput,
     TokenClassifierOutput,
 } from '../modeling_outputs.js';
+import { PreTrainedModel } from '../modeling_utils.js';
 
 export class RobertaPreTrainedModel extends PreTrainedModel {}
 export class RobertaModel extends RobertaPreTrainedModel {}
@@ -20,7 +20,7 @@ export class RobertaForMaskedLM extends RobertaPreTrainedModel {
      * @returns {Promise<MaskedLMOutput>} returned object
      */
     async _call(model_inputs) {
-        return new MaskedLMOutput(await super._call(model_inputs));
+        return new MaskedLMOutput(/** @type {any} */ (await super._call(model_inputs)));
     }
 }
 
@@ -35,7 +35,7 @@ export class RobertaForSequenceClassification extends RobertaPreTrainedModel {
      * @returns {Promise<SequenceClassifierOutput>} returned object
      */
     async _call(model_inputs) {
-        return new SequenceClassifierOutput(await super._call(model_inputs));
+        return new SequenceClassifierOutput(/** @type {any} */ (await super._call(model_inputs)));
     }
 }
 
@@ -50,7 +50,7 @@ export class RobertaForTokenClassification extends RobertaPreTrainedModel {
      * @returns {Promise<TokenClassifierOutput>} An object containing the model's output logits for token classification.
      */
     async _call(model_inputs) {
-        return new TokenClassifierOutput(await super._call(model_inputs));
+        return new TokenClassifierOutput(/** @type {any} */ (await super._call(model_inputs)));
     }
 }
 
@@ -65,6 +65,6 @@ export class RobertaForQuestionAnswering extends RobertaPreTrainedModel {
      * @returns {Promise<QuestionAnsweringModelOutput>} returned object
      */
     async _call(model_inputs) {
-        return new QuestionAnsweringModelOutput(await super._call(model_inputs));
+        return new QuestionAnsweringModelOutput(/** @type {any} */ (await super._call(model_inputs)));
     }
 }

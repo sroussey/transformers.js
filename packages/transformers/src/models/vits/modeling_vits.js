@@ -1,5 +1,5 @@
-import { PreTrainedModel } from '../modeling_utils.js';
 import { ModelOutput } from '../modeling_outputs.js';
+import { PreTrainedModel } from '../modeling_utils.js';
 
 /**
  * Describes the outputs for the VITS model.
@@ -9,12 +9,15 @@ export class VitsModelOutput extends ModelOutput {
      * @typedef {import('../../utils/tensor.js').Tensor} Tensor
      */
 
+    waveform;
+    spectrogram;
     /**
      * @param {Object} output The output of the model.
      * @param {Tensor} output.waveform The final audio waveform predicted by the model, of shape `(batch_size, sequence_length)`.
      * @param {Tensor} output.spectrogram The log-mel spectrogram predicted at the output of the flow model.
      * This spectrogram is passed to the Hi-Fi GAN decoder model to obtain the final audio waveform.
      */
+    /** @param {{ waveform: import('../../utils/tensor.js').Tensor, spectrogram: import('../../utils/tensor.js').Tensor }} param0 */
     constructor({ waveform, spectrogram }) {
         super();
         this.waveform = waveform;
@@ -55,6 +58,6 @@ export class VitsModel extends VitsPreTrainedModel {
      * @returns {Promise<VitsModelOutput>} The outputs for the VITS model.
      */
     async _call(model_inputs) {
-        return new VitsModelOutput(await super._call(model_inputs));
+        return new VitsModelOutput(/** @type {any} */ (await super._call(model_inputs)));
     }
 }

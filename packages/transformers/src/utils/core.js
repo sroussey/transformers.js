@@ -148,6 +148,7 @@ export function isNullishDimension(x) {
  * @returns {number[]} An array containing the dimensions of the input array.
  */
 export function calculateDimensions(arr) {
+    /** @type {number[]} */
     const dimensions = [];
     let current = arr;
     while (Array.isArray(current)) {
@@ -166,9 +167,9 @@ export function calculateDimensions(arr) {
  * @throws {Error} If the key does not exist and no default value is provided.
  */
 export function pop(obj, key, defaultValue = undefined) {
-    const value = obj[key];
+    const value = /** @type {Record<string, any>} */ (obj)[key];
     if (value !== undefined) {
-        delete obj[key];
+        delete /** @type {Record<string, any>} */ (obj)[key];
         return value;
     }
     if (defaultValue === undefined) {
@@ -219,8 +220,8 @@ export function pick(o, props) {
     return Object.assign(
         {},
         ...props.map((prop) => {
-            if (o[prop] !== undefined) {
-                return { [prop]: o[prop] };
+            if (/** @type {Record<string, any>} */ (o)[prop] !== undefined) {
+                return { [prop]: /** @type {Record<string, any>} */ (o)[prop] };
             }
         }),
     );
@@ -243,6 +244,7 @@ export function len(s) {
  * This mimics the behavior of Python's `count` method.
  * @param {any[]|string} arr The array or string to search.
  * @param {any} value The value to count.
+ * @returns {number}
  */
 export function count(arr, value) {
     let count = 0;

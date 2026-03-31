@@ -1,8 +1,8 @@
 import {
     PreTrainedModel,
     decoder_forward,
-    default_merge_input_ids_with_image_features,
     default_merge_input_ids_with_audio_features,
+    default_merge_input_ids_with_image_features,
 } from '../modeling_utils.js';
 import { sessionRun } from '../session.js';
 
@@ -93,26 +93,26 @@ export class Gemma3nForConditionalGeneration extends Gemma3nPreTrainedModel {
         return outputs;
     }
 
+    /** @param {Record<string, any>} kwargs */
     _merge_input_ids_with_image_features(kwargs) {
         const vision_hidden_size = kwargs.image_features.dims.at(-1);
         const reshaped_image_hidden_states = kwargs.image_features.view(-1, vision_hidden_size);
-        return default_merge_input_ids_with_image_features({
-            // @ts-ignore
-            image_token_id: this.config.image_token_id,
+        return default_merge_input_ids_with_image_features(/** @type {Parameters<typeof default_merge_input_ids_with_image_features>[0]} */ ({
+            image_token_id: /** @type {number} */ (/** @type {any} */ (this.config).image_token_id),
             ...kwargs,
             image_features: reshaped_image_hidden_states,
-        });
+        }));
     }
+    /** @param {Record<string, any>} kwargs */
     _merge_input_ids_with_audio_features(kwargs) {
         const audio_hidden_size = kwargs.audio_features.dims.at(-1);
         const reshaped_audio_features = kwargs.audio_features.view(-1, audio_hidden_size);
 
-        return default_merge_input_ids_with_audio_features({
-            // @ts-ignore
-            audio_token_id: this.config.audio_token_id,
+        return default_merge_input_ids_with_audio_features(/** @type {Parameters<typeof default_merge_input_ids_with_audio_features>[0]} */ ({
+            audio_token_id: /** @type {number} */ (/** @type {any} */ (this.config).audio_token_id),
             ...kwargs,
             audio_features: reshaped_audio_features,
-        });
+        }));
     }
 }
 

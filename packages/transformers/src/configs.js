@@ -57,8 +57,10 @@ async function loadConfig(pretrained_model_name_or_path, options) {
  * @returns {Object} The normalized configuration.
  */
 function getNormalizedConfig(config) {
+    /** @type {Record<string, string>} */
     const mapping = {};
 
+    /** @type {Record<string, any>} */
     let init_normalized_config = {};
     switch (config.model_type) {
         // Sub-configs
@@ -82,20 +84,16 @@ function getNormalizedConfig(config) {
         case 'qwen2_5_vl':
         case 'qwen3_vl':
         case 'qwen3_vl_moe':
-            // @ts-expect-error TS2339
-            init_normalized_config = getNormalizedConfig(config.text_config);
+            init_normalized_config = getNormalizedConfig(/** @type {any} */ (config).text_config);
             break;
         case 'moondream1':
-            // @ts-expect-error TS2339
-            init_normalized_config = getNormalizedConfig(config.phi_config);
+            init_normalized_config = getNormalizedConfig(/** @type {any} */ (config).phi_config);
             break;
         case 'musicgen':
-            // @ts-expect-error TS2339
-            init_normalized_config = getNormalizedConfig(config.decoder);
+            init_normalized_config = getNormalizedConfig(/** @type {any} */ (config).decoder);
             break;
         case 'multi_modality':
-            // @ts-expect-error TS2339
-            init_normalized_config = getNormalizedConfig(config.language_config);
+            init_normalized_config = getNormalizedConfig(/** @type {any} */ (config).language_config);
             break;
 
         // Decoder-only models
@@ -267,13 +265,13 @@ function getNormalizedConfig(config) {
             mapping['encoder_hidden_size'] = mapping['decoder_hidden_size'] = 'hidden_size';
             break;
         case 'vision-encoder-decoder':
-            // @ts-expect-error TS2339
-            const decoderConfig = getNormalizedConfig(config.decoder);
+            /** @type {Record<string, any>} */
+            const decoderConfig = getNormalizedConfig(/** @type {any} */ (config).decoder);
 
             const add_encoder_pkv = 'num_decoder_layers' in decoderConfig;
+            /** @type {Record<string, any>} */
             const result = pick(config, ['model_type', 'is_encoder_decoder']);
             if (add_encoder_pkv) {
-                // Decoder is part of an encoder-decoder model
                 result.num_decoder_layers = decoderConfig.num_decoder_layers;
                 result.num_decoder_heads = decoderConfig.num_decoder_heads;
                 result.decoder_hidden_size = decoderConfig.decoder_hidden_size;
@@ -282,7 +280,6 @@ function getNormalizedConfig(config) {
                 result.num_encoder_heads = decoderConfig.num_encoder_heads;
                 result.encoder_hidden_size = decoderConfig.encoder_hidden_size;
             } else {
-                // Decoder is a decoder-only model
                 result.num_layers = decoderConfig.num_layers;
                 result.num_heads = decoderConfig.num_heads;
                 result.hidden_size = decoderConfig.hidden_size;
@@ -291,12 +288,13 @@ function getNormalizedConfig(config) {
     }
 
     // NOTE: If `num_attention_heads` is not set, it is assumed to be equal to `num_heads`
+    /** @type {Record<string, any>} */
     const normalized_config = {
         ...init_normalized_config,
         ...pick(config, ['model_type', 'multi_query', 'is_encoder_decoder']),
     };
     for (const key in mapping) {
-        normalized_config[key] = config[mapping[key]];
+        normalized_config[key] = /** @type {any} */ (config)[mapping[key]];
     }
     return normalized_config;
 }
@@ -304,6 +302,10 @@ function getNormalizedConfig(config) {
 /**
  *
  * @param {PretrainedConfig} config
+ * @param {Object} [options]
+ * @param {number} [options.batch_size]
+ * @param {string} [options.prefix]
+ * @param {string} [options.session_name]
  * @returns {Record<string, number[]>}
  */
 export function getCacheShapes(config, options) {
@@ -339,7 +341,6 @@ export function getCacheShapes(config, options) {
 
         const c = /** @type {any} */ (config);
 
-        // Normalize config field names across model types
         const layer_types = c.layer_types ?? c.layers_block_type;
         const num_layers = c.num_hidden_layers ?? layer_types?.length;
         const num_key_value_heads = c.num_key_value_heads;
@@ -429,7 +430,13 @@ export function getCacheShapes(config, options) {
     return getKeyValueShapes(config, options);
 }
 
-/** @type {typeof getKeyValueShapes} */
+/**
+ * @param {PretrainedConfig|Record<string, any>} config
+ * @param {Object} [options]
+ * @param {string} [options.prefix]
+ * @param {number} [options.batch_size]
+ * @returns {Record<string, number[]>}
+ */
 function getKeyValueShapes(config, { prefix = 'past_key_values', batch_size = 1 } = {}) {
     /** @type {Record<string, number[]>} */
     const decoderFeeds = {};
@@ -464,24 +471,19 @@ function getKeyValueShapes(config, { prefix = 'past_key_values', batch_size = 1 
             normalized_config.hidden_size / (normalized_config.num_attention_heads ?? num_heads);
 
         if (normalized_config.model_type === 'falcon') {
-            // NOTE: Custom implementation for Falcon
             const dims = [batch_size * num_heads, 0, dim_kv];
             for (let i = 0; i < num_layers; ++i) {
                 decoderFeeds[`${prefix}.${i}.key`] = dims;
                 decoderFeeds[`${prefix}.${i}.value`] = dims;
             }
         } else if (normalized_config.multi_query) {
-            // e.g., for `gpt_bigcode`
             const dims = [batch_size * num_heads, 0, 2 * dim_kv];
-
             for (let i = 0; i < num_layers; ++i) {
                 decoderFeeds[`${prefix}.${i}.key_value`] = dims;
             }
         } else if (normalized_config.model_type === 'bloom') {
-            // NOTE: Custom implementation for Bloom
-
-            const keyDims = [batch_size * num_heads, dim_kv, 0]; // [batch_size x num_heads,64,past_sequence_length]
-            const valueDims = [batch_size * num_heads, 0, dim_kv]; // [batch_size x num_heads,past_sequence_length,64]
+            const keyDims = [batch_size * num_heads, dim_kv, 0];
+            const valueDims = [batch_size * num_heads, 0, dim_kv];
             for (let i = 0; i < num_layers; ++i) {
                 decoderFeeds[`${prefix}.${i}.key`] = keyDims;
                 decoderFeeds[`${prefix}.${i}.value`] = valueDims;
@@ -489,12 +491,10 @@ function getKeyValueShapes(config, { prefix = 'past_key_values', batch_size = 1 
         } else if (normalized_config.model_type === 'openelm') {
             for (let i = 0; i < num_layers; ++i) {
                 const dims = [batch_size, num_heads[i], 0, dim_kv];
-
                 decoderFeeds[`${prefix}.${i}.key`] = dims;
                 decoderFeeds[`${prefix}.${i}.value`] = dims;
             }
         } else {
-            // Decoder-only
             const dims = [batch_size, num_heads, 0, dim_kv];
             for (let i = 0; i < num_layers; ++i) {
                 decoderFeeds[`${prefix}.${i}.key`] = dims;
@@ -524,6 +524,28 @@ export class PretrainedConfig {
     /** @type {TransformersJSConfig} */
     'transformers.js_config';
 
+    normalized_config;
+
+    // Dynamic properties commonly set via Object.assign from config JSON:
+    /** @type {Record<number, string>|undefined} */
+    id2label;
+    /** @type {Record<string, number>|undefined} */
+    label2id;
+    /** @type {string|undefined} */
+    problem_type;
+    /** @type {string|undefined} */
+    prefix;
+    /** @type {Record<string, Record<string, string>>|undefined} */
+    task_specific_params;
+    /** @type {Record<string, any>|undefined} */
+    decoder;
+    /** @type {number|undefined} */
+    sampling_rate;
+    /** @type {number|undefined} */
+    max_source_positions;
+    /** @type {string[]|undefined} */
+    architectures;
+
     /**
      * Create a new PreTrainedTokenizer instance.
      * @param {Object} configJSON The JSON of the config.
@@ -537,7 +559,7 @@ export class PretrainedConfig {
      * Loads a pre-trained config from the given `pretrained_model_name_or_path`.
      *
      * @param {string} pretrained_model_name_or_path The path to the pre-trained config.
-     * @param {PretrainedOptions} options Additional options for loading the config.
+     * @param {PretrainedOptions} [options] Additional options for loading the config.
      * @throws {Error} Throws an error if the config.json is not found in the `pretrained_model_name_or_path`.
      *
      * @returns {Promise<PretrainedConfig>} A new instance of the `PretrainedConfig` class.

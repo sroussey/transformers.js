@@ -1,6 +1,6 @@
+import { Processor } from '../../processing_utils.js';
 import { AutoFeatureExtractor } from '../auto/feature_extraction_auto.js';
 import { AutoTokenizer } from '../auto/tokenization_auto.js';
-import { Processor } from '../../processing_utils.js';
 
 /**
  * Represents a WhisperProcessor that extracts features from an audio input.
@@ -15,6 +15,6 @@ export class WhisperProcessor extends Processor {
      * @returns {Promise<any>} A Promise that resolves with the extracted features.
      */
     async _call(audio) {
-        return await this.feature_extractor(audio);
+        return await /** @type {any} */ (this.feature_extractor)(audio);
     }
 }

@@ -1,5 +1,5 @@
-import { PreTrainedModel } from '../modeling_utils.js';
 import { SequenceClassifierOutput } from '../modeling_outputs.js';
+import { PreTrainedModel } from '../modeling_utils.js';
 
 export class MBartPreTrainedModel extends PreTrainedModel {}
 
@@ -23,8 +23,9 @@ export class MBartForSequenceClassification extends MBartPreTrainedModel {
      * @param {Object} model_inputs The inputs to the model.
      * @returns {Promise<SequenceClassifierOutput>} An object containing the model's output logits for sequence classification.
      */
+    /** @param {Record<string, unknown>} model_inputs */
     async _call(model_inputs) {
-        return new SequenceClassifierOutput(await super._call(model_inputs));
+        return new SequenceClassifierOutput(/** @type {any} */ (await super._call(model_inputs)));
     }
 }
 

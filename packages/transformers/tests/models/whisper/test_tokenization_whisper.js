@@ -1,5 +1,5 @@
 import { WhisperTokenizer } from "../../../src/models/tokenizers.js";
-import { BASE_TEST_STRINGS, WHISPER_TEST_STRINGS } from "../test_strings.js";
+import { BASE_TEST_STRINGS, WHISPER_TEST_STRINGS } from "../test_strings.ts";
 
 export const TOKENIZER_CLASS = WhisperTokenizer;
 export const TEST_CONFIG = {

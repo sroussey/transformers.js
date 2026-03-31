@@ -1,5 +1,5 @@
-import { PreTrainedModel } from '../modeling_utils.js';
 import { MaskedLMOutput, QuestionAnsweringModelOutput, SequenceClassifierOutput } from '../modeling_outputs.js';
+import { PreTrainedModel } from '../modeling_utils.js';
 
 export class MobileBertPreTrainedModel extends PreTrainedModel {}
 export class MobileBertModel extends MobileBertPreTrainedModel {}
@@ -15,7 +15,7 @@ export class MobileBertForMaskedLM extends MobileBertPreTrainedModel {
      * @returns {Promise<MaskedLMOutput>} returned object
      */
     async _call(model_inputs) {
-        return new MaskedLMOutput(await super._call(model_inputs));
+        return new MaskedLMOutput(/** @type {any} */ (await super._call(model_inputs)));
     }
 }
 
@@ -30,7 +30,7 @@ export class MobileBertForSequenceClassification extends MobileBertPreTrainedMod
      * @returns {Promise<SequenceClassifierOutput>} returned object
      */
     async _call(model_inputs) {
-        return new SequenceClassifierOutput(await super._call(model_inputs));
+        return new SequenceClassifierOutput(/** @type {any} */ (await super._call(model_inputs)));
     }
 }
 
@@ -45,6 +45,6 @@ export class MobileBertForQuestionAnswering extends MobileBertPreTrainedModel {
      * @returns {Promise<QuestionAnsweringModelOutput>} returned object
      */
     async _call(model_inputs) {
-        return new QuestionAnsweringModelOutput(await super._call(model_inputs));
+        return new QuestionAnsweringModelOutput(/** @type {any} */ (await super._call(model_inputs)));
     }
 }

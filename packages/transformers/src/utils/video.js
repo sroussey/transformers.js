@@ -1,7 +1,10 @@
+import { apis, env } from '../env.js';
 import { RawImage } from './image.js';
-import { env, apis } from '../env.js';
 
 export class RawVideoFrame {
+    image;
+    timestamp;
+
     /**
      * @param {RawImage} image
      * @param {number} timestamp
@@ -13,6 +16,11 @@ export class RawVideoFrame {
 }
 
 export class RawVideo {
+    /** @type {RawVideoFrame[]} */
+    frames;
+    /** @type {number} */
+    duration;
+
     /**
      * @param {RawVideoFrame[]|RawImage[]} frames
      * @param {number} duration
@@ -20,7 +28,7 @@ export class RawVideo {
     constructor(frames, duration) {
         if (frames.length > 0 && frames[0] instanceof RawImage) {
             // Assume uniform timestamps
-            frames = frames.map((image, i) => new RawVideoFrame(image, ((i + 1) / (frames.length + 1)) * duration));
+            frames = /** @type {RawImage[]} */ (frames).map((/** @type {RawImage} */ image, /** @type {number} */ i) => new RawVideoFrame(image, ((i + 1) / (frames.length + 1)) * duration));
         }
         this.frames = /** @type {RawVideoFrame[]} */ (frames);
         this.duration = duration;
