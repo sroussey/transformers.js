@@ -34,6 +34,7 @@
  *
  * Single: `<|python_tag|>{"name": "func", "parameters": {"arg": "val"}}`
  * Parallel: `<|python_tag|>{"name": "func1", ...}\n{"name": "func2", ...}`
+ * Function tag (3.2 lightweight): `<function=func>{"arg": "val"}</function>`
  * Also: `{"name": "func", "parameters": {...}}` without the python_tag
  */
 function parseLlama(text) {
@@ -59,6 +60,21 @@ function parseLlama(text) {
                     });
                 }
             } catch { /* skip non-JSON lines */ }
+        }
+    }
+
+    // Try <function=name>{args}</function> format (Llama 3.2 lightweight 1B/3B)
+    if (calls.length === 0) {
+        const funcTagRegex = /<function=(\w+)>([\s\S]*?)<\/function>/g;
+        let funcMatch;
+        while ((funcMatch = funcTagRegex.exec(text)) !== null) {
+            try {
+                const args = JSON.parse(funcMatch[2].trim());
+                calls.push({ name: funcMatch[1], arguments: args, id: null });
+            } catch { /* skip malformed */ }
+        }
+        if (calls.length > 0) {
+            content = text.replace(/<function=\w+>[\s\S]*?<\/function>/g, '').trim();
         }
     }
 
@@ -605,12 +621,35 @@ function parseFunctionGemma(text) {
 }
 
 /**
- * Jamba (AI21) — OpenAI-compatible format
+ * Jamba (AI21)
  *
- * Format: `{"tool_calls": [{"id": "...", "type": "function", "function": {"name": "...", "arguments": "..."}}]}`
+ * Format: `<tool_calls>[{"name": "func", "arguments": {...}}]</tool_calls>`
+ * Also supports OpenAI-compatible: `{"tool_calls": [{"function": {"name": "...", "arguments": "..."}}]}`
  */
 function parseJamba(text) {
-    // Delegate to FireFunction parser as they share the OpenAI format
+    // Try <tool_calls> tag format first
+    const tagMatch = text.match(/<tool_calls>\s*([\s\S]*?)\s*<\/tool_calls>/);
+    if (tagMatch) {
+        try {
+            const parsed = JSON.parse(tagMatch[1].trim());
+            const arr = Array.isArray(parsed) ? parsed : [parsed];
+            const calls = arr
+                .filter((c) => c.name)
+                .map((c) => ({
+                    name: c.name,
+                    arguments: typeof c.arguments === 'string'
+                        ? JSON.parse(c.arguments)
+                        : c.arguments ?? c.parameters ?? {},
+                    id: c.id ?? null,
+                }));
+            if (calls.length > 0) {
+                const content = text.slice(0, text.indexOf('<tool_calls>')).trim();
+                return { tool_calls: calls, content, parser: 'jamba' };
+            }
+        } catch { /* fall through */ }
+    }
+
+    // Fall back to OpenAI-compatible format
     return parseFireFunction(text);
 }
 
@@ -796,7 +835,9 @@ export function hasToolCalls(text) {
         text.includes('<tool_call>') ||
         text.includes('[TOOL_CALLS]') ||
         text.includes('<|python_tag|>') ||
+        text.includes('<function=') ||
         text.includes('<|tool_calls|>') ||
+        text.includes('<tool_calls>') ||
         text.includes('<|action_start|>') ||
         text.includes('<<function>>') ||
         text.includes('>>>') ||
