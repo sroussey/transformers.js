@@ -55,6 +55,9 @@ export { random } from './utils/random.js';
 
 export { DynamicCache } from './cache_utils.js';
 
+// Tool call parsing
+export { parseToolCalls, hasToolCalls, getAvailableParsers } from './tool_call_parser.js';
+
 // Cache and file management
 export { ModelRegistry } from './utils/model_registry/ModelRegistry.js';
 
