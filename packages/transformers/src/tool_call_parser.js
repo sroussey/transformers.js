@@ -196,31 +196,53 @@ function parseCohere(text) {
 }
 
 /**
- * DeepSeek V2/V3
+ * DeepSeek V2/V3/V3.1
  *
- * Format: `<｜tool▁call▁begin｜>function_name\n```json\n{...}\n```<｜tool▁call▁end｜>`
+ * V2 format: `<｜tool▁call▁begin｜>function_name\n```json\n{...}\n```<｜tool▁call▁end｜>`
+ * V3.1 format: `<｜tool▁calls▁begin｜><｜tool▁call▁begin｜>name<｜tool▁sep｜>{args}<｜tool▁call▁end｜><｜tool▁calls▁end｜>`
  * Uses fullwidth characters in special tokens. Supports parallel calls.
  */
 function parseDeepSeek(text) {
-    // DeepSeek uses fullwidth bar ｜ and special unicode block char ▁
-    const regex = /<(?:｜|\|)tool[\s\u2581]call[\s\u2581]begin(?:｜|\|)>\s*(\w+)\s*\n```(?:json)?\n([\s\S]*?)\n```\s*<(?:｜|\|)tool[\s\u2581]call[\s\u2581]end(?:｜|\|)>/g;
     const calls = [];
+
+    // Helper to match both fullwidth ｜ and ASCII | bar variants, and ▁ or space
+    const bar = '(?:｜|\\|)';
+    const sep = '[\\s\u2581]';
+
+    // Try V3.1 format first: name<｜tool▁sep｜>{args}
+    const v31Regex = new RegExp(
+        `<${bar}tool${sep}call${sep}begin${bar}>\\s*(\\w+)\\s*<${bar}tool${sep}sep${bar}>\\s*([\\s\\S]*?)\\s*<${bar}tool${sep}call${sep}end${bar}>`,
+        'g',
+    );
     let match;
-    while ((match = regex.exec(text)) !== null) {
+    while ((match = v31Regex.exec(text)) !== null) {
         try {
             const args = JSON.parse(match[2].trim());
-            calls.push({
-                name: match[1],
-                arguments: args,
-                id: null,
-            });
+            calls.push({ name: match[1], arguments: args, id: null });
         } catch { /* skip malformed */ }
+    }
+
+    // Try V2 format: name\n```json\n{args}\n```
+    if (calls.length === 0) {
+        const v2Regex = new RegExp(
+            `<${bar}tool${sep}call${sep}begin${bar}>\\s*(\\w+)\\s*\\n\`\`\`(?:json)?\\n([\\s\\S]*?)\\n\`\`\`\\s*<${bar}tool${sep}call${sep}end${bar}>`,
+            'g',
+        );
+        while ((match = v2Regex.exec(text)) !== null) {
+            try {
+                const args = JSON.parse(match[2].trim());
+                calls.push({ name: match[1], arguments: args, id: null });
+            } catch { /* skip malformed */ }
+        }
     }
 
     if (calls.length === 0) return null;
 
+    // Strip all tool call blocks (both outer plural and inner singular markers)
     const content = text
-        .replace(/<(?:｜|\|)tool[\s\u2581]call[\s\u2581]begin(?:｜|\|)>[\s\S]*?<(?:｜|\|)tool[\s\u2581]call[\s\u2581]end(?:｜|\|)>/g, '')
+        .replace(new RegExp(`<${bar}tool${sep}calls?${sep}(?:begin|end)${bar}>`, 'g'), '')
+        .replace(new RegExp(`<${bar}tool${sep}call${sep}(?:begin|end)${bar}>[\\s\\S]*?<${bar}tool${sep}call${sep}end${bar}>`, 'g'), '')
+        .replace(new RegExp(`<${bar}tool${sep}sep${bar}>`, 'g'), '')
         .trim();
     return { tool_calls: calls, content, parser: 'deepseek' };
 }
