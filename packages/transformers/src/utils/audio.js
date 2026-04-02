@@ -470,6 +470,7 @@ function power_to_db(spectrogram, reference = 1.0, min_value = 1e-10, db_range =
  * @param {boolean} [options.do_pad=true] If `true`, pads the output spectrogram to have `max_num_frames` frames.
  * @param {boolean} [options.transpose=false] If `true`, the returned spectrogram will have shape `(num_frames, num_frequency_bins/num_mel_filters)`. If `false`, the returned spectrogram will have shape `(num_frequency_bins/num_mel_filters, num_frames)`.
  * @param {number} [options.mel_offset=0] Offset to add to the mel spectrogram to avoid taking the log of zero.
+ * @param {string} [options.mel_floor_mode="clamp"] If `mel_offset` is provided, this option determines how to apply it. If `"clamp"`, the mel spectrogram will be clamped to have a minimum value of `mel_offset`. If `"add"`, `mel_offset` will be added to all values of the mel spectrogram.
  * @returns {Promise<Tensor>} Spectrogram of shape `(num_frequency_bins, length)` (regular spectrogram) or shape `(num_mel_filters, length)` (mel spectrogram).
  */
 export async function spectrogram(
@@ -500,6 +501,7 @@ export async function spectrogram(
         do_pad = true,
         transpose = false,
         mel_offset = 0,
+        mel_floor_mode = 'clamp',
     } = {},
 ) {
     const window_length = window.length;
@@ -539,6 +541,14 @@ export async function spectrogram(
             case 'constant': {
                 // @ts-expect-error ts(2351)
                 const padded = new waveform.constructor(waveform.length + 2 * padding);
+                padded.set(waveform, padding);
+                waveform = padded;
+                break;
+            }
+            case 'semicausal': {
+                // Prepend padding zeros only (no right padding)
+                // @ts-expect-error ts(2351)
+                const padded = new waveform.constructor(waveform.length + padding);
                 padded.set(waveform, padding);
                 waveform = padded;
                 break;
@@ -653,8 +663,14 @@ export async function spectrogram(
     }
 
     const mel_spec_data = /** @type {Float32Array} */ (mel_spec.data);
-    for (let i = 0; i < mel_spec_data.length; ++i) {
-        mel_spec_data[i] = mel_offset + Math.max(mel_floor, mel_spec_data[i]);
+    if (mel_floor_mode === 'add') {
+        for (let i = 0; i < mel_spec_data.length; ++i) {
+            mel_spec_data[i] = mel_offset + mel_spec_data[i] + mel_floor;
+        }
+    } else {
+        for (let i = 0; i < mel_spec_data.length; ++i) {
+            mel_spec_data[i] = mel_offset + Math.max(mel_floor, mel_spec_data[i]);
+        }
     }
 
     if (power !== null && log_mel !== null) {
